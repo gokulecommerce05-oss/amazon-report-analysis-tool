@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2G VIBE Payout Analyser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F7F6; --surface:#FFFFFF; --ink:#1B2427; --muted:#5B676B; --line:#DCE3E1;
+  --peacock:#0F5563; --peacock-soft:#E1EEF0; --turmeric:#C98A06; --turmeric-soft:#FBF1D9;
+  --kumkum:#B3261E; --kumkum-soft:#FBE7E5; --leaf:#3B7A37; --leaf-soft:#E5F1E3;
+  --kept:#0F5563;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#9AA8A6; --line:#2B393C;
+    --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
+    --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#9AA8A6; --line:#2B393C;
+  --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
+  --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Mukta,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:17px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
+h1,h2,h3{line-height:1.15;margin:0}
+h1{font-size:clamp(1.9rem,4.5vw,3rem);font-weight:800;letter-spacing:-.01em}
+h2{font-size:1.45rem;font-weight:800;margin-bottom:6px}
+p{margin:0}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--turmeric);outline-offset:2px}
+
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.brand{font-weight:800;color:var(--peacock);font-size:1.05rem}
+
+/* drop zone */
+.drop{border:2px dashed var(--peacock);border-radius:18px;background:var(--surface);padding:40px 28px;display:grid;gap:14px;cursor:pointer;transition:background .15s}
+.drop.over{background:var(--peacock-soft)}
+.drop h1{max-width:18ch}
+.drop .how{max-width:62ch}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;background:var(--peacock);color:var(--surface);padding:10px 20px;font-weight:600;cursor:pointer;justify-self:start}
+.btn.ghost{background:transparent;color:var(--peacock);border:1.5px solid var(--peacock);padding:6px 14px;font-size:.92rem}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px;font-size:.9rem}
+.chip button{border:0;background:var(--line);border-radius:50%;width:24px;height:24px;cursor:pointer;line-height:1}
+.err{background:var(--kumkum-soft);color:var(--kumkum);padding:12px 16px;border-radius:12px;margin-top:14px;display:none}
+
+/* verdict */
+#report{display:none}
+.verdict{margin:36px 0 10px}
+.verdict h1 .amt{color:var(--peacock)}
+.verdict .sub{margin-top:8px;max-width:70ch}
+.rupee{margin:22px 0 8px;display:flex;height:64px;border-radius:12px;overflow:hidden;background:var(--line)}
+.rupee span{display:block;height:100%;min-width:2px;position:relative}
+.rupee span:hover{filter:brightness(1.1)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.92rem;margin-bottom:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:2px;background:var(--line);border-radius:14px;overflow:hidden;margin:26px 0}
+.kpi{background:var(--surface);padding:14px 16px}
+.kpi b{display:block;font-size:1.45rem;font-weight:800}
+.kpi small{color:var(--muted);font-size:.88rem}
+.kpi.hold b{color:var(--turmeric)}
+
+.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:6px}
+.filters label{display:grid;font-size:.85rem;color:var(--muted)}
+.filters input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
+
+section{margin-top:44px}
+.lead{max-width:70ch;margin-bottom:14px}
+
+/* alerts */
+ol.fix{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:12px;counter-reset:f}
+ol.fix li{counter-increment:f;display:grid;grid-template-columns:40px 1fr auto;gap:4px 14px;padding:16px 18px;border-radius:14px;background:var(--surface);border-left:6px solid var(--line)}
+ol.fix li::before{content:counter(f);grid-row:span 3;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--bg)}
+ol.fix li.bad{border-left-color:var(--kumkum)} ol.fix li.bad::before{background:var(--kumkum-soft);color:var(--kumkum)}
+ol.fix li.warn{border-left-color:var(--turmeric)} ol.fix li.warn::before{background:var(--turmeric-soft);color:var(--turmeric)}
+ol.fix li.info{border-left-color:var(--peacock)} ol.fix li.info::before{background:var(--peacock-soft);color:var(--peacock)}
+ol.fix li.good{border-left-color:var(--leaf)} ol.fix li.good::before{background:var(--leaf-soft);color:var(--leaf)}
+.fix h3{font-size:1.1rem;font-weight:800}
+.fix .cost{font-weight:800;white-space:nowrap;text-align:right}
+.fix .why{grid-column:2/4;color:var(--muted)}
+.fix .do{grid-column:2/4}
+
+/* tables */
+.tbl{overflow-x:auto;background:var(--surface);border-radius:14px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:.85rem;background:var(--surface);position:sticky;top:0}
+th.sort{cursor:pointer} th.sort:hover{color:var(--ink)}
+td:first-child,th:first-child{text-align:left;white-space:normal;min-width:220px}
+tr:last-child td{border-bottom:0}
+tfoot td{font-weight:800}
+.tag{display:inline-block;padding:1px 10px;border-radius:999px;font-size:.82rem;font-weight:600}
+.tag.bad{background:var(--kumkum-soft);color:var(--kumkum)}
+.tag.warn{background:var(--turmeric-soft);color:var(--turmeric)}
+.tag.ok{background:var(--leaf-soft);color:var(--leaf)}
+td.hot{color:var(--kumkum);font-weight:700}
+
+/* weekly bars */
+.weeks{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(70px,1fr);gap:10px;align-items:end;height:230px;overflow-x:auto;padding:10px 4px 0}
+.wk{display:grid;grid-template-rows:auto 1fr auto;height:100%;text-align:center;font-size:.85rem}
+.wk .bar{align-self:end;background:var(--peacock);border-radius:8px 8px 2px 2px;min-height:3px}
+.wk .v{font-weight:600}
+.wk .d{color:var(--muted);margin-top:4px}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+footer{margin-top:56px;color:var(--muted);font-size:.88rem;max-width:72ch}
+@media (max-width:600px){
+  .wrap{padding:20px 14px 48px}
+  ol.fix li{grid-template-columns:34px 1fr}
+  .fix .cost{grid-column:2;text-align:left}
+  .fix .why,.fix .do{grid-column:2}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="brand">🦚 2G VIBE payout analyser</span>
+    <span class="muted" id="fileCount"></span>
+  </header>
+
+  <label class="drop" id="drop" tabindex="0">
+    <h1>Drop your Amazon transactions file here</h1>
+    <p class="how muted">In Seller Central go to Payments → Transaction view, pick a date range or statement period, and download the CSV. You can add several files at once; everything stays in your browser.</p>
+    <span class="btn" role="button">Choose CSV files</span>
+    <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+  </label>
+  <div class="err" id="err"></div>
+  <div class="files" id="files"></div>
+
+  <div id="report">
+    <div class="verdict">
+      <h1 id="headline"></h1>
+      <p class="sub muted" id="subline"></p>
+      <div class="rupee" id="rupee" role="img"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="filters">
+      <label>From<input type="date" id="from"></label>
+      <label>To<input type="date" id="to"></label>
+      <button class="btn ghost" id="resetDates">Show all dates</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <section>
+      <h2>Fix these first</h2>
+      <p class="lead muted">Sorted by how much each problem cost you in this period.</p>
+      <ol class="fix" id="alerts"></ol>
+    </section>
+
+    <section>
+      <h2>Where the money went</h2>
+      <div class="tbl"><table id="dedTable"></table></div>
+    </section>
+
+    <section>
+      <h2>Order payments by week</h2>
+      <p class="lead muted">Net amount from orders, grouped by the Monday each week starts.</p>
+      <div class="weeks" id="weeks"></div>
+    </section>
+
+    <section>
+      <h2>Products</h2>
+      <p class="lead muted">Paid orders only; free orders are counted separately. Click a column to sort.</p>
+      <div class="tbl"><table id="prodTable"></table></div>
+    </section>
+
+    <section class="two">
+      <div>
+        <h2>Refunds by payment type</h2>
+        <div class="tbl"><table id="payTable"></table></div>
+      </div>
+      <div>
+        <h2>Free orders</h2>
+        <div class="tbl"><table id="freeTable"></table></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Refunds</h2>
+      <div class="tbl"><table id="refTable"></table></div>
+    </section>
+
+    <footer>Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
+  </div>
+</div>
+
+<script>
+(function(){
+const files = new Map(); // name -> rows
+let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1};
+const $ = id => document.getElementById(id);
+const INR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0});
+const INR2 = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2});
+const money = v => INR.format(Math.round(v)).replace('-₹','−₹');
+const pct = v => (isFinite(v)? (v*100).toFixed(1):'0.0') + '%';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const short = (s,n=48) => { s = String(s||'').replace(/\.\.\.$/,'').trim(); return s.length>n? s.slice(0,n-1)+'…' : s; };
+
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/,'');
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(f); f=''; }
+    else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; }
+    else if(c!=='\r') f+=c;
+  }
+  if(f!==''||row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()!==''));
+}
+const N = v => { const x = parseFloat(String(v||'').replace(/[₹,\s]/g,'')); return isFinite(x)? x : 0; };
+function parseDate(s){
+  const m = String(s).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const d = new Date(s); return isNaN(d)? null : d;
+}
+function toRows(text){
+  const t = parseCSV(text); if(t.length<2) throw new Error('The file has no transaction rows.');
+  const h = t[0].map(x => x.trim().toLowerCase());
+  const col = name => h.findIndex(x => x===name || x.startsWith(name));
+  const idx = {date:col('date'), status:col('transaction status'), acct:col('account type'), type:col('transaction type'),
+    order:col('order id'), prod:col('product details'), charges:col('total product charges'), promo:col('total promotional rebates'),
+    fees:col('amazon fees'), other:col('other'), total:col('total (inr)')};
+  const need = ['date','type','charges','promo','fees','total'];
+  const miss = need.filter(k => idx[k]<0);
+  if(miss.length) throw new Error('This does not look like a Seller Central transactions CSV. Missing columns: '+miss.join(', ')+'.');
+  return t.slice(1).map(r => {
+    const g = k => idx[k]>=0 ? (r[idx[k]]||'').trim() : '';
+    const type=g('type'), prod=g('prod'), charges=N(g('charges')), promo=N(g('promo'));
+    const acct=g('acct');
+    const row = {date:parseDate(g('date')), status:g('status')||'Released', pay: acct? (/^cash/i.test(acct)?'Cash on delivery':'Prepaid') : '',
+      type, order:g('order'), prod, charges, promo, fees:N(g('fees')), other:N(g('other')), total:N(g('total'))};
+    row.free = type==='Order Payment' && charges>0 && promo <= -charges+0.01;
+    row.group = type==='Order Payment' ? 'Order'
+      : ['Refund','Fulfillment Fee Refund','Inventory Reimbursement'].includes(type) ? 'Refunds'
+      : prod==='Cost of Advertising' ? 'Advertising'
+      : (type==='Amazon Easy Ship Charges' || prod==='Easy Ship Shipping Fee') ? 'Easy Ship' : 'Other fees';
+    return row;
+  }).filter(r => r.date);
+}
+
+function addFiles(list){
+  $('err').style.display='none';
+  const jobs = [...list].map(f => f.text().then(txt => { files.set(f.name, toRows(txt)); }).catch(e => { showErr(f.name+': '+e.message); }));
+  Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; render(); });
+}
+function showErr(m){ const e=$('err'); e.textContent=m; e.style.display='block'; }
+
+const drop=$('drop'), input=$('file');
+drop.addEventListener('click', e => { if(e.target!==input) input.click(); });
+drop.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); } });
+input.addEventListener('change', () => { addFiles(input.files); input.value=''; });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+$('from').addEventListener('change', e => { dateFrom = e.target.value? new Date(e.target.value+'T00:00'):null; render(); });
+$('to').addEventListener('change', e => { dateTo = e.target.value? new Date(e.target.value+'T00:00'):null; render(); });
+$('resetDates').addEventListener('click', () => { dateFrom=null; dateTo=null; render(); });
+
+function render(){
+  const chips = $('files'); chips.innerHTML='';
+  files.forEach((rows,name) => {
+    const c=document.createElement('span'); c.className='chip';
+    c.innerHTML = esc(name)+' <span class="muted">'+rows.length+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
+    c.querySelector('button').onclick = () => { files.delete(name); render(); };
+    chips.appendChild(c);
+  });
+  let all=[]; files.forEach(r => all=all.concat(r));
+  $('fileCount').textContent = files.size? files.size+' file'+(files.size>1?'s':'')+' loaded' : '';
+  if(!all.length){ $('report').style.display='none'; return; }
+  $('report').style.display='block';
+  const minD = new Date(Math.min(...all.map(r=>r.date))), maxD = new Date(Math.max(...all.map(r=>r.date)));
+  $('from').min=$('to').min=iso(minD); $('from').max=$('to').max=iso(maxD);
+  $('from').value = iso(dateFrom||minD); $('to').value = iso(dateTo||maxD);
+  const rows = all.filter(r => (!dateFrom || r.date>=dateFrom) && (!dateTo || r.date<=dateTo));
+  analyse(rows, dateFrom||minD, dateTo||maxD);
+}
+
+function sum(a,f){ return a.reduce((s,r)=>s+f(r),0); }
+function analyse(R, d0, d1){
+  const orders = R.filter(r=>r.type==='Order Payment');
+  const paid = orders.filter(r=>!r.free), free = orders.filter(r=>r.free);
+  const refunds = R.filter(r=>r.type==='Refund');
+  const orderValue = sum(orders,r=>r.charges);
+  const payout = sum(R,r=>r.total);
+  const deferred = sum(R.filter(r=>/deferred/i.test(r.status)),r=>r.total);
+  const released = payout-deferred;
+  const ded = [
+    {k:'Amazon fees (after shipping and tax credits)', v:-(sum(paid,r=>r.fees)+sum(paid,r=>r.other)), c:'var(--muted)', verdict:'ok'},
+    {k:'Refunds (after fee refunds and reimbursements)', v:-sum(R.filter(r=>r.group==='Refunds'),r=>r.total), c:'var(--kumkum)', verdict:'check'},
+    {k:'Advertising', v:-sum(R.filter(r=>r.group==='Advertising'),r=>r.total), c:'var(--peacock-soft)', verdict:'ok'},
+    {k:'Coupons on paid orders', v:-sum(paid,r=>r.promo), c:'var(--turmeric)', verdict:'check'},
+    {k:'Free orders (product given away plus fees)', v:sum(free,r=>r.charges)-sum(free,r=>r.total), c:'#7A1A14', verdict:'check'},
+    {k:'Easy Ship (self-ship) charges', v:-sum(R.filter(r=>r.group==='Easy Ship'),r=>r.total), c:'var(--turmeric-soft)', verdict:'ok'},
+    {k:'Inbound, storage, removal, cancellations', v:-sum(R.filter(r=>r.group==='Other fees'),r=>r.total), c:'var(--line)', verdict:'ok'}
+  ];
+  const share = v => orderValue? v/orderValue : 0;
+  const keptShare = share(payout);
+  // verdict thresholds
+  const vt = {
+    'Refunds (after fee refunds and reimbursements)': x => x>0.06?'bad':x>0.04?'warn':'ok',
+    'Coupons on paid orders': x => x>0.03?'warn':'ok',
+    'Free orders (product given away plus fees)': x => x>0?'bad':'ok',
+    'Advertising': x => x>0.12?'warn':'ok',
+    'Easy Ship (self-ship) charges': x => x>0.02?'warn':'ok'
+  };
+
+  // headline
+  const fmtD = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  $('headline').innerHTML = 'You keep <span class="amt">'+money(keptShare*100)+'</span> of every ₹100 in orders';
+  $('subline').textContent = fmtD(d0)+' to '+fmtD(d1)+': '+orders.length+' orders worth '+money(orderValue)+' became '+money(payout)+' for you'+(deferred>0? ', of which '+money(deferred)+' is still on hold.':'.');
+  // rupee bar
+  const rb=$('rupee'); rb.innerHTML=''; const lg=$('legend'); lg.innerHTML='';
+  const segs=[{k:'You keep',v:payout,c:'var(--kept)'}].concat(ded.filter(d=>d.v>0.5));
+  rb.setAttribute('aria-label', segs.map(s=>s.k+' '+pct(share(s.v))).join(', '));
+  segs.forEach(s => {
+    const w = Math.max(0, share(s.v)*100);
+    const el=document.createElement('span'); el.style.width=w+'%'; el.style.background=s.c; el.title=s.k+': '+money(s.v)+' ('+pct(share(s.v))+')';
+    rb.appendChild(el);
+    lg.insertAdjacentHTML('beforeend','<span><i style="background:'+s.c+'"></i>'+esc(s.k.replace(/ \(.*\)/,''))+' <b class="num">'+pct(share(s.v))+'</b></span>');
+  });
+
+  // KPIs
+  const units = paid.length;
+  $('kpis').innerHTML = [
+    ['Orders', orders.length.toLocaleString('en-IN'), free.length? free.length+' free':''],
+    ['Order value', money(orderValue), 'before any deductions'],
+    ['Paid to you', money(payout), pct(keptShare)+' of order value'],
+    ['Already released', money(released), 'in your bank or on the way'],
+    ['On hold (deferred)', money(deferred), 'paid after delivery', 'hold'],
+    ['Refunds', refunds.length, pct(orders.length? refunds.length/orders.length:0)+' of orders']
+  ].map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+
+  // deductions table
+  let t='<thead><tr><th>Expense</th><th>Amount</th><th>% of order value</th><th>Verdict</th></tr></thead><tbody>';
+  ded.forEach(d => {
+    const s=share(d.v), v=(vt[d.k]||(()=> 'ok'))(s);
+    const label = v==='bad'?'<span class="tag bad">Problem</span>':v==='warn'?'<span class="tag warn">Can cut</span>':'<span class="tag ok">Normal</span>';
+    t+='<tr><td>'+d.k+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>';
+  });
+  const totDed = sum(ded,d=>d.v);
+  t+='</tbody><tfoot><tr><td>Total deducted</td><td class="num">'+money(totDed)+'</td><td class="num">'+pct(share(totDed))+'</td><td></td></tr></tfoot>';
+  $('dedTable').innerHTML=t;
+
+  // weekly
+  const wk = new Map();
+  orders.forEach(r => { const d=new Date(r.date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); const k=iso(d); wk.set(k,(wk.get(k)||0)+r.total); });
+  const wkeys=[...wk.keys()].sort(); const wmax=Math.max(1,...wk.values());
+  $('weeks').innerHTML = wkeys.map(k => { const v=wk.get(k); const d=new Date(k+'T00:00');
+    return '<div class="wk" title="Week of '+fmtD(d)+': '+money(v)+'"><span class="v num">'+(v>=1000? '₹'+(v/1000).toFixed(1)+'K':money(v))+'</span><span class="bar" style="height:'+Math.max(2,v/wmax*100)+'%"></span><span class="d">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</span></div>'; }).join('');
+
+  // products
+  const P=new Map();
+  const get = name => { if(!P.has(name)) P.set(name,{name,n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0}); return P.get(name); };
+  paid.forEach(r => { const p=get(r.prod); p.n++; p.sales+=r.charges; p.promo+=r.promo; p.fees+=r.fees+r.other; p.net+=r.total; });
+  free.forEach(r => get(r.prod).free++);
+  refunds.forEach(r => { const p=get(r.prod); p.ref++; p.refAmt+=r.total; });
+  const prods=[...P.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0}));
+  drawProducts(prods);
+
+  // payment type
+  const pays=['Cash on delivery','Prepaid'].map(k => { const o=orders.filter(r=>r.pay===k).length, f=refunds.filter(r=>r.pay===k); return {k,o,n:f.length,amt:sum(f,r=>r.total),rate:o? f.length/o:0}; });
+  const hasPay = orders.some(r=>r.pay);
+  $('payTable').innerHTML = hasPay
+    ? '<thead><tr><th>Payment type</th><th>Orders</th><th>Refunds</th><th>Refund rate</th><th>Amount</th></tr></thead><tbody>'+pays.map(p=>'<tr><td>'+p.k+'</td><td class="num">'+p.o+'</td><td class="num">'+p.n+'</td><td class="num '+(p.rate>0.08?'hot':'')+'">'+pct(p.rate)+'</td><td class="num">'+money(p.amt)+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td class="muted">This file has no Account Type column. Download the date-range transaction view to see cash-on-delivery against prepaid.</td></tr></tbody>';
+
+  // free orders
+  $('freeTable').innerHTML = free.length
+    ? '<thead><tr><th>Product</th><th>Date</th><th>Order ID</th><th>Fees paid</th></tr></thead><tbody>'+free.sort((a,b)=>b.date-a.date).map(r=>'<tr><td>'+esc(short(r.prod,40))+'</td><td>'+r.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(r.order)+'</td><td class="num">'+money(-r.total)+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td>No free orders in this period.</td></tr></tbody>';
+
+  // refunds list
+  const paidByOrder=new Map(); orders.forEach(r=>paidByOrder.set(r.order,(paidByOrder.get(r.order)||0)+r.total));
+  $('refTable').innerHTML = refunds.length
+    ? '<thead><tr><th>Product</th><th>Date</th><th>Order ID</th><th>Payment</th><th>Taken back</th><th>Original payment</th></tr></thead><tbody>'+refunds.sort((a,b)=>a.total-b.total).map(r=>'<tr><td>'+esc(short(r.prod,46))+'</td><td>'+r.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(r.order)+'</td><td>'+esc(r.pay||'—')+'</td><td class="num">'+money(r.total)+'</td><td class="num">'+(paidByOrder.has(r.order)? money(paidByOrder.get(r.order)):'<span class="muted">earlier period</span>')+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td>No refunds in this period.</td></tr></tbody>';
+
+  // alerts
+  const A=[];
+  if(free.length){
+    const byP={}; free.forEach(r=>{const k=short(r.prod,40); byP[k]=(byP[k]||0)+1;});
+    A.push({sev:'bad', cost:ded[4].v, title:free.length+' order'+(free.length>1?'s':'')+' went out free',
+      why:'Discount equalled the full price, so the buyer paid ₹0 and you still paid '+money(-sum(free,r=>r.total))+' in fees. '+Object.entries(byP).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k+' ('+v+')').join(', ')+'.',
+      todo:'Open order '+free[0].order+' in Manage Orders. If it says Vine, cut Vine units on these products; if not, end any 100%-off promotion or promo code today.'});
+  }
+  const badProds = prods.filter(p=>p.n>=4 && p.refRate>=0.2).sort((a,b)=>a.refAmt-b.refAmt);
+  badProds.forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,44)+' is returned too often',
+    why:p.ref+' refunds on '+p.n+' paid orders ('+pct(p.refRate)+'), costing '+money(-p.refAmt)+'.',
+    todo:'Read the return reasons. Fix photos, size details or packaging, or pause the product until the cause is fixed.'}));
+  const rr = orders.length? refunds.length/orders.length:0;
+  if(rr>0.06) A.push({sev:rr>0.08?'bad':'warn', cost:ded[1].v, title:'Refunds are '+pct(rr)+' of orders',
+    why:refunds.length+' refunds cost '+money(ded[1].v)+' after fee refunds. A healthy target is under 5%.',
+    todo:'Add a size-reference photo and better packaging on the most-returned products.'});
+  if(hasPay){ const cod=pays[0], pre=pays[1];
+    if(cod.n>=3 && cod.rate>Math.max(0.06, pre.rate*1.5)) A.push({sev:'warn', cost:-cod.amt, title:'Cash-on-delivery orders come back '+(pre.rate? (cod.rate/pre.rate).toFixed(1)+'x':'far')+' more often',
+      why:'COD refund rate '+pct(cod.rate)+' ('+cod.n+' of '+cod.o+') against '+pct(pre.rate)+' for prepaid.',
+      todo:'Show the true size in images and clear delivery times. If COD returns stay above 10%, consider turning COD off on self-shipped items.'}); }
+  const cs = share(ded[3].v), couponOrders = paid.filter(r=>r.promo<0).length;
+  if(cs>0.03) A.push({sev:'warn', cost:ded[3].v, title:'Discounts on '+pct(paid.length? couponOrders/paid.length:0)+' of paid orders',
+    why:'Coupons and promotions cost '+money(ded[3].v)+' ('+pct(cs)+' of order value).',
+    todo:'End always-on promotions; keep coupons for festivals and new launches.'});
+  const esOrders = new Set(R.filter(r=>r.type==='Amazon Easy Ship Charges' && r.total<0).map(r=>r.order)).size;
+  const cancel = -sum(R.filter(r=>r.type==='Cancellation'),r=>r.total);
+  if(esOrders>=5 || cancel>0) A.push({sev:'warn', cost:ded[5].v+cancel, title:esOrders+' self-shipped (Easy Ship) orders',
+    why:'Easy Ship charges '+money(ded[5].v)+(cancel>0? ' plus '+money(cancel)+' in cancellation charges':'')+'.',
+    todo:'Move steady self-ship products into FBA and avoid cancelling accepted orders.'});
+  const lowKept = prods.filter(p=>p.n>=10 && p.kept<0.78).sort((a,b)=>b.n-a.n);
+  if(lowKept.length) A.push({sev:'warn', cost:sum(lowKept,p=>p.n)*25, title:'Low-priced items keep only about '+pct(sum(lowKept,p=>p.net)/sum(lowKept,p=>p.sales)),
+    why:lowKept.slice(0,3).map(p=>short(p.name,36)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Fees are nearly fixed per order, so cheap items lose a bigger share.',
+    todo:'Raise these by ₹20–30 or sell 2-packs. Estimated gain shown at ₹25 per order.'});
+  const zero = orders.filter(r=>r.charges===0 && r.fees<0);
+  if(zero.length) A.push({sev:'warn', cost:-sum(zero,r=>r.total), title:zero.length+' order'+(zero.length>1?'s':'')+' with ₹0 sale but fees charged',
+    why:'Usually free replacement shipments. Orders: '+zero.slice(0,3).map(r=>r.order).join(', ')+'.',
+    todo:'Check each replacement was needed, and claim reimbursement if Amazon was at fault.'});
+  const ads = share(ded[2].v);
+  if(ads>0.12) A.push({sev:'warn', cost:ded[2].v, title:'Ads take '+pct(ads)+' of order value', why:'Ad charges were '+money(ded[2].v)+'.', todo:'Check ROAS in Campaign Manager; pause campaigns below 3x.'});
+  if(deferred>0) A.push({sev:'info', cost:0, title:money(deferred)+' is on hold, not lost', why:'Amazon holds payment for recent orders until after delivery.', todo:'Expect it in your next settlements.'});
+  if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Refunds, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
+  const rank={bad:0,warn:1,info:2,good:3};
+  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
+  $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
+}
+
+function drawProducts(prods){
+  const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo','Coupons'],['fees','Fees'],['net','Net to you'],['perOrder','Per order'],['kept','Kept'],['free','Free'],['ref','Refunds'],['refRate','Refund rate']];
+  const k=prodSort.key, d=prodSort.dir;
+  prods.sort((a,b)=> k==='name'? d*a.name.localeCompare(b.name) : d*(a[k]-b[k]));
+  const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]));
+  let h='<thead><tr>'+cols.map(c=>'<th class="sort" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'">'+c[1]+(c[0]===k?(d<0?' ↓':' ↑'):'')+'</th>').join('')+'</tr></thead><tbody>';
+  prods.forEach(p=>{
+    h+='<tr><td title="'+esc(p.name)+'">'+esc(short(p.name,52))+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td><td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td><td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>Total</td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td><td class="num">'+(tot.free||'')+'</td><td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td></tr></tfoot>';
+  const t=$('prodTable'); t.innerHTML=h;
+  t.querySelectorAll('th.sort').forEach(th=>{ th.tabIndex=0; const go=()=>{ const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawProducts(prods); }; th.onclick=go; th.onkeydown=e=>{ if(e.key==='Enter'){ go(); } }; });
+}
+})();
+</script>
+</body>
+</html>
