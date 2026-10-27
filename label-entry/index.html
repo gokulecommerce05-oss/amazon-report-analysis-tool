@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2G Vibe Daily Label Entry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<style>
+:root{
+  --bg:#F2F5F4;--surface:#FFFFFF;--ink:#14252A;--muted:#5A6D70;--line:#D6DFDD;
+  --teal:#0E5E63;--teal-soft:#E2EEEE;--gold:#D9970F;--gold-soft:#FBF0D6;
+  --red:#B3261E;--red-soft:#FBE6E4;--green:#1E7A45;--green-soft:#E1F2E7;
+  --amazon:#B35C00;--flipkart:#1F5FBF;--meesho:#A8236E;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F191B;--surface:#152427;--ink:#E5EEEC;--muted:#94A8A8;--line:#293D41;
+  --teal:#5BBDB8;--teal-soft:#1C3538;--gold:#F0B43C;--gold-soft:#3A2F14;
+  --red:#F2867D;--red-soft:#3D1E1C;--green:#6CCB93;--green-soft:#173326;
+  --amazon:#F2A355;--flipkart:#7EA8F2;--meesho:#E57CB7;color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0F191B;--surface:#152427;--ink:#E5EEEC;--muted:#94A8A8;--line:#293D41;
+  --teal:#5BBDB8;--teal-soft:#1C3538;--gold:#F0B43C;--gold-soft:#3A2F14;
+  --red:#F2867D;--red-soft:#3D1E1C;--green:#6CCB93;--green-soft:#173326;
+  --amazon:#F2A355;--flipkart:#7EA8F2;--meesho:#E57CB7;color-scheme:dark;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 120px}
+header h1{font-size:clamp(26px,4vw,36px);line-height:1.1;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end;margin:22px 0 14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=date],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
+input[type=text]{min-width:min(420px,80vw)}
+details.settings summary{cursor:pointer;color:var(--teal);font-weight:600;font-size:14px;padding:8px 0}
+details.settings .row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:6px}
+.drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
+  border:2px dashed var(--gold);background:var(--gold-soft);border-radius:18px;padding:38px 20px;cursor:pointer;transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{border-style:solid;box-shadow:inset 0 0 0 3px var(--gold-soft)}
+.drop:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.drop strong{font-size:20px;font-weight:700}
+.drop span{color:var(--muted);font-size:14px}
+.drop .logos{display:flex;gap:14px;margin-top:6px;font-weight:700;font-size:13px}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.notice{margin:16px 0 0;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+.notice.show{display:block}
+.notice.info{background:var(--teal-soft);color:var(--ink)}
+.notice.ok{background:var(--green-soft);color:var(--ink);border-left:4px solid var(--green)}
+.notice.err{background:var(--red-soft);color:var(--ink);border-left:4px solid var(--red)}
+.notice.warn{background:var(--gold-soft);color:var(--ink);border-left:4px solid var(--gold)}
+.summary{display:none;flex-wrap:wrap;gap:10px;margin:22px 0 10px}
+.summary.show{display:flex}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:120px}
+.stat b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat small{color:var(--muted);font-size:13px;font-weight:600}
+.stat.amazon b{color:var(--amazon)}.stat.flipkart b{color:var(--flipkart)}.stat.meesho b{color:var(--meesho)}
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:none}
+.tablebox.show{display:block}
+table{border-collapse:collapse;width:100%;min-width:1100px;font-size:13.5px}
+th{position:sticky;top:0;background:var(--teal);color:#fff;text-align:left;font-weight:600;padding:9px 10px;white-space:nowrap}
+:root[data-theme="dark"] th{color:#0F191B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) th{color:#0F191B}}
+td{border-top:1px solid var(--line);padding:7px 10px;vertical-align:top}
+td[contenteditable]{outline:none;border-radius:4px}
+td[contenteditable]:focus{background:var(--gold-soft);box-shadow:inset 0 0 0 2px var(--gold)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.prod{min-width:260px;max-width:340px}
+td.missing{background:var(--red-soft)}
+tr.dup td{opacity:.5}
+tr.dup td.tag::after{content:" already in sheet";color:var(--red);font-weight:600;opacity:1}
+.chip{font-weight:700;white-space:nowrap}
+.chip.Amazon{color:var(--amazon)}.chip.Flipkart{color:var(--flipkart)}.chip.Meesho{color:var(--meesho)}
+.del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1}
+.del:hover{color:var(--red)}
+.del:focus-visible{outline:2px solid var(--teal);border-radius:4px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));display:none;z-index:5}
+.bar.show{display:block}
+.bar .in{max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bar .note{color:var(--muted);font-size:13px;flex:1 1 220px}
+button.btn{font:inherit;font-weight:700;border-radius:10px;padding:10px 18px;min-height:44px;cursor:pointer;border:1px solid transparent}
+button.primary{background:var(--teal);color:#fff}
+:root[data-theme="dark"] button.primary{color:#0F191B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#0F191B}}
+button.primary:disabled{opacity:.55;cursor:progress}
+button.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+button.btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.files{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.files li{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px}
+dialog{border:none;border-radius:16px;padding:22px;max-width:min(620px,92vw);width:100%;background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35);border-top:6px solid var(--red)}
+dialog::backdrop{background:rgba(10,20,22,.55)}
+dialog h2{margin:0 0 6px;font-size:22px;color:var(--red)}
+dialog p{margin:0 0 12px;color:var(--ink)}
+.duplist{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:16px}
+.duplist table{min-width:0;font-size:14px}
+.duplist th{background:var(--red-soft);color:var(--ink);position:sticky;top:0}
+:root[data-theme="dark"] .duplist th{color:var(--ink)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .duplist th{color:var(--ink)}}
+.duplist td{font-variant-numeric:tabular-nums}
+@media (max-width:600px){.wrap{padding:20px 14px 150px}.drop{padding:28px 14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Daily label entry</h1>
+  <p>Drop today's Amazon, Flipkart and Meesho label PDFs. Check the rows below, then add them to the Orders tab of your Google Sheet. An Order ID that is already in the sheet is never added again.</p>
+</header>
+
+<div class="controls">
+  <label class="f">Dispatch date
+    <input type="date" id="dispatch">
+  </label>
+  <details class="settings">
+    <summary>Google Sheet settings</summary>
+    <div class="row">
+      <label class="f">Web app URL (from Apps Script)
+        <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/…/exec">
+      </label>
+      <label class="f">Access key
+        <input type="password" id="scriptKey" autocomplete="off">
+      </label>
+      <button class="btn ghost" id="saveSheet" type="button">Save</button>
+    </div>
+    <p class="muted" style="font-size:13px;margin:8px 0 0;max-width:62ch">One-time setup: in your sheet open Extensions → Apps Script, paste <a href="https://github.com/gokulecommerce05-oss/amazon-report-analysis-tool/blob/main/label-entry/apps-script.gs" target="_blank" rel="noopener">this script</a>, set its ACCESS_KEY, and deploy it as a Web app (Execute as: Me, Who has access: Anyone). Both values are saved only in this browser.</p>
+  </details>
+</div>
+
+<div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose label PDF files">
+  <strong>Drop label PDFs here</strong>
+  <span>or tap to choose files. You can add several files at once.</span>
+  <div class="logos"><span class="chip Amazon">Amazon</span><span class="chip Flipkart">Flipkart</span><span class="chip Meesho">Meesho</span></div>
+  <input type="file" id="file" accept="application/pdf,.pdf" multiple aria-hidden="true" tabindex="-1">
+</div>
+<ul class="files" id="files"></ul>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+
+<div class="summary" id="summary"></div>
+<div class="tablebox" id="tablebox">
+  <table>
+    <thead><tr>
+      <th>Platform</th><th>Order ID</th><th>SKU ID</th><th>Product</th><th>Qty</th><th>Amount (₹)</th><th>Payment</th><th>Courier</th><th>AWB</th><th>Customer</th><th>State</th><th>Order date</th><th></th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <span class="note" id="barNote">Click any cell to fix it before saving.</span>
+    <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+    <button class="btn ghost" id="copyBtn" type="button">Copy rows</button>
+    <button class="btn primary" id="saveBtn" type="button">Add to Google Sheet</button>
+  </div>
+</div>
+<dialog id="dupDlg" aria-labelledby="dupTitle">
+  <h2 id="dupTitle">Duplicate orders found</h2>
+  <p id="dupIntro"></p>
+  <div class="duplist"><table><thead><tr><th>Platform</th><th>Order ID</th><th>Reason</th></tr></thead><tbody id="dupBody"></tbody></table></div>
+  <form method="dialog"><button class="btn primary" value="ok">OK, got it</button></form>
+</dialog>
+<textarea id="clip" aria-hidden="true" style="position:fixed;left:-9999px;top:0"></textarea>
+<script>
+// ===== label parsers (shared by test + page) =====
+const STATES={AN:"Andaman and Nicobar",AP:"Andhra Pradesh",AR:"Arunachal Pradesh",AS:"Assam",BR:"Bihar",CH:"Chandigarh",CT:"Chhattisgarh",CG:"Chhattisgarh",DN:"Dadra and Nagar Haveli",DD:"Daman and Diu",DL:"Delhi",GA:"Goa",GJ:"Gujarat",HR:"Haryana",HP:"Himachal Pradesh",JK:"Jammu and Kashmir",JH:"Jharkhand",KA:"Karnataka",KL:"Kerala",LA:"Ladakh",LD:"Lakshadweep",MP:"Madhya Pradesh",MH:"Maharashtra",MN:"Manipur",ML:"Meghalaya",MZ:"Mizoram",NL:"Nagaland",OR:"Odisha",OD:"Odisha",PY:"Puducherry",PB:"Punjab",RJ:"Rajasthan",SK:"Sikkim",TN:"Tamil Nadu",TG:"Telangana",TS:"Telangana",TR:"Tripura",UP:"Uttar Pradesh",UK:"Uttarakhand",UT:"Uttarakhand",WB:"West Bengal"};
+const COURIERS=["Delhivery","Xpress Bees","XpressBees","Shadowfax","Ecom Express","Valmo","Ekart","E-Kart Logistics","DTDC","Blue Dart","BlueDart","India Post","Amazon Shipping"];
+function titleCase(s){return s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()).trim();}
+function normState(s){ if(!s)return""; s=s.replace(/\s+/g," ").trim(); if(/^tamilnadu$/i.test(s))return"Tamil Nadu"; return titleCase(s);}
+const STATE_NAMES=[...new Set(Object.values(STATES))].sort((a,b)=>b.length-a.length);
+function matchState(s){ if(!s)return""; const low=s.toLowerCase().replace(/tamilnadu/,"tamil nadu");
+  for(const n of STATE_NAMES){ if(low.includes(n.toLowerCase()))return n; }
+  const w=low.trim().split(/[\s,]+/)[0]; const c=STATE_NAMES.filter(n=>n.toLowerCase().split(" ")[0]===w); return c.length===1?c[0]:""; }
+function dmy(d,m,y){if(y.length===2)y="20"+y;return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;}
+function num(s){return s?parseFloat(String(s).replace(/[₹,Rs.\s]/g,m=>m==="."?".":"").replace(/^\./,"")):0;}
+function money(s){if(!s)return 0;const m=String(s).match(/[\d,]+(?:\.\d+)?/);return m?parseFloat(m[0].replace(/,/g,"")):0;}
+
+function detect(t){
+  if(/Order Number:\s*\d{3}-\d{7}-\d{7}/.test(t))return"Amazon";
+  if(/Purchase Order No\./.test(t)&&/\d{10,}_\d+/.test(t))return"Meesho";
+  if(/\bOD\d{15,}\b/.test(t)&&/SKU ID\s*\|/.test(t))return"Flipkart";
+  return null;
+}
+
+function parseMeesho(t){
+  const L=t.split("\n"); const out=[];
+  const pay=/^COD\b|\bCOD:/m.test(t)?"COD":(/Prepaid/i.test(t)?"Prepaid":"");
+  const pdIdx=L.findIndex(l=>/^Product Details/.test(l));
+  const top=L.slice(0,pdIdx<0?L.length:pdIdx).join("\n");
+  const courier=COURIERS.find(c=>top.includes(c))||"";
+  const awbM=top.match(/\b(\d{11,20})\b/); const awb=awbM?awbM[1]:"";
+  let state=""; const pi=L.findIndex(l=>/Place of Supply:/.test(l));
+  if(pi>=0){let rest=L[pi].split(/Place of Supply:/)[1].trim(); if(!rest){for(let j=pi+1;j<Math.min(L.length,pi+4);j++){if(!/^(Purchase|Sold|GSTIN)/.test(L[j])){rest=L[j];break;}}} state=matchState(rest);}
+  if(!state){const st=top.match(/,\s*([A-Za-z][A-Za-z ]+?),\s*(\d{6})\b/); state=st?normState(st[1]):"";}
+  const bi=L.findIndex(l=>/^BILL TO \/ SHIP TO/.test(l));
+  let cust=""; if(bi>=0&&L[bi+1]){cust=L[bi+1].split(" - ")[0].trim();}
+  if(!cust){const ci=L.findIndex(l=>/^Customer Address/.test(l)); if(ci>=0)cust=(L[ci+1]||"").trim();}
+  const dm=t.match(/(\d{10,})\s+(\S+)\s+(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2})\.(\d{2})\.(\d{4})/);
+  const orderDate=dm?dmy(dm[3],dm[4],dm[5]):"";
+  const totM=t.match(/^Total\s+Rs\.[\d.,]+\s+Rs\.([\d.,]+)/m); const total=totM?money(totM[1]):0;
+  // product description
+  const di=L.findIndex(l=>/^Description\s+HSN/.test(l)); let desc=[];
+  if(di>=0){for(let i=di+1;i<L.length;i++){const l=L[i]; if(/^(Other Charges|Total\b)/.test(l))break; if(/^(SGST|CGST|IGST|Rs\.)/.test(l))continue; const m=l.match(/^(.*?)\s*\b\d{4,8}\s+\d+\s+Rs\./); desc.push(m?m[1]:l);} }
+  let name=desc.join(" ").replace(/(SGST|CGST|IGST)\s*@\s*[\d.]+%\s*:?/g," ").replace(/:?\s*Rs\.\s*[\d.,]+/g," ").replace(/\s+/g," ").replace(/\s*-\s*Free Size\s*$/i,"").trim();
+  // sku lines
+  const hi=L.findIndex(l=>/^SKU\s+Size\s+Qty/.test(l));
+  for(let i=hi+1;hi>=0&&i<L.length;i++){const l=L[i]; if(/^TAX INVOICE/.test(l))break;
+    const m=l.match(/^(.*?)\s+(Free Size|\S+)\s+(\d+)\s+(.+?)\s+(\d{10,}_\d+)$/);
+    if(m)out.push({platform:"Meesho",orderId:m[5],sku:m[1].trim(),qty:+m[3],color:m[4]});}
+  out.forEach((r,i)=>Object.assign(r,{product:out.length===1?name:"",amount:out.length===1?total:0,payment:pay,courier,awb,customer:cust,state,orderDate}));
+  return out;
+}
+
+function parseFlipkart(t){
+  const L=t.split("\n"); const out=[];
+  const om=t.match(/\b(OD\d{15,})\s+(COD|PREPAID)?/); const orderId=om?om[1]:"";
+  const pay=om&&om[2]?(om[2]==="COD"?"COD":"Prepaid"):"";
+  const nm=t.match(/^Name:\s*(.+?)\s*,?\s*$/m); const cust=nm?nm[1].replace(/,\s*$/,"").trim():"";
+  const sm=t.match(/\bIN-([A-Z]{2})\b/); const state=sm?(STATES[sm[1]]||sm[1]):"";
+  const od=t.match(/Order Date:\s*(\d{2})-(\d{2})-(\d{4})/); const orderDate=od?dmy(od[1],od[2],od[3]):"";
+  const tp=t.match(/TOTAL PRICE:\s*([\d.,]+)/); const total=tp?money(tp[1]):0;
+  const courier=/E-?Kart/i.test(t)?"Ekart":(COURIERS.find(c=>t.includes(c))||"");
+  const si=L.findIndex(l=>/^SKU ID\s*\|/.test(l)); let awb="";
+  if(si>=0){for(let i=si+1;i<L.length;i++){const l=L[i];
+    const m=l.match(/^(\d+)\s+(.+?)\s*\|\s*(.*?)\s+(\d+)$/);
+    if(m){out.push({platform:"Flipkart",orderId,sku:m[2].trim(),qty:+m[4],shortName:m[3].trim()});continue;}
+    if(/^[A-Z]{2,6}\d{8,}$|^\d{10,}$/.test(l.trim())){awb=l.trim();break;}
+    if(/Not for resale|Tax Invoice/.test(l))break;}}
+  if(!awb){const a=t.match(/AWB No\.\s*([A-Z0-9]+)/);awb=a?a[1]:"";}
+  // full product names from invoice table
+  const hdr=L.findIndex(l=>/^Amount\s+Value/.test(l)); let names=[];
+  if(hdr>=0){let buf=[];for(let i=hdr+1;i<L.length;i++){let l=L[i]; if(/^(Handling Fee|TOTAL)/.test(l))break;
+      l=l.replace(/\|?\s*(SGST|CGST|IGST|UTGST|CESS):\s*[\d.]+%\s*/g," "); l=l.replace(/\s*HSN:.*$/,""); if(/^\s*\|?\s*$/.test(l))continue; l=l.replace(/(\s+-?\d+(?:\.\d+)?){4,}\s*$/,""); if(/^\d+$/.test(l.trim())||!l.trim())continue; buf.push(l.trim());}
+    names=buf.join(" ").split(/IMEI\/SrNo:\s*\[\[\]\]/).map(s=>s.split(/\s*\|\s*/)[0].trim()).filter(Boolean);}
+  out.forEach((r,i)=>{Object.assign(r,{product:names[i]||r.shortName,amount:out.length===1?total:0,payment:pay,courier,awb,customer:cust,state,orderDate});delete r.shortName;});
+  return out;
+}
+
+function parseAmazon(t){
+  const L=t.split("\n"); const out=[];
+  const om=t.match(/Order Number:\s*(\d{3}-\d{7}-\d{7})/); const orderId=om?om[1]:"";
+  const od=t.match(/Order Date:\s*(\d{2})\.(\d{2})\.(\d{4})/); const orderDate=od?dmy(od[1],od[2],od[3]):"";
+  const pay=/Mode of Payment/i.test(t)?"Prepaid":"COD";
+  const pd=t.match(/Place of delivery:\s*([A-Za-z &]+)/); const state=pd?normState(pd[1]):"";
+  let cust=""; const si=L.findIndex(l=>/Shipping Address\s*:/.test(l));
+  if(si>=0){const clean=s=>(s||"").replace(/^(PAN No|GST Registration No|Dynamic QR Code)\s*:?\s*\S*\s*/i,"").trim();
+    cust=clean(L[si+2])||clean(L[si+1]);}
+  const a=L.findIndex(l=>/^No\s+Price\s+Amount/.test(l)); const b=L.findIndex(l=>/^TOTAL:/.test(l));
+  const block=(a>=0&&b>a?L.slice(a+1,b):[]).join(" ");
+  const prices=[...block.matchAll(/₹([\d,]+\.\d+)\s+(\d+)\s+₹([\d,]+\.\d+)\s+[\d.]+%\s+\w+\s+₹[\d,.]+\s+₹([\d,]+\.\d+)/g)];
+  const items=[...block.matchAll(/\|\s*([A-Z0-9]{10})\s*\(\s*([^)]+?)\s*\)/g)];
+  let cursor=0;
+  items.forEach((m,i)=>{
+    let d=block.slice(cursor,m.index).replace(/₹[\d,]+\.\d+\s+\d+\s+₹[\d,]+\.\d+\s+[\d.]+%\s+\w+\s+₹[\d,.]+\s+₹[\d,]+\.\d+/g," ").replace(/HSN:\d+/g," ").replace(/[\d.]+%\s+[A-Z]+\s+₹[\d,.]+/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
+    cursor=m.index+m[0].length;
+    const p=prices[i];
+    out.push({platform:"Amazon",orderId,sku:m[2],qty:p?+p[2]:1,product:d,amount:p?money(p[4]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate});
+  });
+  if(out.length===1&&!out[0].amount){const tt=t.match(/TOTAL:\s*₹[\d,.]+\s+₹([\d,.]+)/);if(tt)out[0].amount=money(tt[1]);}
+  return out;
+}
+
+function parsePage(t){const p=detect(t); if(p==="Amazon")return parseAmazon(t); if(p==="Meesho")return parseMeesho(t); if(p==="Flipkart")return parseFlipkart(t); return null;}
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+let rows=[]; let scriptUrl="", scriptKey="";
+try{scriptUrl=localStorage.getItem("labeltool.url")||""; scriptKey=localStorage.getItem("labeltool.key")||"";}catch(e){}
+$("scriptUrl").value=scriptUrl; $("scriptKey").value=scriptKey;
+$("saveSheet").onclick=async()=>{const u=$("scriptUrl").value.trim(), k=$("scriptKey").value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u)){notice("err","That doesn't look like an Apps Script Web app URL. It should start with https://script.google.com/macros/s/ and end with /exec.");return;}
+  if(!k){notice("err","Enter the access key you set in the script.");return;}
+  scriptUrl=u; scriptKey=k; try{localStorage.setItem("labeltool.url",u); localStorage.setItem("labeltool.key",k);}catch(e){}
+  const res=await api({action:"ids"});
+  if(res.err){notice("err","Saved, but the test failed: "+errText(res.err));return;}
+  notice("ok",`Connected. Your Orders tab has ${res.ids.length} order${res.ids.length===1?"":"s"} so far.`);};
+const t=new Date(); $("dispatch").value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+
+function notice(kind,html){const n=$("notice"); n.className="notice show "+kind; n.innerHTML=html;}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+// pdf.js setup: worker script already loaded on main thread
+if(window.pdfjsLib){try{pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";}catch(e){}}
+
+function toLines(items){
+  const its=items.filter(i=>i.str&&i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5]}));
+  its.sort((a,b)=>b.y-a.y||a.x-b.x); const lines=[];
+  for(const it of its){const L=lines.find(l=>Math.abs(l.y-it.y)<3); if(L)L.items.push(it); else lines.push({y:it.y,items:[it]});}
+  lines.sort((a,b)=>b.y-a.y);
+  return lines.map(l=>l.items.sort((a,b)=>a.x-b.x).map(i=>i.s).join(" ").replace(/\s+/g," ").trim()).join("\n");
+}
+async function readPdf(file){
+  const data=new Uint8Array(await file.arrayBuffer());
+  const doc=await pdfjsLib.getDocument({data,disableFontFace:true,isEvalSupported:false}).promise;
+  const pages=[]; for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p); const tc=await pg.getTextContent(); pages.push(toLines(tc.items));}
+  return pages;
+}
+async function handleFiles(list){
+  if(!window.pdfjsLib){notice("err","The PDF reader didn't load. Check your internet connection and reload the page.");return;}
+  const files=[...list].filter(f=>/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)); if(!files.length){notice("warn","Please choose PDF files.");return;}
+  notice("info",`Reading ${files.length} file${files.length>1?"s":""}…`);
+  let added=0,dupe=0,unknown=0,fileErr=[]; const dupList=[];
+  for(const f of files){
+    const li=document.createElement("li"); li.textContent=f.name; $("files").appendChild(li);
+    try{
+      const pages=await readPdf(f); let found=0;
+      for(const txt of pages){const r=parsePage(txt); if(!r){if(txt.trim())unknown++; continue;}
+        const seen=new Set(rows.map(y=>y.orderId));
+        for(const x of r){found++; if(seen.has(x.orderId)){dupe++; dupList.push({platform:x.platform,orderId:x.orderId,reason:"Repeated in your label files"}); continue;} x.dup=false; rows.push(x); added++;}}
+      li.textContent=`${f.name} (${found} order${found===1?"":"s"})`;
+    }catch(e){fileErr.push(f.name); li.textContent=f.name+" (could not read)";}
+  }
+  render();
+  let msg=`Found <b>${added}</b> new order${added===1?"":"s"}.`;
+  if(dupe)msg+=` ${dupe} with a repeated Order ID ${dupe===1?"was":"were"} skipped.`;
+  if(fileErr.length)msg+=` Could not read: ${esc(fileErr.join(", "))}.`;
+  if(unknown)msg+=` ${unknown} page${unknown>1?"s were":" was"} not a known label format.`;
+  const amz=rows.filter(r=>r.platform==="Amazon"&&!r.awb).length;
+  if(amz)msg+=` Amazon AWB numbers are printed as an image, so add them by hand if you need them.`;
+  notice(added?"ok":"warn",msg);
+  // check against the sheet right away, then alert
+  const inSheet=await markSheetDups(true);
+  if(inSheet.length){ inSheet.forEach(r=>dupList.push({platform:r.platform,orderId:r.orderId,reason:"Already in your Google Sheet"})); render(); }
+  if(dupList.length)showDupAlert(dupList,"These orders will NOT be added, because the same Order ID was found:");
+}
+function showDupAlert(list,intro){
+  const seen=new Set(); const uniq=list.filter(d=>{const k=d.orderId+"|"+d.reason; if(seen.has(k))return false; seen.add(k); return true;});
+  $("dupIntro").textContent=`${intro} (${uniq.length})`;
+  $("dupBody").innerHTML=uniq.map(d=>`<tr><td><span class="chip ${esc(d.platform)}">${esc(d.platform)}</span></td><td>${esc(d.orderId)}</td><td>${esc(d.reason)}</td></tr>`).join("");
+  const dlg=$("dupDlg"); try{ if(!dlg.open)dlg.showModal(); }catch(e){ dlg.setAttribute("open",""); }
+}
+// Google Sheet connector: the Apps Script web app in apps-script.gs.
+// text/plain body keeps this a simple CORS request (no preflight).
+async function api(payload){
+  if(!scriptUrl||!scriptKey)return {err:"not_set"};
+  let res;
+  try{ res=await fetch(scriptUrl,{method:"POST",body:JSON.stringify(Object.assign({key:scriptKey},payload))}); }
+  catch(e){ return {err:"network"}; }
+  let j; try{ j=await res.json(); }catch(e){ return {err:"bad_response"}; }
+  return j&&j.ok? j : {err:(j&&j.error)||"bad_response"};
+}
+const normId=v=>String(v||"").replace(/^'/,"").trim().toUpperCase();
+async function markSheetDups(quiet){
+  const res=await api({action:"ids"}); if(res.err)return [];
+  const have=new Set(res.ids.map(normId));
+  rows.forEach(r=>r.dup=have.has(normId(r.orderId)));
+  return rows.filter(r=>r.dup);
+}
+const FIELDS=["platform","orderId","sku","product","qty","amount","payment","courier","awb","customer","state","orderDate"];
+function render(){
+  const tb=$("tbody"); tb.innerHTML="";
+  rows.forEach((r,i)=>{
+    const tr=document.createElement("tr"); if(r.dup)tr.className="dup";
+    tr.innerHTML=FIELDS.map(f=>{
+      if(f==="platform")return `<td class="tag"><span class="chip ${esc(r.platform)}">${esc(r.platform)}</span></td>`;
+      const cls=[f==="qty"||f==="amount"?"num":"",f==="product"?"prod":"",(f==="sku"||f==="orderId")&&!r[f]?"missing":""].join(" ");
+      return `<td contenteditable="true" spellcheck="false" class="${cls}" data-i="${i}" data-f="${f}">${esc(r[f])}</td>`;
+    }).join("")+`<td><button class="del" type="button" aria-label="Remove this row" data-del="${i}">×</button></td>`;
+    tb.appendChild(tr);
+  });
+  const by={Amazon:0,Flipkart:0,Meesho:0}; let amt=0,qty=0;
+  rows.forEach(r=>{by[r.platform]=(by[r.platform]||0)+1; amt+=Number(r.amount)||0; qty+=Number(r.qty)||0;});
+  $("summary").innerHTML=`<div class="stat"><b>${rows.length}</b><small>Orders</small></div>`+
+    ["Amazon","Flipkart","Meesho"].map(p=>`<div class="stat ${p.toLowerCase()}"><b>${by[p]||0}</b><small>${p}</small></div>`).join("")+
+    `<div class="stat"><b>${qty}</b><small>Units</small></div><div class="stat"><b>₹${amt.toLocaleString("en-IN")}</b><small>Amount</small></div>`;
+  const has=rows.length>0;
+  $("summary").classList.toggle("show",has); $("tablebox").classList.toggle("show",has); $("bar").classList.toggle("show",has);
+  const n=rows.filter(r=>!r.dup).length; $("saveBtn").textContent=`Add ${n} order${n===1?"":"s"} to Google Sheet`;
+}
+$("tbody").addEventListener("input",e=>{const td=e.target.closest("td[data-f]"); if(!td)return; const r=rows[+td.dataset.i], f=td.dataset.f;
+  let v=td.textContent.trim(); if(f==="qty"||f==="amount"){const n=parseFloat(v.replace(/[^\d.]/g,"")); r[f]=isNaN(n)?0:n;} else r[f]=v;});
+$("tbody").addEventListener("blur",e=>{const td=e.target.closest("td[data-f]"); if(td&&(td.dataset.f==="qty"||td.dataset.f==="amount"))render();},true);
+$("tbody").addEventListener("click",e=>{const b=e.target.closest("[data-del]"); if(b){rows.splice(+b.dataset.del,1); render();}});
+
+const drop=$("drop"), fi=$("file");
+fi.addEventListener("change",()=>{handleFiles(fi.files); fi.value="";});
+drop.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fi.click();}});
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
+$("clearBtn").onclick=()=>{rows=[];$("files").innerHTML="";render();$("notice").className="notice";};
+
+function sheetRow(r){
+  const disp=$("dispatch").value;
+  return [disp,r.platform,r.orderId,r.sku,r.product,Number(r.qty)||0,Number(r.amount)||0,r.payment,r.courier,r.awb||"",r.customer,r.state,r.orderDate||""];
+}
+$("copyBtn").onclick=()=>{
+  const txt=rows.filter(r=>!r.dup).map(r=>sheetRow(r).map(v=>String(v).replace(/^'/,"").replace(/\t|\n/g," ")).join("\t")).join("\n");
+  const ta=$("clip"); ta.value=txt; ta.select(); let ok=false;
+  try{ok=document.execCommand("copy");}catch(e){}
+  if(!ok&&navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>notice("ok","Rows copied. In your sheet's Orders tab, click cell A of the first empty row and paste."),()=>notice("err","Copy was blocked by the browser. Select the table and copy it by hand."));return;}
+  notice(ok?"ok":"err",ok?"Rows copied. In your sheet's Orders tab, click cell A of the first empty row and paste.":"Copy was blocked by the browser. Select the table and copy it by hand.");
+};
+
+function errText(c){
+  if(c==="not_set")return "Google Sheet isn't set up yet. Open Google Sheet settings above and add your Web app URL and access key, or use Copy rows.";
+  if(c==="wrong_key")return "The access key doesn't match the one in your Apps Script. Check both, then try again.";
+  if(c==="bad_response")return "Your Web app URL didn't answer correctly. Check that it ends with /exec and that the deployment's Who has access is set to Anyone.";
+  if(c==="network")return "Couldn't reach Google. Check your internet connection and try again. Before retrying, check the sheet in case the rows were already added.";
+  return "Google Sheets reported a problem ("+esc(c)+"). Use Copy rows, or try again later.";
+}
+$("saveBtn").onclick=async()=>{
+  const btn=$("saveBtn"); if(!rows.length)return;
+  if(!$("dispatch").value){notice("warn","Choose a dispatch date first.");return;}
+  const bad=rows.filter(r=>!r.orderId||!r.sku); if(bad.length){notice("warn",`${bad.length} row${bad.length>1?"s are":" is"} missing an Order ID or SKU (shown in red). Fix or remove ${bad.length>1?"them":"it"} first.`);return;}
+  btn.disabled=true; const label=btn.textContent; btn.textContent="Checking your sheet…";
+  try{
+    const existing=await api({action:"ids"});
+    if(existing.err){notice(existing.err==="not_set"?"warn":"err",errText(existing.err));return;}
+    const have=new Set(existing.ids.map(normId));
+    rows.forEach(r=>r.dup=have.has(normId(r.orderId)));
+    // also guard against the same Order ID twice in this batch (e.g. edited by hand)
+    const batch=new Set(); const batchDup=[];
+    rows.forEach(r=>{if(r.dup)return; const k=normId(r.orderId); if(batch.has(k)){r.dup=true; batchDup.push(r);} else batch.add(k);});
+    const todo=rows.filter(r=>!r.dup); render();
+    const dupRows=rows.filter(r=>r.dup);
+    if(dupRows.length)showDupAlert(dupRows.map(r=>({platform:r.platform,orderId:r.orderId,reason:batchDup.includes(r)?"Repeated in this list":"Already in your Google Sheet"})),"These orders were NOT added, because the same Order ID was found:");
+    if(!todo.length){notice("warn","All these orders are already in your sheet. Nothing new to add.");return;}
+    btn.textContent=`Adding ${todo.length}…`;
+    const res=await api({action:"append",rows:todo.map(sheetRow)});
+    if(res.err){notice("err",errText(res.err));return;}
+    // the script re-checks under a lock, so trust its skipped list over ours
+    const late=new Set(res.skipped.map(normId));
+    todo.forEach(r=>{if(late.has(normId(r.orderId)))r.dup=true;});
+    const skipped=rows.filter(r=>r.dup).length;
+    const url=/^https:\/\/docs\.google\.com\//.test(res.sheetUrl||"")?res.sheetUrl:"";
+    rows=rows.filter(r=>r.dup); render(); $("files").innerHTML="";
+    notice("ok",(res.added?`Added <b>${res.added}</b> order${res.added===1?"":"s"} to rows ${res.start} to ${res.end} of the Orders tab.`:"No new orders were added.")+(skipped?` ${skipped} already in the sheet ${skipped===1?"was":"were"} skipped.`:"")+(url?` <a href="${esc(url)}" target="_blank" rel="noopener">Open the sheet</a>`:""));
+    if(!rows.length){$("bar").classList.remove("show");}
+  } finally { btn.disabled=false; if(btn.textContent.startsWith("Adding")||btn.textContent.startsWith("Checking"))btn.textContent=label; render(); }
+};
+render();
+})();
+</script>
+</body>
+</html>
