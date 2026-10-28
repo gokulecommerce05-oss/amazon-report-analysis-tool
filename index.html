@@ -10,217 +10,282 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#F5F7F6; --surface:#FFFFFF; --ink:#1B2427; --muted:#5B676B; --line:#DCE3E1;
-  --peacock:#0F5563; --peacock-soft:#E1EEF0; --turmeric:#C98A06; --turmeric-soft:#FBF1D9;
-  --kumkum:#B3261E; --kumkum-soft:#FBE7E5; --leaf:#3B7A37; --leaf-soft:#E5F1E3;
-  --kept:#0F5563;
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#1B2225; --muted:#4A5559; --line:#DCE2E0; --soft:#EEF2F1;
+  --peacock:#0F5560; --peacock-soft:#E1F0F2; --turmeric:#B86E00; --turmeric-soft:#FFF1E0;
+  --kumkum:#9B1C1C; --kumkum-soft:#FBE7E5; --leaf:#1F6B43; --leaf-soft:#E2F4EA;
+  --kept:#0F5560; --result:#0F5560; --result-ink:#FFFFFF; --result-accent:#A8DCE2; --result-cut:#FFD08A;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#9AA8A6; --line:#2B393C;
+    --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#A3B1AF; --line:#2B393C; --soft:#1F2C2F;
     --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
-    --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2;
+    --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2; --result:#0D3E46;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#9AA8A6; --line:#2B393C;
+  --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#A3B1AF; --line:#2B393C; --soft:#1F2C2F;
   --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
-  --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2;
+  --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2; --result:#0D3E46;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Mukta,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:17px;line-height:1.5}
-.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 64px}
-h1,h2,h3{line-height:1.15;margin:0}
-h1{font-size:clamp(1.9rem,4.5vw,3rem);font-weight:800;letter-spacing:-.01em}
-h2{font-size:1.45rem;font-weight:800;margin-bottom:6px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Mukta,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
+h1,h2,h3{line-height:1.2;margin:0}
 p{margin:0}
 .muted{color:var(--muted)}
 .num{font-variant-numeric:tabular-nums}
 button,input{font:inherit;color:inherit}
+a{color:var(--peacock)}
 :focus-visible{outline:3px solid var(--turmeric);outline-offset:2px}
 
-header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:22px;flex-wrap:wrap}
-.brand{font-weight:800;color:var(--peacock);font-size:1.05rem}
+/* header */
+.top{background:var(--surface);border-bottom:1px solid var(--line)}
+.top .in{max-width:1100px;margin:0 auto;padding:14px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--peacock);display:grid;place-items:center;flex:none}
+.brand b{display:block;font-size:19px;font-weight:800}
+.brand span{font-size:14px;color:var(--muted)}
+.lock{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--leaf);background:var(--leaf-soft);padding:5px 12px;border-radius:999px}
+main{max-width:1100px;margin:0 auto;padding:22px 16px 56px;display:flex;flex-direction:column;gap:20px}
 
-/* drop zone */
-.drop{border:2px dashed var(--peacock);border-radius:18px;background:var(--surface);padding:40px 28px;display:grid;gap:14px;cursor:pointer;transition:background .15s}
+/* steps */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.steps li{display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px}
+.steps li span.n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--peacock-soft);color:var(--peacock);flex:none}
+.steps li.on{border-color:var(--peacock)} .steps li.on span.n{background:var(--peacock);color:var(--surface)}
+.steps li.done span.n{background:var(--leaf);color:var(--surface)}
+.steps b{display:block;font-size:16px} .steps small{color:var(--muted);font-size:13px}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.card h2{font-size:20px;font-weight:800}
+.card .sub{font-size:14px;color:var(--muted)}
+.tip{font-size:14px;color:var(--muted);background:var(--soft);border-radius:10px;padding:10px 12px;margin-top:14px}
+.tip b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+
+/* step 1 */
+.drop{margin-top:16px;border:2px dashed var(--peacock);border-radius:16px;background:var(--bg);padding:26px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;transition:background .15s}
 .drop.over{background:var(--peacock-soft)}
-.drop h1{max-width:18ch}
-.drop .how{max-width:68ch}
-ul.how{margin:0;padding-left:20px;display:grid;gap:4px}
-.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;background:var(--peacock);color:var(--surface);padding:10px 20px;font-weight:600;cursor:pointer;justify-self:start}
-.btn.ghost{background:transparent;color:var(--peacock);border:1.5px solid var(--peacock);padding:6px 14px;font-size:.92rem}
+.drop strong{font-size:19px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;background:var(--peacock);color:var(--surface);padding:0 22px;min-height:46px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--peacock);border:2px solid var(--peacock);min-height:42px;padding:0 16px;font-size:15px}
+.sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px}
+.src{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.src .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800}
+.src .hd i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.src .fmt{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.src ol{margin:0;padding:0;list-style:none;display:grid;gap:3px;font-size:14px}
+.src ol li{display:flex;gap:8px;align-items:baseline}
+.src ol li span{font-size:12px;font-weight:800;color:var(--peacock);min-width:14px}
+.src .st{margin-top:auto;font-size:13px;font-weight:700;padding:5px 10px;border-radius:8px;background:var(--soft);color:var(--muted)}
+.src .st.ok{background:var(--leaf-soft);color:var(--leaf)}
 .files{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px;font-size:.9rem}
-.chip button{border:0;background:var(--line);border-radius:50%;width:24px;height:24px;cursor:pointer;line-height:1}
+.files:empty{display:none}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px;font-size:14px}
+.chip button{border:0;background:var(--line);border-radius:50%;width:28px;height:28px;cursor:pointer;line-height:1}
 .err{background:var(--kumkum-soft);color:var(--kumkum);padding:12px 16px;border-radius:12px;margin-top:14px;display:none}
 
-/* platforms */
-.compare{margin-top:30px}
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
-.tabs:empty{display:none}
-.tabs button{border:1.5px solid var(--peacock);background:transparent;color:var(--peacock);border-radius:999px;padding:6px 18px;font-weight:600;cursor:pointer;min-height:40px}
-.tabs button[aria-selected="true"]{background:var(--peacock);color:var(--surface)}
-tr.pick{cursor:pointer} tr.pick:hover td{background:var(--peacock-soft)}
+/* step 2 */
+.pickbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.pickbar h2{width:100%}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:0 16px;font-weight:700;cursor:pointer;min-height:44px}
+.tabs button[aria-selected="true"]{background:var(--peacock);border-color:var(--peacock);color:var(--surface)}
+.pickbar .sp{flex:1 1 10px}
+.pickbar label{display:flex;align-items:center;gap:6px;font-size:15px}
+.pickbar input[type=date]{min-height:42px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 
-/* verdict */
-#report{display:none}
-.verdict{margin:36px 0 10px}
-.verdict h1 .amt{color:var(--peacock)}
-.verdict .sub{margin-top:8px;max-width:70ch}
-.rupee{margin:22px 0 8px;display:flex;height:64px;border-radius:12px;overflow:hidden;background:var(--line)}
-.rupee span{display:block;height:100%;min-width:2px;position:relative}
-.rupee span:hover{filter:brightness(1.1)}
-.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.92rem;margin-bottom:6px}
-.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:2px;background:var(--line);border-radius:14px;overflow:hidden;margin:26px 0}
-.kpi{background:var(--surface);padding:14px 16px}
-.kpi b{display:block;font-size:1.45rem;font-weight:800}
-.kpi small{color:var(--muted);font-size:.88rem}
+/* step 3 result */
+#report{display:none;flex-direction:column;gap:20px}
+.result{background:var(--result);color:var(--result-ink);border-radius:18px;padding:24px}
+.result .eyebrow{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--result-accent)}
+.result h2#headline{margin:6px 0 4px;font-size:clamp(20px,2.6vw,27px);font-weight:600;line-height:1.35}
+.result h2 b.amt{color:var(--result-accent)} .result h2 b.cut{color:var(--result-cut)}
+.result #subline{font-size:15px;color:#D7ECEE;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpi{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px 14px}
+.kpi small{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.kpi b{display:block;font-size:24px;font-weight:800;line-height:1.25}
 .kpi.hold b{color:var(--turmeric)}
+.kpi.good b{color:var(--peacock)}
 
-.filters{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:6px}
-.filters label{display:grid;font-size:.85rem;color:var(--muted)}
-.filters input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
+/* donut */
+.money{display:flex;flex-wrap:wrap;align-items:center;gap:22px;margin-top:14px}
+.donut{width:180px;height:180px;border-radius:50%;flex:none;display:grid;place-items:center}
+.donut .hole{width:112px;height:112px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut .hole b{font-size:26px;font-weight:800;color:var(--peacock);line-height:1}
+.donut .hole span{font-size:13px;color:var(--muted)}
+.legend{flex:1 1 170px;display:flex;flex-direction:column;gap:7px}
+.legend div{display:flex;align-items:center;gap:10px;font-size:15px}
+.legend i{width:12px;height:12px;border-radius:3px;flex:none}
+.legend span{flex:1 1 auto}
+details.more{margin-top:14px}
+details.more summary{cursor:pointer;font-weight:700;color:var(--peacock);min-height:44px;display:flex;align-items:center}
 
-section{margin-top:44px}
-.lead{max-width:70ch;margin-bottom:14px}
+/* fix these first */
+ol.fix{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
+ol.fix li{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);align-items:start}
+ol.fix .lvl{grid-row:span 3;min-width:70px;text-align:center;font-size:12px;font-weight:800;padding:4px 8px;border-radius:8px;background:var(--soft);color:var(--ink)}
+ol.fix li.bad .lvl{background:#9B1C1C;color:#FFFFFF}
+ol.fix li.warn .lvl{background:#FBD5B5;color:#6B2A00}
+ol.fix li.info .lvl{background:var(--peacock-soft);color:var(--peacock)}
+ol.fix li.good .lvl{background:var(--leaf-soft);color:var(--leaf)}
+.fix h3{font-size:16px;font-weight:700}
+.fix .cost{font-weight:800;white-space:nowrap;color:var(--kumkum)}
+.fix .why{grid-column:2/4;color:var(--muted);font-size:14px}
+.fix .do{grid-column:2/4;font-size:14px}
 
-/* alerts */
-ol.fix{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:12px;counter-reset:f}
-ol.fix li{counter-increment:f;display:grid;grid-template-columns:40px 1fr auto;gap:4px 14px;padding:16px 18px;border-radius:14px;background:var(--surface);border-left:6px solid var(--line)}
-ol.fix li::before{content:counter(f);grid-row:span 3;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--bg)}
-ol.fix li.bad{border-left-color:var(--kumkum)} ol.fix li.bad::before{background:var(--kumkum-soft);color:var(--kumkum)}
-ol.fix li.warn{border-left-color:var(--turmeric)} ol.fix li.warn::before{background:var(--turmeric-soft);color:var(--turmeric)}
-ol.fix li.info{border-left-color:var(--peacock)} ol.fix li.info::before{background:var(--peacock-soft);color:var(--peacock)}
-ol.fix li.good{border-left-color:var(--leaf)} ol.fix li.good::before{background:var(--leaf-soft);color:var(--leaf)}
-.fix h3{font-size:1.1rem;font-weight:800}
-.fix .cost{font-weight:800;white-space:nowrap;text-align:right}
-.fix .why{grid-column:2/4;color:var(--muted)}
-.fix .do{grid-column:2/4}
+/* weekly line */
+.line svg{width:100%;height:200px;display:block;margin-top:12px}
+.line .axis{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--muted);gap:6px}
+
+/* products */
+.top5{display:grid;gap:12px;margin-top:14px}
+.top5 .row{display:flex;justify-content:space-between;gap:10px;font-size:15px}
+.top5 .row b{font-weight:800;white-space:nowrap}
+.top5 .track{height:10px;background:var(--soft);border-radius:5px;margin-top:5px}
+.top5 .track div{height:10px;border-radius:5px;background:var(--peacock)}
+.top5 .loss .track div{background:var(--kumkum)}
 
 /* tables */
-.tbl{overflow-x:auto;background:var(--surface);border-radius:14px;border:1px solid var(--line)}
-table{border-collapse:collapse;width:100%;font-size:.95rem}
+.tbl{overflow-x:auto;background:var(--surface);border-radius:12px;border:1px solid var(--line);margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
 th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-th{font-weight:600;color:var(--muted);font-size:.85rem;background:var(--surface);position:sticky;top:0}
+th{font-weight:700;color:var(--muted);font-size:13px;background:var(--surface);position:sticky;top:0}
 th.sort{cursor:pointer} th.sort:hover{color:var(--ink)}
-td:first-child,th:first-child{text-align:left;white-space:normal;min-width:220px}
+td:first-child,th:first-child{text-align:left;white-space:normal;min-width:200px}
 tr:last-child td{border-bottom:0}
 tfoot td{font-weight:800}
-.tag{display:inline-block;padding:1px 10px;border-radius:999px;font-size:.82rem;font-weight:600}
+tr.pick{cursor:pointer} tr.pick:hover td{background:var(--peacock-soft)}
+.tag{display:inline-block;padding:1px 10px;border-radius:999px;font-size:12px;font-weight:700}
 .tag.bad{background:var(--kumkum-soft);color:var(--kumkum)}
 .tag.warn{background:var(--turmeric-soft);color:var(--turmeric)}
 .tag.ok{background:var(--leaf-soft);color:var(--leaf)}
 td.hot{color:var(--kumkum);font-weight:700}
-
-/* weekly bars */
-.weeks{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(70px,1fr);gap:10px;align-items:end;height:230px;overflow-x:auto;padding:10px 4px 0}
-.wk{display:grid;grid-template-rows:auto 1fr auto;height:100%;text-align:center;font-size:.85rem}
-.wk .bar{align-self:end;background:var(--peacock);border-radius:8px 8px 2px 2px;min-height:3px}
-.wk .v{font-weight:600}
-.wk .d{color:var(--muted);margin-top:4px}
-
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
-footer{margin-top:56px;color:var(--muted);font-size:.88rem;max-width:72ch}
+footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-width:80ch;margin:0 auto}
 @media (max-width:600px){
-  .wrap{padding:20px 14px 48px}
-  ol.fix li{grid-template-columns:34px 1fr}
-  .fix .cost{grid-column:2;text-align:left}
-  .fix .why,.fix .do{grid-column:2}
+  main{padding:16px 12px 48px}
+  .card{padding:16px}
+  ol.fix li{grid-template-columns:1fr auto}
+  ol.fix .lvl{grid-row:auto;justify-self:start}
+  .fix .why,.fix .do{grid-column:1/3}
+  .lock{margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <span class="brand">🦚 2G VIBE payout analyser</span>
-    <span class="muted" id="fileCount"></span>
-  </header>
+<header class="top"><div class="in">
+  <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9"></path><path d="M12 3v9h9"></path></svg></div>
+  <div class="brand"><b>2G VIBE Payout Analyser</b><span>See where your selling money goes <span id="fileCount"></span></span></div>
+  <span class="lock"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Files stay on your computer</span>
+</div></header>
 
-  <label class="drop" id="drop" tabindex="0">
-    <h1>Drop your Amazon, Flipkart or Meesho payment files here</h1>
-    <ul class="how muted">
-      <li><b>Amazon:</b> Seller Central → Payments → Transaction view → download the CSV.</li>
-      <li><b>Flipkart:</b> Seller Hub → Payments → Previous payments → download the order-level settlement report (.xlsx).</li>
-      <li><b>Meesho:</b> Supplier Panel → Payments → Download → Payment file for the date range (.xlsx).</li>
-    </ul>
-    <p class="how muted">For profit, also drop your business Google Sheet once (File → Download → Microsoft Excel). The tool reads its <b>SKU Mapping</b> and <b>Purchase Cost</b> tabs and remembers them in this browser only.</p>
-    <p class="how muted">You can add several files at once, from any mix of platforms. Everything stays in your browser.</p>
-    <span class="btn" role="button">Choose files</span>
-    <input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls" multiple hidden>
-  </label>
-  <div class="err" id="err"></div>
-  <div class="files" id="files"></div>
+<main>
+  <ol class="steps" id="steps" aria-label="Steps">
+    <li class="on"><span class="n">1</span><span><b>Add files</b><small>From any platform</small></span></li>
+    <li><span class="n">2</span><span><b>Pick platform &amp; dates</b><small>Or keep all dates</small></span></li>
+    <li><span class="n">3</span><span><b>See results</b><small>With easy tips</small></span></li>
+  </ol>
+
+  <section class="card" aria-labelledby="addH">
+    <h2 id="addH">Step 1 · Add your payment files</h2>
+    <p class="sub">Add one or many, from any platform. Not sure where a file is? Follow the steps on its card.</p>
+    <label class="drop" id="drop" tabindex="0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--peacock)"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 20h16"></path></svg>
+      <strong>Drag files here</strong>
+      <span class="muted">or</span>
+      <span class="btn" role="button">Choose files</span>
+      <span class="muted" style="font-size:14px">CSV or Excel (.xlsx)</span>
+      <input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls" multiple hidden>
+    </label>
+    <div class="sources" id="sources">
+      <div class="src"><div class="hd"><span><i style="background:#E47911"></i>Amazon</span><span class="fmt">CSV</span></div>
+        <ol><li><span>1</span>Seller Central</li><li><span>2</span>Payments</li><li><span>3</span>Transaction view</li><li><span>4</span>Download CSV</li></ol>
+        <div class="st" data-src="Amazon">Not added yet</div></div>
+      <div class="src"><div class="hd"><span><i style="background:#2874F0"></i>Flipkart</span><span class="fmt">XLSX</span></div>
+        <ol><li><span>1</span>Seller Hub</li><li><span>2</span>Payments</li><li><span>3</span>Previous payments</li><li><span>4</span>Order-level settlement report</li></ol>
+        <div class="st" data-src="Flipkart">Not added yet</div></div>
+      <div class="src"><div class="hd"><span><i style="background:#9F2089"></i>Meesho</span><span class="fmt">XLSX</span></div>
+        <ol><li><span>1</span>Supplier Panel</li><li><span>2</span>Payments</li><li><span>3</span>Download</li><li><span>4</span>Payment file for your dates</li></ol>
+        <div class="st" data-src="Meesho">Not added yet</div></div>
+      <div class="src"><div class="hd"><span><i style="background:#3A4549"></i>Profit sheet</span><span class="fmt">XLSX</span></div>
+        <ol><li><span>1</span>Open your business Google Sheet</li><li><span>2</span>File → Download</li><li><span>3</span>Microsoft Excel</li><li><span>4</span>Needs SKU Mapping + Purchase Cost tabs</li></ol>
+        <div class="st" data-src="Costs">Optional · add once, remembered here</div></div>
+    </div>
+    <div class="err" id="err"></div>
+    <div class="files" id="files"></div>
+  </section>
 
   <div id="report">
-    <section id="compareBox" class="compare">
-      <h2>All platforms</h2>
-      <p class="lead muted">Click a platform to see its details below.</p>
+    <section class="card pickbar" aria-labelledby="pickH">
+      <h2 id="pickH">Step 2 · Choose platform and dates</h2>
+      <div class="tabs" id="tabs" role="tablist" aria-label="Platform"></div>
+      <span class="sp"></span>
+      <label>From <input type="date" id="from"></label>
+      <label>To <input type="date" id="to"></label>
+      <button class="btn ghost" id="resetDates" type="button">All dates</button>
+    </section>
+
+    <section class="result" aria-labelledby="headline">
+      <div class="eyebrow">STEP 3 · YOUR RESULT</div>
+      <h2 id="headline"></h2>
+      <p id="subline"></p>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="card" id="compareBox" aria-labelledby="cmpH">
+      <h2 id="cmpH">Which platform earns most?</h2>
+      <p class="sub">Click a platform to see its details.</p>
       <div class="tbl"><table id="compareTable"></table></div>
-    </section>
-    <div class="tabs" id="tabs" role="tablist" aria-label="Platform"></div>
-    <div class="verdict">
-      <h1 id="headline"></h1>
-      <p class="sub muted" id="subline"></p>
-      <div class="rupee" id="rupee" role="img"></div>
-      <div class="legend" id="legend"></div>
-    </div>
-
-    <div class="filters">
-      <label>From<input type="date" id="from"></label>
-      <label>To<input type="date" id="to"></label>
-      <button class="btn ghost" id="resetDates">Show all dates</button>
-    </div>
-
-    <div class="kpis" id="kpis"></div>
-
-    <section>
-      <h2>Fix these first</h2>
-      <p class="lead muted">Sorted by how much each problem cost you in this period.</p>
-      <ol class="fix" id="alerts"></ol>
+      <p class="tip"><b>How to read:</b> "Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
     </section>
 
-    <section>
-      <h2>Where the money went</h2>
-      <div class="tbl"><table id="dedTable"></table></div>
-    </section>
-
-    <section>
-      <h2>Order payments by week</h2>
-      <p class="lead muted">Net amount from orders, grouped by the Monday each week starts.</p>
-      <div class="weeks" id="weeks"></div>
-    </section>
-
-    <section>
-      <h2>Products</h2>
-      <p class="lead muted">Paid orders only; free orders are counted separately. Click a column to sort.</p>
-      <div class="tbl"><table id="prodTable"></table></div>
-    </section>
-
-    <section class="two">
-      <div>
-        <h2 id="leftTitle">Refunds by payment type</h2>
-        <div class="tbl"><table id="payTable"></table></div>
+    <div id="detail" style="display:flex;flex-direction:column;gap:20px">
+      <div class="grid2">
+        <section class="card" aria-labelledby="moneyH">
+          <h2 id="moneyH">Where did the money go?</h2>
+          <div class="money"><div class="donut" id="rupee" role="img"></div><div class="legend" id="legend"></div></div>
+          <p class="tip"><b>How to read:</b> bigger slice = more money went there. Dark teal is what you keep.</p>
+          <details class="more"><summary>Show the ₹ table</summary><div class="tbl"><table id="dedTable"></table></div></details>
+        </section>
+        <section class="card" aria-labelledby="fixH">
+          <h2 id="fixH">Fix these first</h2>
+          <ol class="fix" id="alerts"></ol>
+          <p class="tip"><b>How to read:</b> start at the top. High → Medium, sorted by money lost.</p>
+        </section>
       </div>
-      <div>
-        <h2 id="rightTitle">Free orders</h2>
-        <div class="tbl"><table id="freeTable"></table></div>
-      </div>
-    </section>
 
-    <section>
-      <h2 id="refTitle">Refunds</h2>
-      <div class="tbl"><table id="refTable"></table></div>
-    </section>
+      <section class="card line" aria-labelledby="wkH">
+        <h2 id="wkH">Money received each week</h2>
+        <p class="sub">Each week starts on Monday.</p>
+        <div id="weeks"></div>
+        <p class="tip"><b>How to read:</b> above the dashed line = a better-than-usual week. A sudden dip? Check returns for that week.</p>
+      </section>
+
+      <section class="card" aria-labelledby="prH">
+        <h2 id="prH">Best products</h2>
+        <p class="sub" id="topNote"></p>
+        <div class="top5" id="topProd"></div>
+        <details class="more"><summary>See all products (sortable)</summary><div class="tbl"><table id="prodTable"></table></div></details>
+      </section>
+
+      <div class="grid2">
+        <section class="card"><h2 id="leftTitle">Refunds by payment type</h2><div class="tbl"><table id="payTable"></table></div></section>
+        <section class="card"><h2 id="rightTitle">Free orders</h2><div class="tbl"><table id="freeTable"></table></div></section>
+      </div>
+
+      <section class="card" aria-labelledby="refTitle">
+        <h2 id="refTitle">Refunds</h2>
+        <details class="more"><summary>Show every order</summary><div class="tbl"><table id="refTable"></table></div></details>
+      </section>
+    </div>
 
     <footer id="foot">Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
   </div>
-</div>
+</main>
 
 <script>
 (function(){
@@ -443,8 +508,8 @@ function addFiles(list){
   $('err').style.display='none';
   const jobs = [...list].map(f => readFile(f).then(d => {
       if(d.platform==='Costs'){ costs = d.costs; try{ localStorage.setItem('payout.costs', JSON.stringify(costs)); }catch(e){} return; }
-      files.set(f.name, d); active = d.platform; }).catch(e => { showErr(f.name+': '+e.message); }));
-  Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; render(); });
+      files.set(f.name, d); }).catch(e => { showErr(f.name+': '+e.message); }));
+  Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; active=null; render(); });
 }
 function showErr(m){ const e=$('err'); e.textContent=m; e.style.display='block'; }
 
@@ -481,9 +546,17 @@ function render(){
     if(d.rows) p.rows = p.rows.concat(d.rows); else { p.lines = p.lines.concat(d.lines); p.extras = p.extras.concat(d.extras); } });
   const have = PLATFORMS.filter(p => data[p]);
   $('fileCount').textContent = files.size? files.size+' file'+(files.size>1?'s':'')+' loaded' : '';
+  // step 1 cards: what is loaded
+  document.querySelectorAll('#sources .st').forEach(el => { const p=el.dataset.src;
+    const n = p==='Costs'? 0 : [...files.values()].filter(d=>d.platform===p).length;
+    const ok = p==='Costs'? !!costs : n>0; el.classList.toggle('ok', ok);
+    el.textContent = p==='Costs'? (costs? '✓ Saved · '+Object.keys(costs.cost).length+' product costs' : 'Optional · add once, remembered here') : (n? '✓ Added · '+n+' file'+(n>1?'s':'') : 'Not added yet'); });
+  const st = document.querySelectorAll('#steps li');
+  st[0].className = files.size? 'done' : 'on'; st[1].className = st[2].className = files.size? 'on' : '';
   if(!have.length){ $('report').style.display='none'; return; }
-  $('report').style.display='block';
-  if(!have.includes(active)) active = have[0];
+  $('report').style.display='flex';
+  multi = have.length>1;
+  if(!(active==='All' && multi) && !have.includes(active)) active = multi? 'All' : have[0];
   const dates = []; have.forEach(p => { const d=data[p]; d.rows.concat(d.lines, d.extras).forEach(r => dates.push(+r.date)); });
   const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
   $('from').min=$('to').min=iso(minD); $('from').max=$('to').max=iso(maxD);
@@ -492,9 +565,9 @@ function render(){
   const view = {}; have.forEach(p => { const d=data[p]; view[p] = {rows:d.rows.filter(inRange), lines:d.lines.filter(inRange), extras:d.extras.filter(inRange)}; });
 
   // platform comparison and tabs
-  const multi = have.length>1;
-  $('compareBox').style.display = multi? 'block':'none';
-  $('tabs').innerHTML = multi? have.map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+p+'</button>').join('') : '';
+  $('compareBox').style.display = active==='All'? 'block':'none';
+  $('detail').style.display = active==='All'? 'none':'flex';
+  $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   if(multi){
     const S = have.map(p => Object.assign({p}, p==='Amazon'? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
@@ -502,6 +575,17 @@ function render(){
     const row = (x,cls) => '<tr'+(cls?' class="'+cls+'" data-p="'+x.p+'"':'')+'><td>'+(x.p||'All platforms')+'</td><td class="num">'+x.orders.toLocaleString('en-IN')+'</td><td class="num">'+money(x.value)+'</td><td class="num">'+money(x.payout)+'</td><td class="num">'+money(x.value? x.payout/x.value*100:0)+'</td><td class="num">'+x.returns+' <span class="muted">('+pct(x.orders? x.returns/x.orders:0)+')</span></td><td class="num">'+money(x.ads)+'</td>'+(costs? '<td class="num '+(x.profit<0?'hot':'')+'">'+money(x.profit)+'</td>':'')+'</tr>';
     $('compareTable').innerHTML = '<thead><tr><th>Platform</th><th>Orders</th><th>Order value</th><th>Paid to you</th><th>Kept per ₹100</th><th>Returns &amp; RTO</th><th>Ads</th>'+(costs?'<th>Profit after product cost</th>':'')+'</tr></thead><tbody>'+S.map(x=>row(x,'pick')).join('')+'</tbody><tfoot>'+row(Object.assign({p:''},T))+'</tfoot>';
     $('compareTable').querySelectorAll('tr.pick').forEach(tr => tr.onclick = () => { active = tr.dataset.p; render(); });
+    if(active==='All'){
+      const share = T.value? T.payout/T.value : 0, best = S.slice().sort((a,b)=>(b.value? b.payout/b.value:0)-(a.value? a.payout/a.value:0))[0];
+      $('headline').innerHTML = 'Out of every <b>₹100</b> customers paid on all platforms, <b class="amt">'+money(share*100)+'</b> reached your bank. <b class="cut">'+esc(best.p)+'</b> kept the most.';
+      $('subline').textContent = (dateFrom||minD).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' to '+(dateTo||maxD).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' · '+have.join(', ')+'. Pick a platform above for its details.';
+      $('kpis').innerHTML = [['Orders', T.orders.toLocaleString('en-IN'), have.length+' platforms'], ['Order value', money(T.value), 'before any deductions'],
+        ['Paid to you', money(T.payout), pct(share)+' of order value', 'good'], ['Returns & RTO', T.returns, pct(T.orders? T.returns/T.orders:0)+' of orders', T.returns/Math.max(1,T.orders)>0.15?'hold':''],
+        ['Ads', money(T.ads), pct(T.value? T.ads/T.value:0)+' of order value']]
+        .concat(costs? [['Profit after product cost', money(T.profit), pct(T.value? T.profit/T.value:0)+' of order value', T.profit<0?'hold':'good']] : [])
+        .map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+      return;
+    }
   }
   if(active==='Amazon') analyse(view.Amazon.rows, dateFrom||minD, dateTo||maxD);
   else analyseGeneric(active, view[active].lines, view[active].extras, dateFrom||minD, dateTo||maxD);
@@ -577,18 +661,9 @@ function analyseGeneric(P, L, X, d0, d1){
     'Fines': x => x>0?'bad':'ok'
   };
   const fmtD = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  $('headline').innerHTML = P+': you keep <span class="amt">'+money(share(payout)*100)+'</span> of every ₹100 in orders';
   $('subline').textContent = fmtD(d0)+' to '+fmtD(d1)+' (payment dates): '+sold.length+' orders worth '+money(value)+' became '+money(payout)+' for you.'
     + (costs? ' After '+money(c.cogs)+' of product cost, your profit is '+money(c.profit)+' ('+pct(share(c.profit))+' of order value).' : '');
-  const rb=$('rupee'); rb.innerHTML=''; const lg=$('legend'); lg.innerHTML='';
-  const keep = costs? [{k:'Profit',v:c.profit,c:'var(--kept)'},{k:'Product cost',v:c.cogs,c:'var(--peacock)'}] : [{k:'You keep',v:payout,c:'var(--kept)'}];
-  const segs=keep.filter(d=>d.v>0.5).concat(ded.filter(d=>d.v>0.5));
-  rb.setAttribute('aria-label', segs.map(s=>s.k+' '+pct(share(s.v))).join(', '));
-  segs.forEach(s => {
-    const el=document.createElement('span'); el.style.width=Math.max(0, share(s.v)*100)+'%'; el.style.background=s.c; el.title=s.k+': '+money(s.v)+' ('+pct(share(s.v))+')';
-    rb.appendChild(el);
-    lg.insertAdjacentHTML('beforeend','<span><i style="background:'+s.c+'"></i>'+esc(s.k.replace(/ \(.*\)/,''))+' <b class="num">'+pct(share(s.v))+'</b></span>');
-  });
+  drawResult(multi? P : '', value, payout, costs? [{k:'Profit',v:c.profit},{k:'Product cost',v:c.cogs}] : [{k:'You keep',v:payout}], ded);
 
   $('kpis').innerHTML = [
     ['Orders', sold.length.toLocaleString('en-IN'), sum(sold,i=>i.qty)+' units'],
@@ -611,9 +686,7 @@ function analyseGeneric(P, L, X, d0, d1){
   // weekly: everything paid, grouped by the Monday of the payment date
   const wk = new Map();
   L.concat(X).forEach(r => { const d=new Date(r.date); d.setDate(d.getDate()-(d.getDay()+6)%7); const k=iso(d); wk.set(k,(wk.get(k)||0)+(r.payout!==undefined? r.payout : r.amount)); });
-  const wkeys=[...wk.keys()].sort(); const wmax=Math.max(1,...wk.values());
-  $('weeks').innerHTML = wkeys.map(k => { const v=wk.get(k); const d=new Date(k+'T00:00');
-    return '<div class="wk" title="Week of '+fmtD(d)+': '+money(v)+'"><span class="v num">'+(v>=1000? '₹'+(v/1000).toFixed(1)+'K':money(v))+'</span><span class="bar" style="height:'+Math.max(2,Math.max(0,v)/wmax*100)+'%"></span><span class="d">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</span></div>'; }).join('');
+  drawWeeks(wk);
 
   // products
   const Pm=new Map();
@@ -671,13 +744,56 @@ function analyseGeneric(P, L, X, d0, d1){
   A.push(...profitAlerts(prods, c.missing));
   if(t.taxes<-0.5) A.push({sev:'info', cost:0, title:money(-t.taxes)+' tax held back, not lost', why:'TCS, TDS and GST on fees were deducted from your payouts.', todo:'Ask your accountant to claim TCS in GSTR-3B and TDS in your income tax return.'});
   if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Returns, shipping, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
-  const rank={bad:0,warn:1,info:2,good:3};
-  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
-  $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
+  drawAlerts(A);
 }
 
 function sum(a,f){ return a.reduce((s,r)=>s+f(r),0); }
 const AMAZON_FOOT = $('foot').textContent;
+let multi = false; // more than one platform loaded: name the platform in the result line
+
+// ---- drawing shared by every platform ----
+const LEVEL = {bad:'HIGH', warn:'MEDIUM', info:'GOOD TO KNOW', good:'ALL GOOD'};
+function drawAlerts(A){
+  const rank={bad:0,warn:1,info:2,good:3};
+  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
+  $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><span class="lvl">'+LEVEL[a.sev]+'</span><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
+}
+// result sentence + donut: what you keep first, then the 4 biggest cuts, the rest as "Other"
+const CUT_COLORS = ['#C2410C','#F2A93B','#7FB8E6','#8E6BBF'];
+function drawResult(who, value, payout, keep, ded){
+  const share = v => value? v/value : 0;
+  const cuts = ded.filter(d=>d.v>0.5).sort((a,b)=>b.v-a.v), name = k => k.replace(/ \(.*\)/,'');
+  $('headline').innerHTML = (who? esc(who)+': o' : 'O')+'ut of every <b>₹100</b> customers paid, <b class="amt">'+money(share(payout)*100)+'</b> reached your bank.'
+    + (cuts.length? ' The biggest cut was <b class="cut">'+esc(name(cuts[0].k))+'</b>.' : '');
+  const segs = keep.filter(d=>d.v>0.5).map((d,i)=>Object.assign({},d,{c:i? '#9CC9CF':'var(--kept)'}))
+    .concat(cuts.slice(0,4).map((d,i)=>Object.assign({},d,{c:CUT_COLORS[i]})));
+  if(cuts.length>4) segs.push({k:'Other', v:sum(cuts.slice(4),d=>d.v), c:'#A7B0AD'});
+  const total = sum(segs,x=>x.v)||1; let at=0;
+  const stops = segs.map(x => { const a=at; at+=x.v/total*100; return x.c+' '+a.toFixed(2)+'% '+at.toFixed(2)+'%'; });
+  const rb=$('rupee');
+  rb.style.background = segs.length? 'conic-gradient('+stops.join(',')+')' : 'var(--soft)';
+  rb.innerHTML = '<div class="hole"><b class="num">'+pct(share(payout))+'</b><span>reached<br>your bank</span></div>';
+  rb.setAttribute('aria-label', 'Donut chart: '+segs.map(x=>name(x.k)+' '+pct(share(x.v))).join(', '));
+  $('legend').innerHTML = segs.map(x => '<div><i style="background:'+x.c+'"></i><span>'+esc(name(x.k))+'</span><b class="num">'+pct(share(x.v))+'</b></div>').join('');
+}
+// weekly line chart with a dashed average line
+function drawWeeks(wk){
+  const keys=[...wk.keys()].sort(), vals=keys.map(k=>wk.get(k));
+  if(!keys.length){ $('weeks').innerHTML='<p class="muted">No payments in this period.</p>'; return; }
+  const W=1000, H=200, pad=16, lo=Math.min(0,...vals), hi=Math.max(1,...vals), n=keys.length;
+  const x = i => n>1? pad+i*(W-2*pad)/(n-1) : W/2, y = v => H-pad-(v-lo)/((hi-lo)||1)*(H-2*pad);
+  const avg = sum(vals,v=>v)/n, pts = vals.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1)).join(' ');
+  const dl = k => new Date(k+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const fmt = v => Math.abs(v)>=1000? '₹'+(v/1000).toFixed(1)+'K' : money(v), step = Math.ceil(n/8);
+  const ns = ' vector-effect="non-scaling-stroke"';
+  $('weeks').innerHTML = '<svg role="img" aria-label="Line chart of money received each week: '+esc(keys.map((k,i)=>'week of '+dl(k)+' '+money(vals[i])).join(', '))+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'
+    + '<polygon fill="var(--peacock-soft)" points="'+x(0).toFixed(1)+','+y(0).toFixed(1)+' '+pts+' '+x(n-1).toFixed(1)+','+y(0).toFixed(1)+'"></polygon>'
+    + '<line x1="0" x2="'+W+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="var(--line)" stroke-width="2"'+ns+'></line>'
+    + '<line x1="0" x2="'+W+'" y1="'+y(avg)+'" y2="'+y(avg)+'" stroke="var(--muted)" stroke-width="2" stroke-dasharray="8 8"'+ns+'></line>'
+    + '<polyline fill="none" stroke="var(--peacock)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" points="'+pts+'"'+ns+'></polyline></svg>'
+    + '<div class="axis">'+keys.map((k,i)=>'<span>'+(i%step? '' : dl(k)+'<br><b class="num">'+fmt(vals[i])+'</b>')+'</span>').join('')+'</div>'
+    + '<p class="sub" style="margin-top:8px">- - - Average week: <b class="num">'+money(avg)+'</b></p>';
+}
 function analyse(R, d0, d1){
   const orders = R.filter(r=>r.type==='Order Payment');
   const paid = orders.filter(r=>!r.free), free = orders.filter(r=>r.free);
@@ -710,20 +826,10 @@ function analyse(R, d0, d1){
   $('foot').textContent = AMAZON_FOOT + (costs? COST_NOTE : '');
   // headline
   const fmtD = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  $('headline').innerHTML = (files.size && [...files.values()].some(d=>d.platform!=='Amazon')? 'Amazon: you' : 'You')+' keep <span class="amt">'+money(keptShare*100)+'</span> of every ₹100 in orders';
   const ac = amazonCogs(R);
   $('subline').textContent = fmtD(d0)+' to '+fmtD(d1)+': '+orders.length+' orders worth '+money(orderValue)+' became '+money(payout)+' for you'+(deferred>0? ', of which '+money(deferred)+' is still on hold.':'.')
     + (costs? ' After '+money(ac.cogs)+' of product cost, your profit is '+money(payout-ac.cogs)+'.' : '');
-  // rupee bar
-  const rb=$('rupee'); rb.innerHTML=''; const lg=$('legend'); lg.innerHTML='';
-  const segs=[{k:'You keep',v:payout,c:'var(--kept)'}].concat(ded.filter(d=>d.v>0.5));
-  rb.setAttribute('aria-label', segs.map(s=>s.k+' '+pct(share(s.v))).join(', '));
-  segs.forEach(s => {
-    const w = Math.max(0, share(s.v)*100);
-    const el=document.createElement('span'); el.style.width=w+'%'; el.style.background=s.c; el.title=s.k+': '+money(s.v)+' ('+pct(share(s.v))+')';
-    rb.appendChild(el);
-    lg.insertAdjacentHTML('beforeend','<span><i style="background:'+s.c+'"></i>'+esc(s.k.replace(/ \(.*\)/,''))+' <b class="num">'+pct(share(s.v))+'</b></span>');
-  });
+  drawResult(multi? 'Amazon' : '', orderValue, payout, costs? [{k:'Profit',v:payout-ac.cogs},{k:'Product cost',v:ac.cogs}] : [{k:'You keep',v:payout}], ded);
 
   // KPIs
   const units = paid.length;
@@ -750,9 +856,7 @@ function analyse(R, d0, d1){
   // weekly
   const wk = new Map();
   orders.forEach(r => { const d=new Date(r.date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); const k=iso(d); wk.set(k,(wk.get(k)||0)+r.total); });
-  const wkeys=[...wk.keys()].sort(); const wmax=Math.max(1,...wk.values());
-  $('weeks').innerHTML = wkeys.map(k => { const v=wk.get(k); const d=new Date(k+'T00:00');
-    return '<div class="wk" title="Week of '+fmtD(d)+': '+money(v)+'"><span class="v num">'+(v>=1000? '₹'+(v/1000).toFixed(1)+'K':money(v))+'</span><span class="bar" style="height:'+Math.max(2,v/wmax*100)+'%"></span><span class="d">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</span></div>'; }).join('');
+  drawWeeks(wk);
 
   // products
   const P=new Map();
@@ -827,13 +931,17 @@ function analyse(R, d0, d1){
   A.push(...profitAlerts(prods, ac.missing));
   if(deferred>0) A.push({sev:'info', cost:0, title:money(deferred)+' is on hold, not lost', why:'Amazon holds payment for recent orders until after delivery.', todo:'Expect it in your next settlements.'});
   if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Refunds, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
-  const rank={bad:0,warn:1,info:2,good:3};
-  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
-  $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
+  drawAlerts(A);
 }
 
 function drawProducts(prods){
   const amz = active==='Amazon';
+  // top 5: by profit once costs are loaded (costed products only), else by money paid
+  const by = costs && prods.some(p=>p.costed)? 'profit' : 'net';
+  const top = prods.filter(p => p.n>0 && (by==='net' || p.costed)).slice().sort((a,b)=>b[by]-a[by]).slice(0,5);
+  const mx = Math.max(1,...top.map(p=>Math.abs(p[by])));
+  $('topNote').textContent = by==='profit'? 'Top 5 by profit after product cost.' : 'Top 5 by money paid to you. Add your profit sheet to rank by profit.';
+  $('topProd').innerHTML = top.map(p=>'<div class="'+(p[by]<0?'loss':'')+'"><div class="row"><span>'+esc(short(p.name,50))+' <span class="muted">· '+p.n+' order'+(p.n>1?'s':'')+'</span></span><b class="num">'+money(p[by])+'</b></div><div class="track"><div style="width:'+(Math.abs(p[by])/mx*100)+'%"></div></div></div>').join('') || '<p class="muted">No paid orders in this period.</p>';
   const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
     .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']])
     .concat(costs? [['cogs','Product cost'],['profit','Profit']] : []);
