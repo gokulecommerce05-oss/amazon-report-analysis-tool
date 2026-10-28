@@ -18,6 +18,12 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 | Flipkart | Seller Hub → Payments → Previous payments → download the order-level settlement report | .xlsx (sheets *Orders*, *Ads*, …) |
 | Meesho | Supplier Panel → Payments → Download → payment file for the date range | .xlsx (sheets *Order Payments*, *Ads Cost*, …) |
 
+## Profit after product cost
+
+Download your business Google Sheet (**File → Download → Microsoft Excel**) and drop it on the page once. The tool reads the **SKU Mapping** tab (platform SKU → Master SKU) and the **Purchase Cost** tab (cost per Master SKU), and from then on shows profit per platform and per product, groups the same product across platforms, and flags products that lose money, sold SKUs with no cost, and SKUs mapped to two Master SKUs. The costs are saved only in that browser (never on GitHub); click × on the "Product costs" chip to forget them.
+
+Profit = paid to you − purchase cost of units the buyer kept. RTO and returned units are assumed back in stock; packaging is not included. Amazon transaction CSVs have no SKU, so Amazon products are matched by their title in SKU Mapping.
+
 Flipkart and Meesho figures follow the **payment date**. Everything on each line is split into sale, fees, shipping, returns, discounts, tax and other, and always adds up to what was actually paid.
 
 ---
