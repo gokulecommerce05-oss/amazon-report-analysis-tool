@@ -1,19 +1,24 @@
 # 2G VIBE Payout Analyser
 
-A single-page tool that reads Amazon Seller Central transaction CSVs and shows where your order money went: fees, refunds, ads, coupons, free orders, Easy Ship charges and amounts on hold, with a "fix these first" list.
+One page that reads your **Amazon, Flipkart and Meesho** payment reports and shows where your order money went: fees, shipping, returns and RTO, ads, discounts, tax held back (TCS/TDS) and fines, with a "fix these first" list and a product-by-product view. Load files from several platforms at once to compare them side by side.
 
-It is one self-contained file (`index.html`). There is no server and no sign-in, and your CSV never leaves your browser.
+It is one self-contained file (`index.html`). There is no server and no sign-in, and your files never leave your browser.
 
 ## Use it
 
-**On your computer:** download `index.html` and double-click it to open it in Chrome or Edge.
+Online: `https://gokulecommerce05-oss.github.io/amazon-report-analysis-tool/`
 
-**Online (GitHub Pages):** in this repo go to **Settings → Pages**, set **Source** to *Deploy from a branch*, pick the branch and the `/ (root)` folder, and save. The tool will be live at
-`https://gokulecommerce05-oss.github.io/amazon-report-analysis-tool/`.
+Or download `index.html` and double-click it to open it in Chrome or Edge (needs internet the first time for the Excel reader).
 
-## Get the CSV
+## Which file to download
 
-Seller Central → **Payments → Transaction view** → choose a date range or statement period → **Download** (CSV). You can drop several files at once.
+| Platform | Where | File |
+|---|---|---|
+| Amazon | Seller Central → Payments → Transaction view → date range → Download | CSV |
+| Flipkart | Seller Hub → Payments → Previous payments → download the order-level settlement report | .xlsx (sheets *Orders*, *Ads*, …) |
+| Meesho | Supplier Panel → Payments → Download → payment file for the date range | .xlsx (sheets *Order Payments*, *Ads Cost*, …) |
+
+Flipkart and Meesho figures follow the **payment date**. Everything on each line is split into sale, fees, shipping, returns, discounts, tax and other, and always adds up to what was actually paid.
 
 ---
 

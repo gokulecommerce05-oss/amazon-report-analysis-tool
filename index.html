@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#F5F7F6; --surface:#FFFFFF; --ink:#1B2427; --muted:#5B676B; --line:#DCE3E1;
@@ -48,13 +49,22 @@ header.top{display:flex;justify-content:space-between;align-items:baseline;gap:1
 .drop{border:2px dashed var(--peacock);border-radius:18px;background:var(--surface);padding:40px 28px;display:grid;gap:14px;cursor:pointer;transition:background .15s}
 .drop.over{background:var(--peacock-soft)}
 .drop h1{max-width:18ch}
-.drop .how{max-width:62ch}
+.drop .how{max-width:68ch}
+ul.how{margin:0;padding-left:20px;display:grid;gap:4px}
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;background:var(--peacock);color:var(--surface);padding:10px 20px;font-weight:600;cursor:pointer;justify-self:start}
 .btn.ghost{background:transparent;color:var(--peacock);border:1.5px solid var(--peacock);padding:6px 14px;font-size:.92rem}
 .files{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px;font-size:.9rem}
 .chip button{border:0;background:var(--line);border-radius:50%;width:24px;height:24px;cursor:pointer;line-height:1}
 .err{background:var(--kumkum-soft);color:var(--kumkum);padding:12px 16px;border-radius:12px;margin-top:14px;display:none}
+
+/* platforms */
+.compare{margin-top:30px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
+.tabs:empty{display:none}
+.tabs button{border:1.5px solid var(--peacock);background:transparent;color:var(--peacock);border-radius:999px;padding:6px 18px;font-weight:600;cursor:pointer;min-height:40px}
+.tabs button[aria-selected="true"]{background:var(--peacock);color:var(--surface)}
+tr.pick{cursor:pointer} tr.pick:hover td{background:var(--peacock-soft)}
 
 /* verdict */
 #report{display:none}
@@ -133,15 +143,26 @@ footer{margin-top:56px;color:var(--muted);font-size:.88rem;max-width:72ch}
   </header>
 
   <label class="drop" id="drop" tabindex="0">
-    <h1>Drop your Amazon transactions file here</h1>
-    <p class="how muted">In Seller Central go to Payments → Transaction view, pick a date range or statement period, and download the CSV. You can add several files at once; everything stays in your browser.</p>
-    <span class="btn" role="button">Choose CSV files</span>
-    <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+    <h1>Drop your Amazon, Flipkart or Meesho payment files here</h1>
+    <ul class="how muted">
+      <li><b>Amazon:</b> Seller Central → Payments → Transaction view → download the CSV.</li>
+      <li><b>Flipkart:</b> Seller Hub → Payments → Previous payments → download the order-level settlement report (.xlsx).</li>
+      <li><b>Meesho:</b> Supplier Panel → Payments → Download → Payment file for the date range (.xlsx).</li>
+    </ul>
+    <p class="how muted">You can add several files at once, from any mix of platforms. Everything stays in your browser.</p>
+    <span class="btn" role="button">Choose files</span>
+    <input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls" multiple hidden>
   </label>
   <div class="err" id="err"></div>
   <div class="files" id="files"></div>
 
   <div id="report">
+    <section id="compareBox" class="compare">
+      <h2>All platforms</h2>
+      <p class="lead muted">Click a platform to see its details below.</p>
+      <div class="tbl"><table id="compareTable"></table></div>
+    </section>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Platform"></div>
     <div class="verdict">
       <h1 id="headline"></h1>
       <p class="sub muted" id="subline"></p>
@@ -182,28 +203,29 @@ footer{margin-top:56px;color:var(--muted);font-size:.88rem;max-width:72ch}
 
     <section class="two">
       <div>
-        <h2>Refunds by payment type</h2>
+        <h2 id="leftTitle">Refunds by payment type</h2>
         <div class="tbl"><table id="payTable"></table></div>
       </div>
       <div>
-        <h2>Free orders</h2>
+        <h2 id="rightTitle">Free orders</h2>
         <div class="tbl"><table id="freeTable"></table></div>
       </div>
     </section>
 
     <section>
-      <h2>Refunds</h2>
+      <h2 id="refTitle">Refunds</h2>
       <div class="tbl"><table id="refTable"></table></div>
     </section>
 
-    <footer>Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
+    <footer id="foot">Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
   </div>
 </div>
 
 <script>
 (function(){
-const files = new Map(); // name -> rows
-let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1};
+const files = new Map(); // name -> {platform, rows} (Amazon) or {platform, lines, extras} (Flipkart, Meesho)
+let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1}, active = null;
+const PLATFORMS = ['Amazon','Flipkart','Meesho'];
 const $ = id => document.getElementById(id);
 const INR = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0});
 const INR2 = new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2});
@@ -230,6 +252,8 @@ const N = v => { const x = parseFloat(String(v||'').replace(/[₹,\s]/g,'')); re
 function parseDate(s){
   const m = String(s).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
   if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const i = String(s).trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(i) return new Date(+i[1], +i[2]-1, +i[3]);
   const d = new Date(s); return isNaN(d)? null : d;
 }
 function toRows(text){
@@ -257,9 +281,114 @@ function toRows(text){
   }).filter(r => r.date);
 }
 
+// ---- Flipkart and Meesho (.xlsx) ----
+const low = s => String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
+function sheet(wb, name){ const ws = wb.Sheets[name]; return ws? XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}) : null; }
+function xlDate(v){
+  if(typeof v==='number' && v>20000 && v<80000){ const d=XLSX.SSF.parse_date_code(v); return new Date(d.y, d.m-1, d.d); }
+  return v===''? null : parseDate(v);
+}
+// header row = first of the top rows holding a cell that starts with `key`
+function headerAt(t, key){ for(let i=0;i<Math.min(t.length,8);i++) if(t[i].some(c => low(c).startsWith(key))) return i; return -1; }
+// column lookup by header text; exact match when asked, else prefix; first occurrence wins
+function cols(h, spec){
+  const out={};
+  for(const [k,name] of Object.entries(spec)){
+    const exact = name.startsWith('=');
+    const want = exact? name.slice(1) : name;
+    out[k] = h.findIndex(c => exact? low(c)===want : low(c).startsWith(want));
+  }
+  return out;
+}
+const blank = () => ({sale:0,discount:0,fees:0,shipping:0,returnShip:0,refund:0,taxes:0,other:0,payout:0});
+const PARTS = ['sale','discount','fees','shipping','returnShip','refund','taxes','other'];
+// put any rounding or unmapped column into `other`, so every line adds up to what was paid
+function settle(l){ l.other += l.payout - PARTS.reduce((s,k)=>s+l[k],0); return l; }
+
+function parseFlipkart(wb){
+  const t = sheet(wb,'Orders'); const hi = headerAt(t,'order item id');
+  if(hi<0) throw new Error('This Flipkart file has no Orders sheet with Order item IDs.');
+  const c = cols(t[hi], {pay:'payment date', settle:'bank settlement value', order:'order id', item:'order item id', sale:'sale amount (rs.)',
+    offer:'total offer amount (rs.)', share:'my share (rs.)', addon:'customer add-ons amount (rs.)', mp:'marketplace fee (rs.)', tax:'taxes (rs.)',
+    adj:'offer adjustments (rs.)', prot:'protection fund (rs.)', refund:'refund (rs.)', ship:'shipping fee (rs.)', rev:'reverse shipping fee (rs.)',
+    odate:'order date', sku:'seller sku', qty:'quantity', rtype:'return type'});
+  const miss = ['pay','settle','item','sale','mp','refund'].filter(k => c[k]<0);
+  if(miss.length) throw new Error('This Flipkart file is missing columns: '+miss.join(', ')+'.');
+  const g = (r,k) => c[k]>=0? r[c[k]] : '';
+  const lines = t.slice(hi+1).filter(r => String(g(r,'item')).trim() && xlDate(g(r,'pay'))).map(r => {
+    const rt = low(g(r,'rtype'));
+    const l = Object.assign(blank(), {platform:'Flipkart', date:xlDate(g(r,'pay')), orderDate:xlDate(g(r,'odate')),
+      id:String(g(r,'item')).trim(), order:String(g(r,'order')).trim(), sku:String(g(r,'sku')).trim(), qty:N(g(r,'qty'))||1, pay:'',
+      status: rt.startsWith('logistics')? 'RTO' : rt.startsWith('customer')? 'Customer return' : 'Delivered'});
+    l.prod = l.sku;
+    const ship = N(g(r,'ship')), rev = N(g(r,'rev'));
+    l.sale = N(g(r,'sale')) + N(g(r,'offer')) + N(g(r,'addon'));
+    l.discount = N(g(r,'share')) + N(g(r,'adj'));
+    l.fees = N(g(r,'mp')) - ship - rev; l.shipping = ship; l.returnShip = rev;
+    l.refund = N(g(r,'refund')); l.taxes = N(g(r,'tax')); l.other = N(g(r,'prot'));
+    l.payout = N(g(r,'settle'));
+    return settle(l);
+  });
+  const kinds = {'Ads':'Advertising','Fines':'Fines','MP Fee Rebate':'Fee rebates','TCS_Recovery':'Tax adjustments','TDS':'Tax adjustments'};
+  const extras = [];
+  wb.SheetNames.filter(n => !['Report Help','Summary of report','Orders','GST_Details'].includes(n)).forEach(n => {
+    const s = sheet(wb,n); const h = headerAt(s,'neft id'); if(h<0) return;
+    const k = cols(s[h], {settle:'settlement value', bank:'bank settlement value', pay:'payment date'});
+    const sc = k.settle>=0? k.settle : k.bank; if(sc<0) return;
+    const dc = k.pay>=0? k.pay : s[h].findIndex(x => low(x).includes('date'));
+    s.slice(h+1).forEach(r => { const d = dc>=0? xlDate(r[dc]) : null; const v = r[sc];
+      if(String(r[0]).trim() && d && v!=='' && isFinite(N(v))) extras.push({platform:'Flipkart', date:d, kind:kinds[n]||'Other services', label:n.replace(/_/g,' '), amount:N(v)}); });
+  });
+  return {lines, extras};
+}
+
+function parseMeesho(wb){
+  const t = sheet(wb,'Order Payments'); const hi = headerAt(t,'sub order no');
+  if(hi<0) throw new Error('This Meesho file has no Order Payments sheet.');
+  const c = cols(t[hi], {sub:'sub order no', odate:'order date', prod:'product name', sku:'supplier sku', status:'live order status', qty:'=quantity',
+    pay:'payment date', fin:'final settlement amount', sale:'total sale amount', ret:'total sale return amount', fixed:'fixed fee', ware:'warehousing fee',
+    prem:'=return premium (incl gst)', premRet:'return premium (incl gst) of return', comm:'meesho commission (incl', gold:'meesho gold platform fee',
+    mall:'meesho mall platform fee', retShip:'return shipping charge', gstComp:'gst compensation', ship:'shipping charge', support:'net other support service charges',
+    tcs:'=tcs', tds:'=tds', comp:'=compensation', claims:'=claims', recovery:'=recovery'});
+  const miss = ['sub','pay','fin','sale'].filter(k => c[k]<0);
+  if(miss.length) throw new Error('This Meesho file is missing columns: '+miss.join(', ')+'.');
+  const g = (r,k) => c[k]>=0? r[c[k]] : '';
+  const st = {delivered:'Delivered', rto:'RTO', 'return':'Customer return', cancelled:'Cancelled'};
+  const lines = t.slice(hi+1).filter(r => String(g(r,'sub')).trim() && xlDate(g(r,'pay')) && g(r,'fin')!=='').map(r => {
+    const l = Object.assign(blank(), {platform:'Meesho', date:xlDate(g(r,'pay')), orderDate:xlDate(g(r,'odate')),
+      id:String(g(r,'sub')).trim(), order:String(g(r,'sub')).trim(), sku:String(g(r,'sku')).trim(), prod:String(g(r,'prod')).trim(),
+      qty:N(g(r,'qty'))||1, pay:'', status: st[low(g(r,'status'))] || (g(r,'status')? 'In transit' : 'Other')});
+    l.sale = N(g(r,'sale')); l.refund = N(g(r,'ret'));
+    l.fees = ['comm','gold','mall','fixed','ware','support','prem','premRet'].reduce((s,k)=>s+N(g(r,k)),0);
+    l.shipping = N(g(r,'ship')) + N(g(r,'gstComp')); l.returnShip = N(g(r,'retShip'));
+    l.taxes = N(g(r,'tcs')) + N(g(r,'tds'));
+    l.other = N(g(r,'comp')) + N(g(r,'claims')) + N(g(r,'recovery'));
+    l.payout = N(g(r,'fin'));
+    return settle(l);
+  });
+  const extras = [];
+  const grab = (name, key, dateCol, amtCol, kind) => { const s = sheet(wb,name); if(!s) return; const h = headerAt(s,key); if(h<0) return;
+    const k = cols(s[h], {d:dateCol, a:amtCol}); if(k.d<0||k.a<0) return;
+    s.slice(h+1).forEach(r => { const d = xlDate(r[k.d]); const v = r[k.a]; if(d && v!=='' && isFinite(N(v))) extras.push({platform:'Meesho', date:d, kind, label:name, amount:N(v)}); }); };
+  grab('Ads Cost','deduction duration','deduction date','total ads cost','Advertising');
+  grab('Compensation and Recovery','program name','=date','amount','Compensation & recovery');
+  grab('Referral Payments','reward id','payment date','net referral amount','Referral');
+  return {lines, extras};
+}
+
+function readFile(f){
+  if(/\.csv$/i.test(f.name) || f.type==='text/csv') return f.text().then(txt => ({platform:'Amazon', rows:toRows(txt)}));
+  if(!window.XLSX) return Promise.reject(new Error('The Excel reader did not load. Check your internet connection and reload the page.'));
+  return f.arrayBuffer().then(buf => {
+    const wb = XLSX.read(buf, {type:'array'});
+    if(wb.SheetNames.includes('Order Payments')) return Object.assign({platform:'Meesho'}, parseMeesho(wb));
+    if(wb.SheetNames.includes('Orders')) return Object.assign({platform:'Flipkart'}, parseFlipkart(wb));
+    throw new Error('This is not an Amazon transactions CSV, a Flipkart settlement report or a Meesho payment file.');
+  });
+}
 function addFiles(list){
   $('err').style.display='none';
-  const jobs = [...list].map(f => f.text().then(txt => { files.set(f.name, toRows(txt)); }).catch(e => { showErr(f.name+': '+e.message); }));
+  const jobs = [...list].map(f => readFile(f).then(d => { files.set(f.name, d); active = d.platform; }).catch(e => { showErr(f.name+': '+e.message); }));
   Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; render(); });
 }
 function showErr(m){ const e=$('err'); e.textContent=m; e.style.display='block'; }
@@ -278,24 +407,197 @@ $('resetDates').addEventListener('click', () => { dateFrom=null; dateTo=null; re
 
 function render(){
   const chips = $('files'); chips.innerHTML='';
-  files.forEach((rows,name) => {
+  files.forEach((d,name) => {
+    const n = d.rows? d.rows.length : d.lines.length;
     const c=document.createElement('span'); c.className='chip';
-    c.innerHTML = esc(name)+' <span class="muted">'+rows.length+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
+    c.innerHTML = esc(name)+' <span class="muted">'+d.platform+' · '+n+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
     c.querySelector('button').onclick = () => { files.delete(name); render(); };
     chips.appendChild(c);
   });
-  let all=[]; files.forEach(r => all=all.concat(r));
+  // merge files per platform
+  const data = {};
+  files.forEach(d => { const p = data[d.platform] || (data[d.platform] = {rows:[], lines:[], extras:[]});
+    if(d.rows) p.rows = p.rows.concat(d.rows); else { p.lines = p.lines.concat(d.lines); p.extras = p.extras.concat(d.extras); } });
+  const have = PLATFORMS.filter(p => data[p]);
   $('fileCount').textContent = files.size? files.size+' file'+(files.size>1?'s':'')+' loaded' : '';
-  if(!all.length){ $('report').style.display='none'; return; }
+  if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='block';
-  const minD = new Date(Math.min(...all.map(r=>r.date))), maxD = new Date(Math.max(...all.map(r=>r.date)));
+  if(!have.includes(active)) active = have[0];
+  const dates = []; have.forEach(p => { const d=data[p]; d.rows.concat(d.lines, d.extras).forEach(r => dates.push(+r.date)); });
+  const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
   $('from').min=$('to').min=iso(minD); $('from').max=$('to').max=iso(maxD);
   $('from').value = iso(dateFrom||minD); $('to').value = iso(dateTo||maxD);
-  const rows = all.filter(r => (!dateFrom || r.date>=dateFrom) && (!dateTo || r.date<=dateTo));
-  analyse(rows, dateFrom||minD, dateTo||maxD);
+  const inRange = r => (!dateFrom || r.date>=dateFrom) && (!dateTo || r.date<=dateTo);
+  const view = {}; have.forEach(p => { const d=data[p]; view[p] = {rows:d.rows.filter(inRange), lines:d.lines.filter(inRange), extras:d.extras.filter(inRange)}; });
+
+  // platform comparison and tabs
+  const multi = have.length>1;
+  $('compareBox').style.display = multi? 'block':'none';
+  $('tabs').innerHTML = multi? have.map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+p+'</button>').join('') : '';
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
+  if(multi){
+    const S = have.map(p => Object.assign({p}, p==='Amazon'? amazonSummary(view[p].rows) : genericSummary(compute(view[p].lines, view[p].extras))));
+    const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0});
+    const row = (x,cls) => '<tr'+(cls?' class="'+cls+'" data-p="'+x.p+'"':'')+'><td>'+(x.p||'All platforms')+'</td><td class="num">'+x.orders.toLocaleString('en-IN')+'</td><td class="num">'+money(x.value)+'</td><td class="num">'+money(x.payout)+'</td><td class="num">'+money(x.value? x.payout/x.value*100:0)+'</td><td class="num">'+x.returns+' <span class="muted">('+pct(x.orders? x.returns/x.orders:0)+')</span></td><td class="num">'+money(x.ads)+'</td></tr>';
+    $('compareTable').innerHTML = '<thead><tr><th>Platform</th><th>Orders</th><th>Order value</th><th>Paid to you</th><th>Kept per ₹100</th><th>Returns &amp; RTO</th><th>Ads</th></tr></thead><tbody>'+S.map(x=>row(x,'pick')).join('')+'</tbody><tfoot>'+row(Object.assign({p:''},T))+'</tfoot>';
+    $('compareTable').querySelectorAll('tr.pick').forEach(tr => tr.onclick = () => { active = tr.dataset.p; render(); });
+  }
+  if(active==='Amazon') analyse(view.Amazon.rows, dateFrom||minD, dateTo||maxD);
+  else analyseGeneric(active, view[active].lines, view[active].extras, dateFrom||minD, dateTo||maxD);
+}
+
+function amazonSummary(R){
+  const orders = R.filter(r=>r.type==='Order Payment');
+  return {orders:orders.length, value:sum(orders,r=>r.charges), payout:sum(R,r=>r.total),
+    returns:R.filter(r=>r.type==='Refund').length, ads:-sum(R.filter(r=>r.group==='Advertising'),r=>r.total)};
+}
+
+// ---- Flipkart and Meesho analysis ----
+// One item = one Flipkart order item or Meesho sub-order, summed over all its payment lines.
+function compute(L, X){
+  const items = new Map();
+  L.forEach(l => { let it = items.get(l.id);
+    if(!it){ it = Object.assign(blank(), {id:l.id, order:l.order, sku:l.sku, prod:l.prod, status:l.status, date:l.date, orderDate:l.orderDate, qty:0}); items.set(l.id, it); }
+    PARTS.concat('payout').forEach(k => it[k]+=l[k]);
+    if(l.sale>0) it.qty += l.qty;
+    if(l.date>=it.date){ it.status=l.status; it.date=l.date; }
+  });
+  const I = [...items.values()];
+  I.forEach(it => { it.sold = it.sale>0; it.rto = it.status==='RTO'; it.ret = it.status==='Customer return' || (!it.rto && it.refund<0); });
+  const t = blank(); L.forEach(l => PARTS.concat('payout').forEach(k => t[k]+=l[k]));
+  const byKind = {}; X.forEach(x => byKind[x.kind] = (byKind[x.kind]||0) + x.amount);
+  const ads = -(byKind.Advertising||0), fines = -(byKind.Fines||0);
+  const otherX = sum(X.filter(x => x.kind!=='Advertising' && x.kind!=='Fines'), x=>x.amount);
+  return {L, X, I, t, byKind, ads, fines, otherX, sold:I.filter(i=>i.sold), value:t.sale, payout:t.payout + sum(X,x=>x.amount)};
+}
+function genericSummary(c){
+  return {orders:c.sold.length, value:c.value, payout:c.payout, returns:c.I.filter(i=>i.rto||i.ret).length, ads:c.ads};
+}
+const FOOT = {
+  Flipkart:'Amounts come from the settlement report, so they follow the payment date, not the order date. RTO means Flipkart marked it a logistics return (the buyer never accepted it); customer return means the buyer sent it back. TCS and TDS are taxes held back for you: claim TCS in your GST return and TDS in your income tax return. Ads show the wallet top-ups taken from your payouts.',
+  Meesho:'Amounts come from the payment file, so they follow the payment date, not the order date. RTO means the parcel came back undelivered; return means the buyer sent it back. TCS and TDS are taxes held back for you: claim TCS in your GST return and TDS in your income tax return. Meesho marks these figures as estimates until courier costs are final.'
+};
+function analyseGeneric(P, L, X, d0, d1){
+  const c = compute(L, X), t = c.t, I = c.I, sold = c.sold;
+  const value = c.value, payout = c.payout;
+  const share = v => value? v/value : 0;
+  const rto = I.filter(i=>i.rto), ret = I.filter(i=>i.ret);
+  const ded = [
+    {k:'Marketplace fees (commission, fixed and other fees)', v:-t.fees, c:'var(--muted)'},
+    {k:'Shipping', v:-t.shipping, c:'var(--turmeric-soft)'},
+    {k:'Returns and RTO (sale amount taken back)', v:-t.refund, c:'var(--kumkum)'},
+    {k:'Return shipping', v:-t.returnShip, c:'#7A1A14'},
+    {k:'Discounts you paid for', v:-t.discount, c:'var(--turmeric)'},
+    {k:'Advertising', v:c.ads, c:'var(--peacock-soft)'},
+    {k:'Tax held back (TCS, TDS, GST on fees)', v:-t.taxes, c:'var(--leaf-soft)'},
+    {k:'Fines', v:c.fines, c:'var(--kumkum-soft)'},
+    {k:'Other charges and credits', v:-(t.other + c.otherX), c:'var(--line)'}
+  ];
+  const vt = {
+    'Returns and RTO (sale amount taken back)': x => x>0.15?'bad':x>0.08?'warn':'ok',
+    'Return shipping': x => x>0.02?'warn':'ok',
+    'Shipping': x => x>0.18?'warn':'ok',
+    'Discounts you paid for': x => x>0.03?'warn':'ok',
+    'Advertising': x => x>0.12?'warn':'ok',
+    'Fines': x => x>0?'bad':'ok'
+  };
+  const fmtD = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  $('headline').innerHTML = P+': you keep <span class="amt">'+money(share(payout)*100)+'</span> of every ₹100 in orders';
+  $('subline').textContent = fmtD(d0)+' to '+fmtD(d1)+' (payment dates): '+sold.length+' orders worth '+money(value)+' became '+money(payout)+' for you.';
+  const rb=$('rupee'); rb.innerHTML=''; const lg=$('legend'); lg.innerHTML='';
+  const segs=[{k:'You keep',v:payout,c:'var(--kept)'}].concat(ded.filter(d=>d.v>0.5));
+  rb.setAttribute('aria-label', segs.map(s=>s.k+' '+pct(share(s.v))).join(', '));
+  segs.forEach(s => {
+    const el=document.createElement('span'); el.style.width=Math.max(0, share(s.v)*100)+'%'; el.style.background=s.c; el.title=s.k+': '+money(s.v)+' ('+pct(share(s.v))+')';
+    rb.appendChild(el);
+    lg.insertAdjacentHTML('beforeend','<span><i style="background:'+s.c+'"></i>'+esc(s.k.replace(/ \(.*\)/,''))+' <b class="num">'+pct(share(s.v))+'</b></span>');
+  });
+
+  $('kpis').innerHTML = [
+    ['Orders', sold.length.toLocaleString('en-IN'), sum(sold,i=>i.qty)+' units'],
+    ['Order value', money(value), 'before any deductions'],
+    ['Paid to you', money(payout), pct(share(payout))+' of order value'],
+    ['RTO', rto.length, pct(sold.length? rto.length/sold.length:0)+' of orders', rto.length/Math.max(1,sold.length)>0.15?'hold':''],
+    ['Customer returns', ret.length, pct(sold.length? ret.length/sold.length:0)+' of orders'],
+    ['Tax held back', money(-t.taxes), 'claim it back in your returns']
+  ].map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+
+  let h='<thead><tr><th>Expense</th><th>Amount</th><th>% of order value</th><th>Verdict</th></tr></thead><tbody>';
+  ded.forEach(d => { if(Math.abs(d.v)<0.5) return;
+    const s=share(d.v), v=(vt[d.k]||(()=>'ok'))(s);
+    const label = v==='bad'?'<span class="tag bad">Problem</span>':v==='warn'?'<span class="tag warn">Can cut</span>':'<span class="tag ok">Normal</span>';
+    h+='<tr><td>'+d.k+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>'; });
+  const totDed = sum(ded,d=>d.v);
+  h+='</tbody><tfoot><tr><td>Total deducted</td><td class="num">'+money(totDed)+'</td><td class="num">'+pct(share(totDed))+'</td><td></td></tr></tfoot>';
+  $('dedTable').innerHTML=h;
+
+  // weekly: everything paid, grouped by the Monday of the payment date
+  const wk = new Map();
+  L.concat(X).forEach(r => { const d=new Date(r.date); d.setDate(d.getDate()-(d.getDay()+6)%7); const k=iso(d); wk.set(k,(wk.get(k)||0)+(r.payout!==undefined? r.payout : r.amount)); });
+  const wkeys=[...wk.keys()].sort(); const wmax=Math.max(1,...wk.values());
+  $('weeks').innerHTML = wkeys.map(k => { const v=wk.get(k); const d=new Date(k+'T00:00');
+    return '<div class="wk" title="Week of '+fmtD(d)+': '+money(v)+'"><span class="v num">'+(v>=1000? '₹'+(v/1000).toFixed(1)+'K':money(v))+'</span><span class="bar" style="height:'+Math.max(2,Math.max(0,v)/wmax*100)+'%"></span><span class="d">'+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</span></div>'; }).join('');
+
+  // products
+  const Pm=new Map();
+  I.forEach(i => { const key = i.prod||i.sku||'(no SKU)'; if(!Pm.has(key)) Pm.set(key,{name:key,n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0});
+    const p=Pm.get(key); if(i.sold) p.n++; p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
+    if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; } });
+  const prods=[...Pm.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0}));
+  drawProducts(prods);
+
+  // orders by status, and charges outside orders
+  $('leftTitle').textContent='Orders by status';
+  const ST=['Delivered','In transit','RTO','Customer return','Cancelled','Other'].map(s => { const x=I.filter(i=>i.status===s); return {s, n:x.length, sale:sum(x,i=>i.sale), pay:sum(x,i=>i.payout)}; }).filter(x=>x.n);
+  $('payTable').innerHTML = '<thead><tr><th>Status</th><th>Items</th><th>Sale amount</th><th>Paid to you</th></tr></thead><tbody>'+ST.map(x=>'<tr><td>'+x.s+'</td><td class="num">'+x.n+'</td><td class="num">'+money(x.sale)+'</td><td class="num">'+money(x.pay)+'</td></tr>').join('')+'</tbody>';
+  $('rightTitle').textContent='Charges outside orders';
+  const XK={}; X.forEach(x => { const k=x.kind+(x.kind==='Other services'? ': '+x.label:''); XK[k]=XK[k]||{n:0,a:0}; XK[k].n++; XK[k].a+=x.amount; });
+  const xk=Object.entries(XK).filter(([k,v])=>Math.abs(v.a)>=0.5);
+  $('freeTable').innerHTML = xk.length
+    ? '<thead><tr><th>Type</th><th>Entries</th><th>Amount</th></tr></thead><tbody>'+xk.map(([k,v])=>'<tr><td>'+esc(k)+'</td><td class="num">'+v.n+'</td><td class="num">'+money(v.a)+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td>No ads, fines or other charges in this period.</td></tr></tbody>';
+
+  // returns list
+  $('refTitle').textContent='Returns and RTO';
+  const back = I.filter(i=>i.rto||i.ret).sort((a,b)=>(a.refund+a.returnShip)-(b.refund+b.returnShip));
+  $('refTable').innerHTML = back.length
+    ? '<thead><tr><th>Product</th><th>Paid on</th><th>Order ID</th><th>Type</th><th>Sale taken back</th><th>Return shipping</th><th>Net for this item</th></tr></thead><tbody>'+back.map(i=>'<tr><td title="'+esc(i.prod)+'">'+esc(short(i.prod||i.sku,46))+'</td><td>'+i.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(i.order)+'</td><td>'+(i.rto?'RTO':'Customer return')+'</td><td class="num">'+money(i.refund)+'</td><td class="num">'+money(i.returnShip)+'</td><td class="num">'+money(i.payout)+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td>No returns or RTO in this period.</td></tr></tbody>';
+  $('foot').textContent = FOOT[P];
+
+  // alerts
+  const A=[], n=sold.length||1;
+  const rr = rto.length/n;
+  if(rr>0.1) A.push({sev:rr>0.2?'bad':'warn', cost:-sum(rto,i=>i.refund+i.returnShip+i.shipping), title:pct(rr)+' of orders came back undelivered (RTO)',
+    why:rto.length+' of '+sold.length+' orders were refused or not delivered; '+money(-sum(rto,i=>i.refund))+' of sales were reversed'+(sum(rto,i=>i.shipping+i.returnShip)<-0.5? ' and you paid '+money(-sum(rto,i=>i.shipping+i.returnShip))+' in shipping on them':'')+'.',
+    todo:'Confirm cash-on-delivery orders by call or WhatsApp before dispatch, and stop shipping to pincodes that keep refusing.'});
+  const cr = ret.length/n;
+  if(cr>0.06) A.push({sev:cr>0.1?'bad':'warn', cost:-sum(ret,i=>i.refund+i.returnShip), title:'Customers sent back '+pct(cr)+' of orders',
+    why:ret.length+' customer returns took back '+money(-sum(ret,i=>i.refund))+(sum(ret,i=>i.returnShip)<-0.5? ' plus '+money(-sum(ret,i=>i.returnShip))+' in return shipping':'')+'. A healthy target is under 5%.',
+    todo:'Read the return reasons. Add a size-reference photo, show the real colour and finish, and pack fragile idols better.'});
+  prods.filter(p=>p.n>=4 && p.refRate>=0.25).sort((a,b)=>a.refAmt-b.refAmt).slice(0,4).forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,44)+' comes back too often',
+    why:p.ref+' of '+p.n+' orders ('+pct(p.refRate)+') were returned or RTO.', todo:'Check this listing’s photos, size and description against the product, or pause it until the cause is fixed.'}));
+  const sh = share(-t.shipping);
+  if(sh>0.18) A.push({sev:'warn', cost:-t.shipping, title:'Shipping takes '+pct(sh)+' of order value',
+    why:'You paid '+money(-t.shipping)+' in shipping on '+money(value)+' of orders.',
+    todo:'Weigh a packed order and compare it with the weight slab charged. A smaller or lighter box can drop a slab; for cheap items, sell 2-packs so shipping is shared.'});
+  const ds = share(-t.discount);
+  if(ds>0.03) A.push({sev:'warn', cost:-t.discount, title:'Discounts you funded cost '+pct(ds)+' of order value', why:money(-t.discount)+' of offers came out of your payouts.', todo:'Keep discounts for festivals and new launches instead of running them all the time.'});
+  if(share(c.ads)>0.12) A.push({sev:'warn', cost:c.ads, title:'Ads take '+pct(share(c.ads))+' of order value', why:money(c.ads)+' went to ads in this period.', todo:'Check each campaign’s return; pause any that bring back less than 3× what they cost.'});
+  if(c.fines>0) A.push({sev:'bad', cost:c.fines, title:money(c.fines)+' in fines', why:'See the Fines entries under Charges outside orders.', todo:'Open each fine in the seller panel and dispute any that are wrong.'});
+  const lowKept = prods.filter(p=>p.n>=10 && p.kept<0.6).sort((a,b)=>b.n-a.n);
+  if(lowKept.length) A.push({sev:'warn', cost:sum(lowKept,p=>p.n)*25, title:'Some products keep only '+pct(sum(lowKept,p=>p.net)/sum(lowKept,p=>p.sales))+' of their price',
+    why:lowKept.slice(0,3).map(p=>short(p.name,36)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Shipping and fees are nearly fixed per order, so cheap items lose a bigger share.',
+    todo:'Raise these by ₹20–30 or sell them as combos. Estimated gain shown at ₹25 per order.'});
+  if(t.taxes<-0.5) A.push({sev:'info', cost:0, title:money(-t.taxes)+' tax held back, not lost', why:'TCS, TDS and GST on fees were deducted from your payouts.', todo:'Ask your accountant to claim TCS in GSTR-3B and TDS in your income tax return.'});
+  if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Returns, shipping, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
+  const rank={bad:0,warn:1,info:2,good:3};
+  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
+  $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
 }
 
 function sum(a,f){ return a.reduce((s,r)=>s+f(r),0); }
+const AMAZON_FOOT = $('foot').textContent;
 function analyse(R, d0, d1){
   const orders = R.filter(r=>r.type==='Order Payment');
   const paid = orders.filter(r=>!r.free), free = orders.filter(r=>r.free);
@@ -324,9 +626,11 @@ function analyse(R, d0, d1){
     'Easy Ship (self-ship) charges': x => x>0.02?'warn':'ok'
   };
 
+  $('leftTitle').textContent='Refunds by payment type'; $('rightTitle').textContent='Free orders'; $('refTitle').textContent='Refunds';
+  $('foot').textContent = AMAZON_FOOT;
   // headline
   const fmtD = d => d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  $('headline').innerHTML = 'You keep <span class="amt">'+money(keptShare*100)+'</span> of every ₹100 in orders';
+  $('headline').innerHTML = (files.size && [...files.values()].some(d=>d.platform!=='Amazon')? 'Amazon: you' : 'You')+' keep <span class="amt">'+money(keptShare*100)+'</span> of every ₹100 in orders';
   $('subline').textContent = fmtD(d0)+' to '+fmtD(d1)+': '+orders.length+' orders worth '+money(orderValue)+' became '+money(payout)+' for you'+(deferred>0? ', of which '+money(deferred)+' is still on hold.':'.');
   // rupee bar
   const rb=$('rupee'); rb.innerHTML=''; const lg=$('legend'); lg.innerHTML='';
@@ -442,15 +746,17 @@ function analyse(R, d0, d1){
 }
 
 function drawProducts(prods){
-  const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo','Coupons'],['fees','Fees'],['net','Net to you'],['perOrder','Per order'],['kept','Kept'],['free','Free'],['ref','Refunds'],['refRate','Refund rate']];
+  const amz = active==='Amazon';
+  const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
+    .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']]);
   const k=prodSort.key, d=prodSort.dir;
   prods.sort((a,b)=> k==='name'? d*a.name.localeCompare(b.name) : d*(a[k]-b[k]));
   const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]));
   let h='<thead><tr>'+cols.map(c=>'<th class="sort" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'">'+c[1]+(c[0]===k?(d<0?' ↓':' ↑'):'')+'</th>').join('')+'</tr></thead><tbody>';
   prods.forEach(p=>{
-    h+='<tr><td title="'+esc(p.name)+'">'+esc(short(p.name,52))+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td><td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td><td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td></tr>';
+    h+='<tr><td title="'+esc(p.name)+'">'+esc(short(p.name,52))+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td></tr>';
   });
-  h+='</tbody><tfoot><tr><td>Total</td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td><td class="num">'+(tot.free||'')+'</td><td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td></tr></tfoot>';
+  h+='</tbody><tfoot><tr><td>Total</td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td>'+(amz? '<td class="num">'+(tot.free||'')+'</td>':'')+'<td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td></tr></tfoot>';
   const t=$('prodTable'); t.innerHTML=h;
   t.querySelectorAll('th.sort').forEach(th=>{ th.tabIndex=0; const go=()=>{ const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawProducts(prods); }; th.onclick=go; th.onkeydown=e=>{ if(e.key==='Enter'){ go(); } }; });
 }
