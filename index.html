@@ -276,6 +276,11 @@ body.has-files .pickbar h2{display:none}
 #pxTable td.warn{color:var(--turmeric);font-weight:700}
 #pxTable td.ok{color:var(--leaf);font-weight:700}
 #pxTable tr.loss td:first-child b{color:var(--kumkum)}
+/* RTO by state */
+.rtogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px;margin-top:12px}
+.h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px}
+.act{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--turmeric-soft)}
+.act b{display:block;margin-bottom:4px}
 /* layout grid */
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px;align-items:start}
 #compareBox{margin:0}
@@ -470,6 +475,19 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         </div>
         <div class="tbl"><table id="pxTable"></table></div>
         <p class="tip">Fixed cost per order = platform fees, shipping and product cost, which stay about the same if you change the price. "Lost per ₹100" = returns, discounts, TCS/TDS and the GST you owe, which grow with the price. Break-even and target prices assume those stay the same, and sales volume is unchanged when you try a new price. Profit here subtracts GST on sales, so it is lower than "Profit after product cost" elsewhere.</p>
+      </section>
+
+      <section class="card wide" id="sec-rto" aria-labelledby="rtoH">
+        <h2 id="rtoH">RTO &amp; returns by payment, state and courier</h2>
+        <p class="sub" id="rtoNote"></p>
+        <div class="rtogrid">
+          <div><h3 class="h3">COD vs prepaid</h3><div class="tbl"><table id="rtoPay"></table></div></div>
+          <div><h3 class="h3">Couriers</h3><div class="tbl"><table id="rtoCourier"></table></div></div>
+        </div>
+        <h3 class="h3" style="margin-top:16px">States</h3>
+        <div class="tbl"><table id="rtoState"></table></div>
+        <div id="rtoAct"></div>
+        <p class="tip">Uses the Orders tab of your business sheet (filled by the label tool) to find each order's payment type, courier and state, matched by order ID. "Charges lost" = shipping, return shipping and platform fees on orders that came back; your own packaging and handling are extra. A state is flagged when it has at least 5 orders and comes back much more often than your average.</p>
       </section>
 
       <section class="card" id="sec-price" aria-labelledby="bandH">
@@ -684,6 +702,14 @@ function parseCosts(wb, file){
       const t = b.title>=0? String(r[b.title]||'').replace(/(\.\.\.|…)\s*$/,'').trim() : '';
       if(t && !/not added yet/i.test(t) && !out.ptitle[k]) out.ptitle[k] = t; }
     if(plat==='amazon' && b.title>=0 && String(r[b.title]).trim()) out.titles.push({t:stripTitle(r[b.title]), ms}); });
+  // Orders tab (filled by the label tool): order ID → [payment, courier, state]; no customer details are kept
+  out.orders = {};
+  const ot = sheet(wb,'Orders'), oh = ot? headerAt(ot,'order id') : -1;
+  if(oh>=0){ const k = cols(ot[oh], {id:'order id', pay:'payment', courier:'courier', state:'state'});
+    ot.slice(oh+1).forEach(r => { const id = low(String(r[k.id]||'').replace(/^'/,'')); if(!id || out.orders[id]) return;
+      const pay = String(k.pay>=0? r[k.pay] : ''), st = String(k.state>=0? r[k.state] : '').trim();
+      out.orders[id] = [/cod|cash/i.test(pay)? 'COD' : /prepaid|online/i.test(pay)? 'Prepaid' : '', String(k.courier>=0? r[k.courier] : '').trim(),
+        st? st.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '']; }); }
   return out;
 }
 // Amazon transaction CSVs have no SKU, so match the (cut-off) product title against SKU Mapping titles
@@ -811,7 +837,7 @@ function render(){
   });
   if(costs){
     const c=document.createElement('span'); c.className='chip';
-    c.innerHTML = 'Product costs: '+esc(costs.file)+' <span class="muted">'+Object.keys(costs.map).length+' SKUs mapped · '+Object.keys(costs.cost).length+' costs</span> <button aria-label="Forget product costs">×</button>';
+    c.innerHTML = 'Product costs: '+esc(costs.file)+' <span class="muted">'+(costs.orders? Object.keys(costs.orders).length.toLocaleString('en-IN')+' orders · ':'')+Object.keys(costs.map).length+' SKUs mapped · '+Object.keys(costs.cost).length+' costs</span> <button aria-label="Forget product costs">×</button>';
     c.querySelector('button').onclick = () => { costs=null; try{ localStorage.removeItem('payout.costs'); }catch(e){} render(); };
     chips.appendChild(c);
   }
@@ -858,7 +884,7 @@ function render(){
   drawSide(active==='All'
     ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
-       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-products','My products','Best and worst','box'],
+       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
        ['sec-returns','Returns','Every order sent back','back'],['step1','My files','Add or remove files','file']]);
   if(multi){
@@ -1030,6 +1056,9 @@ function analyseGeneric(P, L, X, d0, d1){
     : '<tbody><tr><td>No returns or RTO in this period.</td></tr></tbody>';
   $('foot').textContent = FOOT[P] + (costs? COST_NOTE : '');
 
+  const RT = rtoAnalysis(I.map(i => ({order:i.order, sold:i.sold, rto:i.rto, ret:i.ret, lost:(i.rto||i.ret)? -(i.shipping+i.returnShip+i.fees) : 0})));
+  drawRto(RT);
+
   // alerts
   const A=[], n=sold.length||1;
   const rr = rto.length/n;
@@ -1057,6 +1086,7 @@ function analyseGeneric(P, L, X, d0, d1){
   A.push(...profitAlerts(prods, c.missing));
   if(t.taxes<-0.5) A.push({sev:'info', cost:0, title:money(-t.taxes)+' tax held back, not lost', why:'TCS, TDS and GST on fees were deducted from your payouts.', todo:'Ask your accountant to claim TCS in GSTR-3B and TDS in your income tax return.'});
   if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Returns, shipping, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
+  A.push(...rtoAlerts(RT));
   drawAlerts(A);
 }
 
@@ -1154,6 +1184,48 @@ function drawFees(det, value, payout, sale, note){
     + rows.map(([k,v]) => '<tr><td>'+esc(k)+(WHAT[k]? '<small class="what">'+esc(WHAT[k])+'</small>' : '')+'</td><td class="num">'+(v>0?'+':'')+money(v)+'</td><td class="num">'+pct(value? v/value:0)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Order value '+money(sale)+'<small class="what">plus all the lines above = '+money(payout)+' paid to you</small></td><td class="num">'+money(sum(rows,r=>r[1]))+'</td><td></td></tr></tfoot>';
 }
+// ---- RTO and returns by payment type, state and courier (joined with the Orders tab) ----
+// items: {order, sold, rto, ret, lost, pay}
+function rtoAnalysis(items){
+  const O = (costs && costs.orders) || {}, hasTab = Object.keys(O).length>0;
+  const rows = items.filter(i => i.sold).map(i => { const o = O[low(String(i.order||''))];
+    return {back:i.rto||i.ret, rto:i.rto, ret:i.ret, lost:i.lost||0, pay:(o && o[0]) || i.pay || '', courier:o? o[1] : '', state:o? o[2] : '', hit:!!o}; });
+  const group = key => { const m = {}; rows.forEach(r => { const k = r[key]; if(!k) return; const g = m[k] || (m[k] = {k, n:0, rto:0, ret:0, lost:0});
+      g.n++; if(r.rto) g.rto++; if(r.ret) g.ret++; g.lost += r.lost; });
+    return Object.values(m).map(g => Object.assign(g, {rate:(g.rto+g.ret)/g.n})); };
+  const n = rows.length, back = rows.filter(r=>r.back).length, avg = n? back/n : 0;
+  const byState = group('state').sort((a,b) => (b.rto+b.ret)-(a.rto+a.ret) || b.rate-a.rate);
+  const flagged = byState.filter(g => g.n>=5 && g.rate >= Math.max(avg*1.5, avg+0.08));
+  // if flagged states came back at the average rate instead
+  const save = sum(flagged, g => { const extra = (g.rto+g.ret) - g.n*avg, per = (g.rto+g.ret)? g.lost/(g.rto+g.ret) : 0; return Math.max(0, extra)*per; });
+  return {hasTab, n, matched:rows.filter(r=>r.hit).length, avg, byPay:group('pay'), byCourier:group('courier').sort((a,b)=>b.n-a.n), byState, flagged, save,
+    showRto: rows.some(r=>r.rto)};
+}
+function drawRto(R){
+  const head = R.showRto? '<th>Orders</th><th>RTO</th><th>Returns</th><th>Came back</th><th>Charges lost</th>' : '<th>Orders</th><th>Refunds</th><th>Refund rate</th><th>Charges lost</th>';
+  const row = g => '<tr><td>'+esc(g.k)+'</td><td class="num">'+g.n+'</td>'+(R.showRto? '<td class="num">'+g.rto+'</td><td class="num">'+g.ret+'</td>' : '<td class="num">'+(g.rto+g.ret)+'</td>')
+    + '<td class="num '+(g.n>=5 && g.rate>=Math.max(R.avg*1.5,R.avg+0.08)?'hot':'')+'">'+pct(g.rate)+'</td><td class="num">'+money(g.lost)+'</td></tr>';
+  const table = (id, first, list, empty) => $(id).innerHTML = list.length? '<thead><tr><th>'+first+'</th>'+head+'</tr></thead><tbody>'+list.map(row).join('')+'</tbody>' : '<tbody><tr><td class="muted">'+empty+'</td></tr></tbody>';
+  $('rtoNote').textContent = !R.hasTab
+    ? 'Add your business sheet (File → Download → Microsoft Excel) to see states and couriers: they come from its Orders tab.'
+    : R.matched+' of '+R.n+' orders matched to your Orders tab ('+pct(R.n? R.matched/R.n:0)+'). Average: '+pct(R.avg)+' of orders came back.';
+  table('rtoPay', 'Payment', R.byPay, 'No payment type found for these orders.');
+  table('rtoCourier', 'Courier', R.byCourier, R.hasTab? 'No courier found for these orders.' : 'Needs the Orders tab.');
+  table('rtoState', 'State', R.byState, R.hasTab? 'No state found for these orders.' : 'Needs the Orders tab.');
+  $('rtoAct').innerHTML = R.flagged.length
+    ? '<div class="act"><b>Confirm COD orders before dispatch in: '+R.flagged.map(g=>esc(g.k)+' ('+pct(g.rate)+')').join(', ')+'</b>Call or WhatsApp the buyer to confirm the address and that they will pay. If a state keeps refusing, switch it to prepaid-only where the platform allows.'
+      + (R.save>=1? ' Bringing these states down to your average would save about <b style="display:inline">'+money(R.save)+'</b> in platform charges this period, plus your packaging and the stock tied up in returns.' : '')+'</div>'
+    : '';
+}
+function rtoAlerts(R){
+  const A = [], cod = R.byPay.find(g=>g.k==='COD'), pre = R.byPay.find(g=>g.k==='Prepaid');
+  if(cod && pre && cod.n>=10 && cod.rate > Math.max(pre.rate*1.5, pre.rate+0.05))
+    A.push({sev:'warn', cost:cod.lost, title:'COD orders come back '+(pre.rate? (cod.rate/pre.rate).toFixed(1)+'×' : 'far')+' more than prepaid',
+      why:pct(cod.rate)+' of '+cod.n+' COD orders came back, against '+pct(pre.rate)+' of '+pre.n+' prepaid.', todo:'Confirm COD orders before dispatch, and offer a small prepaid discount to move buyers to prepaid.'});
+  if(R.flagged.length) A.push({sev:'warn', cost:R.save, title:R.flagged.length+' state'+(R.flagged.length>1?'s':'')+' with very high RTO and returns',
+    why:R.flagged.slice(0,4).map(g=>g.k+' '+pct(g.rate)+' of '+g.n).join(', ')+' (your average is '+pct(R.avg)+').', todo:'See "RTO & returns by payment, state and courier" and confirm COD orders to these states before dispatch.'});
+  return A;
+}
 // ---- unit economics: profit(price) = price × (1 − share lost) − fixed cost per order ----
 let PX = {gst:5, target:20}, PXROWS = [], PXLAST = [];
 try{ Object.assign(PX, JSON.parse(localStorage.getItem('payout.pricing')||'{}')); }catch(e){}
@@ -1206,7 +1278,7 @@ function drawBands(orders){
 // sidebar: jump to a section
 const ICONS = {home:'M3 11l9-8 9 8M5 10v10h14V10', money:'M21 12a9 9 0 1 1-9-9v9z', fix:'M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
   week:'M3 17l6-6 4 4 8-8M14 7h7v7', price:'M4 20V10M10 20V4M16 20v-7M22 20H2', box:'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8', list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
-  back:'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', plat:'M4 20V12M10 20V6M16 20V9M22 20H2', tag:'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01', file:'M14 3H6v18h12V7zM14 3v4h4'};
+  back:'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', plat:'M4 20V12M10 20V6M16 20V9M22 20H2', pin:'M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11zM12 10h.01', tag:'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01', file:'M14 3H6v18h12V7zM14 3v4h4'};
 function drawSide(items){
   $('sideList').innerHTML = items.map(([id,label,hint,ic],i)=>'<a href="#'+id+'" aria-current="'+(i===0)+'"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+ICONS[ic]+'"></path></svg></span><span><b>'+label+'</b><small>'+hint+'</small></span></a>').join('');
   $('sideList').querySelectorAll('a').forEach(a => a.onclick = () => $('sideList').querySelectorAll('a').forEach(x => x.setAttribute('aria-current', String(x===a))));
@@ -1338,6 +1410,12 @@ function analyse(R, d0, d1){
     ? '<thead><tr><th>Product</th><th>Date</th><th>Order ID</th><th>Payment</th><th>Taken back</th><th>Original payment</th></tr></thead><tbody>'+refunds.sort((a,b)=>a.total-b.total).map(r=>'<tr><td>'+esc(short(r.prod,46))+'</td><td>'+r.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(r.order)+'</td><td>'+esc(r.pay||'—')+'</td><td class="num">'+money(r.total)+'</td><td class="num">'+(paidByOrder.has(r.order)? money(paidByOrder.get(r.order)):'<span class="muted">earlier period</span>')+'</td></tr>').join('')+'</tbody>'
     : '<tbody><tr><td>No refunds in this period.</td></tr></tbody>';
 
+  const byOrder = {};
+  orders.forEach(r => { const o = byOrder[r.order] || (byOrder[r.order] = {order:r.order, sold:true, rto:false, ret:false, lost:0, pay:r.pay==='Cash on delivery'? 'COD' : r.pay? 'Prepaid' : ''}); });
+  refunds.forEach(r => { const o = byOrder[r.order]; if(o){ o.ret = true; o.lost += -(r.promo+r.fees+r.other); } });
+  const RT = rtoAnalysis(Object.values(byOrder));
+  drawRto(RT);
+
   // alerts
   const A=[];
   if(free.length){
@@ -1380,6 +1458,7 @@ function analyse(R, d0, d1){
   A.push(...profitAlerts(prods, ac.missing));
   if(deferred>0) A.push({sev:'info', cost:0, title:money(deferred)+' is on hold, not lost', why:'Amazon holds payment for recent orders until after delivery.', todo:'Expect it in your next settlements.'});
   if(!A.some(a=>a.sev==='bad'||a.sev==='warn')) A.push({sev:'good', cost:0, title:'No major problems found', why:'Refunds, discounts and fees all look normal for this period.', todo:'Keep an eye on stock levels before festivals.'});
+  A.push(...rtoAlerts(RT));
   drawAlerts(A);
 }
 
