@@ -124,18 +124,18 @@ body.has-files .top .addbtn{display:inline-flex} body.has-files .lock{margin-lef
 .result .eyebrow{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--result-accent)}
 .result h2#headline{margin:6px 0 4px;font-size:clamp(20px,2.6vw,27px);font-weight:600;line-height:1.35}
 .result h2 b.amt{color:var(--result-accent)} .result h2 b.cut{color:var(--result-cut)}
-.result #subline{font-size:15px;color:#C9DDD7}
+.result #subline{font-size:16px;color:#D5E6E1;line-height:1.55}
 .result .wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:center}
 .result .say{flex:2 1 320px}
-.result .kpis{flex:1 1 300px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.result .kpis{flex:1 1 400px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .result .kpi{background:var(--result-card);color:var(--result-ink)}
-.result .kpi small{color:#B5CFC7}
-.result .kpi b{font-size:20px}
+.result .kpi small{color:#CFE2DC}
+.result .kpi b{font-size:clamp(24px,2.3vw,32px)}
 .result .kpi.hold b{color:var(--result-cut)} .result .kpi.good b{color:var(--result-accent)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.kpi{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px 14px}
-.kpi small{display:block;color:var(--muted);font-size:13px;font-weight:600}
-.kpi b{display:block;font-size:24px;font-weight:800;line-height:1.25}
+.kpi{background:var(--surface);color:var(--ink);border-radius:14px;padding:16px 18px}
+.kpi small{display:block;color:var(--muted);font-size:14.5px;font-weight:600;line-height:1.4}
+.kpi b{display:block;font-size:clamp(24px,2.3vw,32px);font-weight:800;line-height:1.2;margin:4px 0 2px;letter-spacing:-.01em}
 .kpi.hold b{color:var(--turmeric)}
 .kpi.good b{color:var(--peacock)}
 
@@ -210,6 +210,11 @@ td small.what{display:block;font-weight:400;color:var(--muted);font-size:12.5px;
 
 footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-width:80ch;margin:0 auto}
 @media (max-width:600px){
+  .result{padding:18px 14px}
+  .result .kpis{gap:8px}
+  .result .kpi{padding:12px}
+  .result .kpi b{font-size:21px}
+  .kpi small{font-size:13px}
   main{padding:16px 12px 48px}
   .card{padding:16px}
   ol.fix li{grid-template-columns:1fr auto}
@@ -218,6 +223,125 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
   .lock{margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== business analytics look ===== */
+:root{--bg:#F4F6F8;--line:#E3E7EB;--shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.04)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1719;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0F1719;--shadow:none}
+body{font-size:15px}
+main{gap:16px;padding:18px 20px 48px;max-width:1240px}
+.top .in{max-width:none;padding:12px 20px}
+.brand b{font-size:17px}
+.card{border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.card h2{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card .sub{font-size:13px;margin-top:2px}
+body.has-files .steps{display:none}
+body.has-files #step1{padding:10px 16px}
+body.has-files #step1 h2{font-size:14px}
+body.has-files #step1 .files{margin-top:8px}
+
+/* toolbar */
+.pickbar{padding:12px 16px;gap:10px}
+body.has-files .pickbar h2{display:none}
+.tabs{background:var(--soft);padding:4px;border-radius:10px;gap:4px}
+.tabs button{border:0;min-height:38px;border-radius:8px;padding:0 14px;font-size:14px;background:transparent}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);border:0}
+.pickbar .btn.ghost{min-height:38px;border-radius:8px;border-width:1px;font-size:14px;padding:0 12px}
+.pickbar input[type=date]{min-height:38px;font-size:14px}
+
+/* insight banner + KPI row */
+.result{background:transparent;color:var(--ink);padding:0;border-radius:0}
+.result .wrap{display:flex;flex-direction:column;flex-wrap:nowrap;gap:14px;align-items:stretch}
+.result .say{flex:none}
+.result .kpis{align-items:start}
+.result .say{display:flex;gap:12px;align-items:flex-start;background:var(--peacock-soft);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.result .say .ico{width:36px;height:36px;border-radius:10px;background:var(--kept);color:#FFFFFF;display:grid;place-items:center;flex:none}
+.result h2#headline{font-size:17px;font-weight:600;margin:0;line-height:1.45}
+.result h2 b.amt{color:var(--kept)} .result h2 b.cut{color:var(--turmeric)}
+.result #subline{font-size:13.5px;color:var(--muted);margin-top:2px}
+.result .kpis{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.result .kpi{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.result .kpi small{color:var(--muted);font-size:12.5px;font-weight:600}
+.result .kpi .lab{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.result .kpi b{font-size:clamp(22px,2vw,28px);margin:6px 0 4px;color:var(--ink)}
+.result .kpi.hold b{color:var(--turmeric)} .result .kpi.good b{color:var(--kept)}
+.delta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;margin-right:6px}
+.delta.up{background:var(--leaf-soft);color:var(--leaf)} .delta.down{background:var(--kumkum-soft);color:var(--kumkum)} .delta.flat{background:var(--soft);color:var(--muted)}
+
+/* layout grid */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px;align-items:start}
+#compareBox{margin:0}
+
+/* where the money went: horizontal bars */
+.mbars{display:grid;gap:10px;margin-top:14px}
+.mbars .r{display:grid;grid-template-columns:minmax(110px,1.1fr) 2fr auto;gap:10px;align-items:center;font-size:14px}
+.mbars .r span.k{display:flex;align-items:center;gap:8px}
+.mbars .r i{width:10px;height:10px;border-radius:3px;flex:none}
+.mbars .tr{height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
+.mbars .tr div{height:10px;border-radius:5px}
+.mbars .r b{font-weight:700;white-space:nowrap;text-align:right}
+.mbars .r b small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+
+/* top products table */
+#topProd td:first-child{min-width:180px}
+#topProd .bar{display:block;height:4px;border-radius:2px;background:var(--kept);margin-top:6px}
+#topProd .bar.loss{background:var(--kumkum)}
+
+/* tables */
+table{font-size:13.5px}
+th{text-transform:uppercase;letter-spacing:.03em;font-size:11.5px}
+th,td{padding:8px 10px}
+tbody tr:nth-child(even) td{background:var(--bg)}
+.tbl{border-radius:10px}
+
+/* fix list */
+ol.fix li{padding:10px 12px;gap:2px 10px}
+ol.fix .lvl{min-width:62px;font-size:11px;padding:3px 6px}
+.fix h3{font-size:14.5px}
+.fix .why,.fix .do{font-size:13px}
+
+/* how-to-read tips as (i) */
+details.info{display:inline-block;position:relative;font-weight:400}
+details.info summary{list-style:none;cursor:pointer;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--muted)}
+details.info summary::-webkit-details-marker{display:none}
+details.info[open] summary{background:var(--peacock-soft);color:var(--kept)}
+details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,70vw);background:var(--surface);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.12);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink);line-height:1.5}
+
+/* sidebar: compact */
+.side{flex-basis:220px;padding:16px 10px}
+.side-list a{min-height:44px;padding:4px 8px}
+.side-list .ic{width:30px;height:30px;border-radius:8px}
+.side-list b{font-size:14px}
+.side-list small{display:none}
+
+@media (max-width:760px){
+  main{width:100%}
+  .side{flex-basis:auto}
+  .top .in{flex-wrap:nowrap;padding:10px 12px;gap:10px}
+  .brand b{font-size:15px} .brand > span,.lock{display:none}
+  .top .addbtn{min-height:38px;padding:0 14px;font-size:14px;white-space:nowrap}
+  body.has-files #step1 .files{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+  body.has-files #step1 .chip{flex:none;white-space:nowrap}
+}
+.chip{max-width:100%;overflow-wrap:anywhere}
+@media (max-width:600px){
+  main{padding:14px 12px 40px}
+  .result .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .result .kpi{padding:12px}
+  .result .kpi b{font-size:20px}
+  .mbars .r{grid-template-columns:minmax(90px,1fr) 1.3fr auto}
+  details.info div{left:auto;right:-8px}
+}
+@media print{
+  body{background:#FFFFFF}
+  .side,.top .addbtn,.lock,#step1,.steps,.tabs,.pickbar label,.pickbar .btn,details.info,.err{display:none !important}
+  .shell{display:block} main{max-width:none;padding:0}
+  .pickbar{display:none !important}
+  .card,.result .kpi{box-shadow:none}
+  .result .kpi,.result .say,ol.fix li,tr{break-inside:avoid}
+  .tbl{overflow:visible}
+  #report{display:flex !important}
+}
 </style>
 </head>
 <body>
@@ -278,64 +402,65 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
       <label>From <input type="date" id="from"></label>
       <label>To <input type="date" id="to"></label>
       <button class="btn ghost" id="resetDates" type="button">All dates</button>
+      <button class="btn ghost" id="exportBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>Download PDF</button>
     </section>
 
     <section class="result" id="sec-home" aria-labelledby="headline">
       <div class="wrap">
-        <div class="say"><div class="eyebrow">STEP 3 · IN ONE LINE</div><h2 id="headline"></h2><p id="subline"></p></div>
+        <div class="say"><span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg></span><div><h2 id="headline"></h2><p id="subline"></p></div></div>
         <div class="kpis" id="kpis"></div>
       </div>
     </section>
 
     <section class="card" id="compareBox" aria-labelledby="cmpH">
-      <h2 id="cmpH">Which platform earned most?</h2>
-      <p class="sub">Money paid to you, biggest first. Click a platform in the table to see its details.</p>
+      <h2 id="cmpH">Platform comparison</h2>
+      <p class="sub">Money paid to you, biggest first. Click a row to open that platform.</p>
       <div class="pbars" id="platBars"></div>
       <div class="tbl"><table id="compareTable"></table></div>
-      <p class="tip"><b>How to read:</b> "Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
+      <p class="tip">"Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
     </section>
 
-    <div id="detail" style="display:flex;flex-direction:column;gap:20px">
-      <div class="grid2">
-        <section class="card" id="sec-money" aria-labelledby="moneyH">
-          <h2 id="moneyH">Where did the money go?</h2>
-          <div class="money"><div class="donut" id="rupee" role="img"></div><div class="legend" id="legend"></div></div>
-          <p class="tip"><b>How to read:</b> bigger slice = more money went there. Dark teal is what you keep.</p>
-          <details class="more"><summary>Show the ₹ table</summary><div class="tbl"><table id="dedTable"></table></div></details>
-          <details class="more"><summary>Every fee, line by line</summary><p class="sub" id="feeNote"></p><div class="tbl"><table id="feeTable"></table></div></details>
-        </section>
-        <section class="card" id="sec-fix" aria-labelledby="fixH">
-          <h2 id="fixH">Fix these first</h2>
-          <ol class="fix" id="alerts"></ol>
-          <p class="tip"><b>How to read:</b> start at the top. High → Medium, sorted by money lost.</p>
-        </section>
-      </div>
-
+    <div id="detail" class="dgrid">
       <section class="card line" id="sec-weeks" aria-labelledby="wkH">
-        <h2 id="wkH">Money received each week</h2>
-        <p class="sub">Each week starts on Monday.</p>
+        <h2 id="wkH">Payout by week</h2>
+        <p class="sub">Money received, weeks start Monday</p>
         <div id="weeks"></div>
-        <p class="tip"><b>How to read:</b> above the dashed line = a better-than-usual week. A sudden dip? Check returns for that week.</p>
+        <p class="tip">Above the dashed line = a better-than-usual week. A sudden dip? Check returns for that week.</p>
       </section>
 
-      <section class="card" id="sec-price" aria-labelledby="bandH">
-        <h2 id="bandH">At what price do people buy?</h2>
-        <p class="sub">Orders by price, cheap → expensive. Under each column: how much of every ₹100 reached your bank.</p>
-        <div id="bands"></div>
-        <p class="tip"><b>How to read:</b> the tallest column is the price most customers buy at. If cheap orders keep much less of every ₹100, shipping and fees are eating them: raise those prices or sell combos.</p>
+      <section class="card" id="sec-money" aria-labelledby="moneyH">
+        <h2 id="moneyH">Where the money went</h2>
+        <p class="sub">Share of order value</p>
+        <div id="rupee" hidden></div>
+        <div class="mbars" id="legend"></div>
+        <p class="tip">Each bar is a share of what customers paid. The first bar is what you keep (or profit and product cost once your profit sheet is loaded).</p>
+        <details class="more"><summary>Show the ₹ table</summary><div class="tbl"><table id="dedTable"></table></div></details>
+        <details class="more"><summary>Every fee, line by line</summary><p class="sub" id="feeNote"></p><div class="tbl"><table id="feeTable"></table></div></details>
       </section>
 
       <section class="card" id="sec-products" aria-labelledby="prH">
-        <h2 id="prH">Best products</h2>
+        <h2 id="prH">Top products</h2>
         <p class="sub" id="topNote"></p>
-        <div class="top5" id="topProd"></div>
+        <div class="tbl"><table id="topProd"></table></div>
         <details class="more"><summary>See all products (sortable)</summary><div class="tbl"><table id="prodTable"></table></div></details>
       </section>
 
-      <div class="grid2" id="sec-tables">
-        <section class="card"><h2 id="leftTitle">Refunds by payment type</h2><div class="tbl"><table id="payTable"></table></div></section>
-        <section class="card"><h2 id="rightTitle">Free orders</h2><div class="tbl"><table id="freeTable"></table></div></section>
-      </div>
+      <section class="card" id="sec-fix" aria-labelledby="fixH">
+        <h2 id="fixH">Fix these first</h2>
+        <p class="sub">Sorted by money lost</p>
+        <ol class="fix" id="alerts"></ol>
+        <p class="tip">Start at the top: HIGH first, then MEDIUM. Each item says what to do.</p>
+      </section>
+
+      <section class="card" id="sec-price" aria-labelledby="bandH">
+        <h2 id="bandH">Orders by price band</h2>
+        <p class="sub">Under each column: how much of every ₹100 reached your bank</p>
+        <div id="bands"></div>
+        <p class="tip">The tallest column is the price most customers buy at. If cheap orders keep much less of every ₹100, shipping and fees are eating them: raise those prices or sell combos.</p>
+      </section>
+
+      <section class="card" id="sec-tables"><h2 id="leftTitle">Refunds by payment type</h2><div class="tbl"><table id="payTable"></table></div></section>
+      <section class="card"><h2 id="rightTitle">Free orders</h2><div class="tbl"><table id="freeTable"></table></div></section>
 
       <section class="card" id="sec-returns" aria-labelledby="refTitle">
         <h2 id="refTitle">Refunds</h2>
@@ -697,10 +822,17 @@ function render(){
   $('from').value = iso(dateFrom||minD); $('to').value = iso(dateTo||maxD);
   const inRange = r => (!dateFrom || r.date>=dateFrom) && (!dateTo || r.date<=dateTo);
   const view = {}; have.forEach(p => { const d=data[p]; view[p] = {rows:d.rows.filter(inRange), lines:d.lines.filter(inRange), extras:d.extras.filter(inRange)}; });
+  // same-length period just before the chosen one, for the ▲▼ on the KPI cards
+  const f0 = dateFrom||minD, t0 = dateTo||maxD, span = t0 - f0 + 864e5;
+  const sumFor = (ps, f, t) => ps.map(p => { const d=data[p], r=x => x.date>=f && x.date<=t;
+      return p==='Amazon' && !d.lines.length? amazonSummary(d.rows.filter(r)) : genericSummary(compute(p, d.lines.filter(r), d.extras.filter(r))); })
+    .reduce((a,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => a[k]=(a[k]||0)+(x[k]||0)); return a; }, {});
+  const ps = active==='All' || !active? have : [active];
+  KCMP = {cur:sumFor(ps, f0, t0), prev:sumFor(ps, new Date(f0-span), new Date(f0-864e5)), days:Math.round(span/864e5)};
 
   // platform comparison and tabs
   $('compareBox').style.display = active==='All'? 'block':'none';
-  $('detail').style.display = active==='All'? 'none':'flex';
+  $('detail').style.display = active==='All'? 'none':'grid';
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
@@ -725,7 +857,7 @@ function render(){
         ['Paid to you', money(T.payout), pct(share)+' of order value', 'good'], ['Returns & RTO', T.returns, pct(T.orders? T.returns/T.orders:0)+' of orders', T.returns/Math.max(1,T.orders)>0.15?'hold':''],
         ['Ads', money(T.ads), pct(T.value? T.ads/T.value:0)+' of order value']]
         .concat(costs? [['Profit after product cost', money(T.profit), pct(T.value? T.profit/T.value:0)+' of order value', T.profit<0?'hold':'good']] : [])
-        .map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+        .map(kpiHtml).join('');
       return;
     }
   }
@@ -825,7 +957,7 @@ function analyseGeneric(P, L, X, d0, d1){
     ['Order value', money(value), 'before any deductions'],
     ['Paid to you', money(payout), pct(share(payout))+' of order value']
   ].concat(returnCards, [['Tax held back', money(-t.taxes), 'claim it back in your returns']])
-  .concat(costs? [['Profit after product cost', money(c.profit), c.missing.length? c.missing.length+' orders have no cost' : pct(share(c.profit))+' of order value', c.profit<0||c.missing.length?'hold':'']] : []).map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+  .concat(costs? [['Profit after product cost', money(c.profit), c.missing.length? c.missing.length+' orders have no cost' : pct(share(c.profit))+' of order value', c.profit<0||c.missing.length?'hold':'']] : []).map(kpiHtml).join('');
 
   let h='<thead><tr><th>Expense</th><th>Amount</th><th>% of order value</th><th>Verdict</th></tr></thead><tbody>';
   ded.forEach(d => { if(Math.abs(d.v)<0.5) return;
@@ -917,24 +1049,36 @@ function drawAlerts(A){
   A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
   $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><span class="lvl">'+LEVEL[a.sev]+'</span><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
 }
-// result sentence + donut: what you keep first, then the 4 biggest cuts, the rest as "Other"
-const CUT_COLORS = ['#C2410C','#F2A93B','#7FB8E6','#8E6BBF'];
+// result sentence + "where the money went" bars: what you keep first, then every cut, biggest first
+const CUT_COLORS = ['#C2410C','#E8912B','#5B9BD5','#8E6BBF','#C9A227','#4F9D8F','#B5577A','#7A8691'];
 function drawResult(who, value, payout, keep, ded){
   const share = v => value? v/value : 0;
   const cuts = ded.filter(d=>d.v>0.5).sort((a,b)=>b.v-a.v), name = k => k.replace(/ \(.*\)/,'');
   $('headline').innerHTML = (who? esc(who)+': o' : 'O')+'ut of every <b>₹100</b> customers paid, <b class="amt">'+money(share(payout)*100)+'</b> reached your bank.'
     + (cuts.length? ' The biggest cut was <b class="cut">'+esc(name(cuts[0].k))+'</b>.' : '');
-  const segs = keep.filter(d=>d.v>0.5).map((d,i)=>Object.assign({},d,{c:i? '#9CC9CF':'var(--kept)'}))
-    .concat(cuts.slice(0,4).map((d,i)=>Object.assign({},d,{c:CUT_COLORS[i]})));
-  if(cuts.length>4) segs.push({k:'Other', v:sum(cuts.slice(4),d=>d.v), c:'#A7B0AD'});
-  const total = sum(segs,x=>x.v)||1; let at=0;
-  const stops = segs.map(x => { const a=at; at+=x.v/total*100; return x.c+' '+a.toFixed(2)+'% '+at.toFixed(2)+'%'; });
-  const rb=$('rupee');
-  rb.style.background = segs.length? 'conic-gradient('+stops.join(',')+')' : 'var(--soft)';
-  rb.innerHTML = '<div class="hole"><b class="num">'+pct(share(payout))+'</b><span>reached<br>your bank</span></div>';
-  rb.setAttribute('aria-label', 'Donut chart: '+segs.map(x=>name(x.k)+' '+pct(share(x.v))).join(', '));
-  $('legend').innerHTML = segs.map(x => '<div><i style="background:'+x.c+'"></i><span>'+esc(name(x.k))+'</span><b class="num">'+pct(share(x.v))+'</b></div>').join('');
+  const segs = keep.filter(d=>d.v>0.5).map((d,i)=>Object.assign({},d,{c:i? '#8DBFB4':'var(--kept)'}))
+    .concat(cuts.map((d,i)=>Object.assign({},d,{c:CUT_COLORS[i%CUT_COLORS.length]})));
+  $('legend').setAttribute('role','img');
+  $('legend').setAttribute('aria-label', 'Bar chart of where the money went: '+segs.map(x=>name(x.k)+' '+pct(share(x.v))).join(', '));
+  $('legend').innerHTML = segs.map(x => '<div class="r"><span class="k"><i style="background:'+x.c+'"></i>'+esc(name(x.k))+'</span><span class="tr"><div style="width:'+Math.min(100,Math.max(0,share(x.v)*100))+'%;background:'+x.c+'"></div></span><b class="num">'+pct(share(x.v))+'<small>'+money(x.v)+'</small></b></div>').join('');
 }
+// KPI cards: short numbers (₹1.28L) with the change against the previous period of the same length
+let KCMP = null;
+const KPI_KEY = {'Orders':'orders','Order value':'value','Paid to you':'payout','Profit after product cost':'profit','Ads':'ads','Refunds':'rate','RTO':'rate','Returns & RTO':'rate'};
+function shortMoney(s){
+  if(!/₹/.test(s)) return s;
+  const v = N(String(s).replace('−','-')), a = Math.abs(v), sg = v<0? '−' : '';
+  return a>=1e7? sg+'₹'+(a/1e7).toFixed(2)+'Cr' : a>=1e5? sg+'₹'+(a/1e5).toFixed(2)+'L' : a>=1e4? sg+'₹'+(a/1e3).toFixed(1)+'K' : s;
+}
+function deltaHtml(key){
+  if(!KCMP || !key || !KCMP.prev.orders) return '';
+  const c = KCMP.cur, p = KCMP.prev; let d, txt, good;
+  if(key==='rate'){ d = ((c.orders? c.returns/c.orders:0) - (p.returns/p.orders))*100; txt = Math.abs(d).toFixed(1)+' pt'; good = d<0; }
+  else { if(!p[key]) return ''; d = (c[key]-p[key])/Math.abs(p[key])*100; txt = Math.abs(d).toFixed(0)+'%'; good = key==='ads'? d<0 : d>0; }
+  const cls = Math.abs(d)<0.5? 'flat' : good? 'up' : 'down';
+  return '<span class="delta '+cls+'" title="vs the previous '+KCMP.days+' days">'+(d>0?'▲':d<0?'▼':'•')+' '+txt+'</span>';
+}
+const kpiHtml = k => '<div class="kpi '+(k[3]||'')+'"><span class="lab">'+k[0]+'</span><b class="num" title="'+esc(k[1])+'">'+shortMoney(String(k[1]))+'</b><small>'+deltaHtml(KPI_KEY[k[0]])+k[2]+'</small></div>';
 // plain-English meaning of each expense and fee line
 const WHAT = {
   'Commission':'The platform\'s cut of each sale (a % of the price).', 'Referral fee (commission)':'Amazon\'s cut of each sale (a % of the price).',
@@ -1069,7 +1213,7 @@ function analyse(R, d0, d1){
     ['Already released', money(released), 'in your bank or on the way'],
     ['On hold (deferred)', money(deferred), 'paid after delivery', 'hold'],
     ['Refunds', refunds.length, pct(orders.length? refunds.length/orders.length:0)+' of orders']
-  ].concat(costs? [['Profit after product cost', money(payout-ac.cogs), ac.missing.length? ac.missing.length+' orders have no cost' : pct(share(payout-ac.cogs))+' of order value', payout-ac.cogs<0||ac.missing.length?'hold':'']] : []).map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+  ].concat(costs? [['Profit after product cost', money(payout-ac.cogs), ac.missing.length? ac.missing.length+' orders have no cost' : pct(share(payout-ac.cogs))+' of order value', payout-ac.cogs<0||ac.missing.length?'hold':'']] : []).map(kpiHtml).join('');
 
   // deductions table
   let t='<thead><tr><th>Expense</th><th>Amount</th><th>% of order value</th><th>Verdict</th></tr></thead><tbody>';
@@ -1185,8 +1329,11 @@ function drawProducts(prods){
   const by = costs && prods.some(p=>p.costed)? 'profit' : 'net';
   const top = prods.filter(p => p.n>0 && (by==='net' || p.costed)).slice().sort((a,b)=>b[by]-a[by]).slice(0,5);
   const mx = Math.max(1,...top.map(p=>Math.abs(p[by])));
-  $('topNote').textContent = by==='profit'? 'Top 5 by profit after product cost.' : 'Top 5 by money paid to you. Add your profit sheet to rank by profit.';
-  $('topProd').innerHTML = top.map(p=>'<div class="'+(p[by]<0?'loss':'')+'"><div class="row"><span>'+(p.title? '<b>'+esc(short(p.title,60))+'</b>' : esc(short(p.name,50)))+' <span class="muted">· '+p.n+' order'+(p.n>1?'s':'')+'</span>'+(p.skuText? '<br><small class="muted">'+esc(p.skuText)+'</small>':'')+'</span><b class="num">'+money(p[by])+'</b></div><div class="track"><div style="width:'+(Math.abs(p[by])/mx*100)+'%"></div></div></div>').join('') || '<p class="muted">No paid orders in this period.</p>';
+  $('topNote').textContent = by==='profit'? 'Top 5 by profit after product cost' : 'Top 5 by money paid to you (add your profit sheet to rank by profit)';
+  $('topProd').innerHTML = top.length
+    ? '<thead><tr><th>Product</th><th>Orders</th><th>Sales</th><th>'+(by==='profit'?'Profit':'Net to you')+'</th><th>Returns</th></tr></thead><tbody>'
+      + top.map(p => '<tr><td title="'+esc(p.name)+'">'+prodCell(p)+'<span class="bar'+(p[by]<0?' loss':'')+'" style="width:'+(Math.abs(p[by])/mx*100)+'%"></span></td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num '+(p[by]<0?'hot':'')+'">'+money(p[by])+'</td><td class="num">'+(p.ref? pct(p.refRate):'')+'</td></tr>').join('')+'</tbody>'
+    : '<tbody><tr><td class="muted">No paid orders in this period.</td></tr></tbody>';
   const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
     .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']])
     .concat(costs? [['cogs','Product cost'],['profit','Profit']] : []);
@@ -1202,6 +1349,15 @@ function drawProducts(prods){
   const t=$('prodTable'); t.innerHTML=h;
   t.querySelectorAll('th.sort').forEach(th=>{ th.tabIndex=0; const go=()=>{ const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawProducts(prods); }; th.onclick=go; th.onkeydown=e=>{ if(e.key==='Enter'){ go(); } }; });
 }
+document.querySelectorAll('p.tip').forEach(t => {
+  const h = t.closest('section').querySelector('h2'), d = document.createElement('details');
+  d.className = 'info'; d.innerHTML = '<summary aria-label="How to read this">i</summary><div></div>'; d.lastChild.textContent = t.textContent;
+  h.appendChild(d); t.remove();
+});
+document.addEventListener('click', e => document.querySelectorAll('details.info[open]').forEach(d => { if(!d.contains(e.target)) d.open = false; }));
+$('exportBtn').onclick = () => window.print();
+window.addEventListener('beforeprint', () => document.querySelectorAll('#report details.more').forEach(d => { d.dataset.was = d.open? '1':''; d.open = true; }));
+window.addEventListener('afterprint', () => document.querySelectorAll('#report details.more').forEach(d => d.open = !!d.dataset.was));
 render(); // shows saved product costs straight away
 })();
 </script>
