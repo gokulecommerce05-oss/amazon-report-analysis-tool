@@ -421,6 +421,13 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
   </section>
 
+  <section class="card" id="recCard" aria-labelledby="recH" style="display:none">
+    <h2 id="recH">Money to recover</h2>
+    <p class="sub">Money the platforms may owe you: orders never paid, shipping charged above what the same product usually costs, and returns to claim. Uses every file you added, all dates.</p>
+    <div id="recBody"></div>
+    <p class="tip">"Usual" shipping = the middle charge for single-unit orders of the same product to the same state (needs at least 4 such orders, so state and distance do not cause false alarms). Add a "Packed weight (g)" column to the Purchase Cost tab to compare it with the weight Flipkart measures.</p>
+  </section>
+
   <div id="report">
     <section class="card pickbar" aria-labelledby="pickH">
       <h2 id="pickH">Step 2 · Choose platform and dates</h2>
@@ -616,7 +623,7 @@ function parseFlipkart(wb){
   const c = cols(t[hi], {pay:'payment date', settle:'bank settlement value', order:'order id', item:'order item id', sale:'sale amount (rs.)',
     offer:'total offer amount (rs.)', share:'my share (rs.)', addon:'customer add-ons amount (rs.)', mp:'marketplace fee (rs.)', tax:'taxes (rs.)',
     adj:'offer adjustments (rs.)', prot:'protection fund (rs.)', refund:'refund (rs.)', ship:'shipping fee (rs.)', rev:'reverse shipping fee (rs.)',
-    odate:'order date', sku:'seller sku', qty:'quantity', rtype:'return type'});
+    odate:'order date', sku:'seller sku', qty:'quantity', rtype:'return type', dw:'dead weight', wsrc:'chargeable weight source'});
   const miss = ['pay','settle','item','sale','mp','refund'].filter(k => c[k]<0);
   if(miss.length) throw new Error('This Flipkart file is missing columns: '+miss.join(', ')+'.');
   const g = (r,k) => c[k]>=0? r[c[k]] : '';
@@ -633,6 +640,7 @@ function parseFlipkart(wb){
       id:String(g(r,'item')).trim(), order:String(g(r,'order')).trim(), sku:String(g(r,'sku')).trim(), qty:N(g(r,'qty'))||1, pay:'',
       status: rt.startsWith('logistics')? 'RTO' : rt.startsWith('customer')? 'Customer return' : 'Delivered'});
     l.prod = l.sku;
+    if(/system/i.test(g(r,'wsrc')) && N(g(r,'dw'))>0) l.wt = N(g(r,'dw')); // weight Flipkart measured, in kg
     const ship = N(g(r,'ship')), rev = N(g(r,'rev'));
     l.sale = N(g(r,'sale')) + N(g(r,'offer')) + N(g(r,'addon'));
     l.discount = N(g(r,'share')) + N(g(r,'adj'));
@@ -702,13 +710,15 @@ function parseCosts(wb, file){
   const pc = sheet(wb,'Purchase Cost'), sm = sheet(wb,'SKU Mapping');
   const ph = headerAt(pc,'master sku'), mh = headerAt(sm,'master sku');
   if(ph<0 || mh<0) throw new Error('The Purchase Cost and SKU Mapping tabs need a "Master SKU" header.');
-  const a = cols(pc[ph], {ms:'master sku', name:'product name', cost:'purchase cost'});
+  const a = cols(pc[ph], {ms:'master sku', name:'product name', cost:'purchase cost', wt:'packed weight'});
   const b = cols(sm[mh], {ms:'master sku', name:'master product', plat:'platform', sku:'platform sku', title:'product title'});
-  const out = {file, map:{}, titles:[], name:{}, cost:{}, problems:[], ptitle:{}};
+  const out = {file, map:{}, titles:[], name:{}, cost:{}, problems:[], ptitle:{}, wt:{}};
+  const kg = a.wt>=0 && /kg/i.test(pc[ph][a.wt]); // packed weight column in grams, or kg when its header says kg
   pc.slice(ph+1).forEach(r => { const ms=String(r[a.ms]).trim(); if(!ms) return;
     out.name[ms] = String(r[a.name]||'').trim();
     if(/check master sku/i.test(out.name[ms])) out.problems.push(ms+' is still named "'+out.name[ms]+'" in Purchase Cost.');
-    if(String(r[a.cost]).trim()!=='' && N(r[a.cost])>0) out.cost[ms] = N(r[a.cost]); });
+    if(String(r[a.cost]).trim()!=='' && N(r[a.cost])>0) out.cost[ms] = N(r[a.cost]);
+    if(a.wt>=0 && N(r[a.wt])>0) out.wt[ms] = kg? N(r[a.wt]) : N(r[a.wt])/1000; });
   sm.slice(mh+1).forEach(r => { const ms=String(r[b.ms]).trim(), plat=low(r[b.plat]), sku=String(r[b.sku]).trim(); if(!ms||!plat) return;
     if(!out.name[ms] && b.name>=0) out.name[ms] = String(r[b.name]||'').trim();
     if(sku){ const k=plat+'|'+low(sku);
@@ -717,14 +727,15 @@ function parseCosts(wb, file){
       const t = b.title>=0? String(r[b.title]||'').replace(/(\.\.\.|…)\s*$/,'').trim() : '';
       if(t && !/not added yet/i.test(t) && !out.ptitle[k]) out.ptitle[k] = t; }
     if(plat==='amazon' && b.title>=0 && String(r[b.title]).trim()) out.titles.push({t:stripTitle(r[b.title]), ms}); });
-  // Orders tab (filled by the label tool): order ID → [payment, courier, state, platform, SKU]; no customer details are kept
+  // Orders tab (filled by the label tool): order ID → [payment, courier, state, platform, SKU, dispatch date, amount]; no customer details are kept
   out.orders = {};
   const ot = sheet(wb,'Orders'), oh = ot? headerAt(ot,'order id') : -1;
-  if(oh>=0){ const k = cols(ot[oh], {id:'order id', pay:'payment', courier:'courier', state:'state', plat:'platform', sku:'sku'});
+  if(oh>=0){ const k = cols(ot[oh], {id:'order id', pay:'payment', courier:'courier', state:'state', plat:'platform', sku:'sku', date:'dispatch date', amt:'amount'});
     ot.slice(oh+1).forEach(r => { const id = low(String(r[k.id]||'').replace(/^'/,'')); if(!id || out.orders[id]) return;
       const pay = String(k.pay>=0? r[k.pay] : ''), st = String(k.state>=0? r[k.state] : '').trim();
       out.orders[id] = [/cod|cash/i.test(pay)? 'COD' : /prepaid|online/i.test(pay)? 'Prepaid' : '', String(k.courier>=0? r[k.courier] : '').trim(),
-        st? st.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '', String(k.plat>=0? r[k.plat] : '').trim(), String(k.sku>=0? r[k.sku] : '').trim()]; }); }
+        st? st.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '', String(k.plat>=0? r[k.plat] : '').trim(), String(k.sku>=0? r[k.sku] : '').trim(),
+        (d => d? iso(d) : '')(k.date>=0? xlDate(r[k.date]) : null), k.amt>=0? N(r[k.amt]) : 0]; }); }
   return out;
 }
 // ---- returns reports (Flipkart returns CSV, Meesho RTO / customer-return CSVs) ----
@@ -922,7 +933,7 @@ function render(){
   $('step1').classList.toggle('compact', files.size+rets.size>0);
   $('addH').textContent = files.size+rets.size? 'Your files' : 'Step 1 · Add your payment files';
   $('shell').classList.toggle('has', have.length>0);
-  drawReturns();
+  drawReturns(); drawRecovery(data);
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
   multi = have.length>1;
@@ -1364,6 +1375,99 @@ function drawReturns(){
           + '</tbody>'+(X.claims.length>25? '<tfoot><tr><td colspan="5" class="muted">+ '+(X.claims.length-25)+' more customer returns to check when they arrive</td></tr></tfoot>' : '')+'</table></div>' : '')
       + '</div>';
   }).join('');
+}
+// ---- money to recover: missing payments, shipping above normal, weight, return claims ----
+const LAG = 21; // days after dispatch by which every platform should have paid an order
+function recovery(data){
+  const O = (costs && costs.orders) || {}, ids = Object.keys(O), hasTab = ids.length>0, hasDates = ids.some(id => O[id][5]);
+  const rtoBack = new Set(); rets.forEach(d => d.rows.forEach(r => { if(r.ret==='rto') rtoBack.add(low(r.order)); }));
+  const out = {hasTab, hasDates, missing:[], checked:[], ship:[], shipSku:[], weight:[], claims:[]};
+  const median = a => { const b = a.slice().sort((x,y)=>x-y), m = b.length>>1; return b.length%2? b[m] : (b[m-1]+b[m])/2; };
+  PLATFORMS.forEach(p => { const d = data[p]; if(!d) return;
+    const csv = p==='Amazon' && !d.lines.length, items = csv? d.rows : d.lines;
+    const dates = items.map(x => +x.date).filter(Boolean); if(!dates.length) return;
+    // 1. orders shipped in the window these payment files cover, that were never paid
+    const d0 = Math.min(...dates), d1 = Math.max(...dates), seen = new Set(items.map(x => low(x.order)).filter(Boolean));
+    let n = 0, miss = 0;
+    if(hasDates) ids.forEach(id => { const o = O[id]; if((o[3]||guessPlat(id))!==p || !o[5]) return;
+      const D = +new Date(o[5]+'T00:00'); if(D < d0 || D > d1 - LAG*864e5) return; n++;
+      if(seen.has(id) || rtoBack.has(id)) return; miss++;
+      out.missing.push({p, id: p==='Flipkart'? id.toUpperCase() : id, date:D, sku:o[4], amt:o[6], days:Math.round((d1-D)/864e5)}); });
+    out.checked.push({p, n, miss, d0, d1});
+    // 2. forward shipping per order, compared with the usual charge for the same product and destination
+    const per = {};
+    items.forEach(x => { const id = low(x.order); if(!id) return; const g = per[id] || (per[id] = {p, order:x.order, sku:'', skus:new Set(), qty:0, ship:0, back:false});
+      const sk = x.sku || (csv? x.prod : ''); if(sk){ g.skus.add(sk); if(!g.sku) g.sku = sk; } if(!csv && x.qty && !x.attach && x.status==='Delivered') g.qty += x.qty;
+      if(csv){ if(x.group==='Easy Ship') g.ship -= x.total; if(x.group==='Refunds') g.back = true; }
+      else { g.ship -= x.shipping; if(/rto|return|refund/i.test(x.status||'')) g.back = true; } });
+    // one product, one unit: bigger orders naturally cost more to ship
+    const orders = Object.values(per).filter(g => g.ship>0.5 && !g.back && g.skus.size===1 && (csv || g.qty===1));
+    // shipping depends on distance, so only compare orders of the same product going to the same state
+    orders.forEach(g => { const o = O[low(g.order)]; g.state = o? o[2] : ''; });
+    const grp = {}; orders.forEach(g => { if(g.state) (grp[g.sku+'|'+g.state] = grp[g.sku+'|'+g.state] || []).push(g); });
+    orders.forEach(g => { const pool = g.state? grp[g.sku+'|'+g.state] : [];
+      g.n = pool.length; g.usual = pool.length>=4? median(pool.map(x=>x.ship)) : 0; });
+    const flag = orders.filter(g => g.usual && g.ship > g.usual*1.2 && g.ship - g.usual >= 8);
+    flag.forEach(g => out.ship.push(Object.assign(g, {extra:g.ship-g.usual})));
+    out.shipN = (out.shipN||0) + orders.filter(g => g.usual).length;
+    const bySku = {}; orders.forEach(g => { if(!g.usual) return; const s = bySku[g.sku] || (bySku[g.sku] = {p, sku:g.sku, n:0, high:0, extra:0, min:Infinity, max:0, usual:[]});
+      s.n++; s.min = Math.min(s.min, g.ship); s.max = Math.max(s.max, g.ship); s.usual.push(g.ship);
+      if(flag.includes(g)){ s.high++; s.extra += g.ship-g.usual; } });
+    Object.values(bySku).filter(s => s.high).forEach(s => out.shipSku.push(Object.assign(s, {med:median(s.usual)})));
+    // 3. weight Flipkart measured vs the packed weight in your sheet
+    if(p==='Flipkart'){ const w = {}; d.lines.forEach(l => { if(!l.wt) return; const s = w[l.sku] || (w[l.sku] = {sku:l.sku, list:[]}); s.list.push(l.wt); });
+      Object.values(w).forEach(s => { const ms = master('Flipkart', s.sku), packed = ms && costs.wt? costs.wt[ms] : 0, max = Math.max(...s.list), min = Math.min(...s.list);
+        const over = packed? s.list.filter(x => x > packed*1.25 && x-packed >= 0.05).length : 0;
+        if(over || max >= min*1.5 && max-min >= 0.05) out.weight.push({sku:s.sku, ms, packed, min, max, n:s.list.length, over}); }); }
+  });
+  out.ship.sort((a,b) => b.extra-a.extra); out.shipSku.sort((a,b) => b.extra-a.extra); out.missing.sort((a,b) => a.date-b.date);
+  if(rets.size) returnsReport().forEach(X => X.claims.filter(c => c.sev>=2 || c.r.state!=='open').forEach(c => out.claims.push(Object.assign({p:X.p}, c))));
+  return out;
+}
+function drawRecovery(data){
+  const card = $('recCard'), have = PLATFORMS.some(p => data[p]);
+  if(!have && !rets.size){ card.style.display='none'; return; }
+  card.style.display='block';
+  const R = recovery(data), d = x => new Date(x).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  const missAmt = sum(R.missing, m => m.amt||0), shipAmt = sum(R.ship, g => g.extra), claimAmt = sum(R.claims, c => c.r.value||0);
+  const kpi = (lab, big, small, cls) => '<div class="kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+big+'</b><span class="muted">'+small+'</span></div>';
+  let h = '<div class="kpis retk">'
+    + kpi('Orders never paid', R.hasDates? R.missing.length : '–', R.hasDates? (missAmt? money(missAmt)+' order value' : 'after '+LAG+' days') : 'needs the Orders tab', R.missing.length? 'hold':'')
+    + kpi('Shipping above usual', money(shipAmt), R.ship.length+' orders charged more than the same product usually costs', R.ship.length? 'hold':'')
+    + kpi('Returns to claim', R.claims.length, rets.size? (claimAmt? money(claimAmt)+' order value' : 'lost, missing or damaged') : 'add returns reports', R.claims.length? 'hold':'')
+    + kpi('Weight to check', R.weight.length, 'products Flipkart weighed heavier', R.weight.length? 'hold':'')
+    + '</div>';
+  // missing payments
+  h += '<h3 class="h3" style="margin-top:16px">Orders shipped but never paid</h3>';
+  if(!R.hasTab || !R.hasDates) h += '<p class="sub">Add your business sheet (File → Download → Microsoft Excel): its Orders tab gives each order\'s dispatch date.</p>';
+  else {
+    h += '<p class="sub">'+(R.checked.length? R.checked.map(c => c.p+': '+c.n+' orders shipped '+(c.n? d(c.d0)+' – '+d(c.d1-LAG*864e5) : 'in the dates your payment files cover')+(c.n? ', '+c.miss+' not paid' : '')).join(' · ') : 'Add payment files to check.')
+      + (R.checked.some(c=>!c.n)? '. Payment files must cover at least '+LAG+' days after the orders were shipped.' : '')+'</p>';
+    if(R.missing.length) h += '<div class="tbl"><table><thead><tr><th>Order</th><th>Platform</th><th>Shipped</th><th>Product</th><th>Days waiting</th><th>Amount</th></tr></thead><tbody>'
+      + R.missing.slice(0,50).map(m => '<tr><td>'+esc(m.id)+'</td><td>'+m.p+'</td><td>'+d(m.date)+'</td><td>'+esc(m.sku||'')+'</td><td class="num hot">'+m.days+'</td><td class="num">'+(m.amt? money(m.amt):'–')+'</td></tr>').join('')
+      + '</tbody></table></div><div class="act"><p><b>Raise a ticket for each order above</b> with the order ID and dispatch date. If it was cancelled or came back, it is not owed: mark it in your sheet.</p></div>';
+  }
+  // shipping above usual
+  h += '<h3 class="h3" style="margin-top:18px">Shipping charged above usual</h3>';
+  if(R.shipSku.length){
+    h += '<div class="tbl"><table><thead><tr><th>Product</th><th>Platform</th><th>Orders</th><th>Usual</th><th>Range</th><th>Charged more</th><th>Extra paid</th></tr></thead><tbody>'
+      + R.shipSku.slice(0,15).map(s => '<tr><td>'+esc(s.sku)+'<small class="what">'+esc(productTitle(s.p, master(s.p, s.sku), s.sku, '').slice(0,60))+'</small></td><td>'+s.p+'</td><td class="num">'+s.n+'</td><td class="num">'+money(s.med)+'</td><td class="num">'+money(s.min)+' – '+money(s.max)+'</td><td class="num hot">'+s.high+'</td><td class="num">'+money(s.extra)+'</td></tr>').join('')
+      + '</tbody></table></div>'
+      + '<details class="more"><summary>See the '+R.ship.length+' orders</summary><div class="tbl"><table><thead><tr><th>Order</th><th>Product</th><th>State</th><th>Charged</th><th>Usual</th></tr></thead><tbody>'
+      + R.ship.slice(0,60).map(g => '<tr><td>'+esc(g.order)+'</td><td>'+esc(g.sku)+'</td><td>'+esc(g.state||'–')+'</td><td class="num hot">'+money(g.ship)+'</td><td class="num">'+money(g.usual)+'</td></tr>').join('')
+      + '</tbody></table></div></details>'
+      + '<div class="act"><p><b>Ask for a weight-slab review</b> for the products at the top: send the order IDs and a photo of the packed parcel on a scale. If many orders of one product are high, the platform has the wrong weight saved for it: correct it in the listing.</p></div>';
+  } else h += '<p class="sub">'+(!have? 'Add payment files to check.' : !R.hasTab? 'Add your business sheet: shipping is compared for the same product going to the same state, from its Orders tab.'
+      : R.shipN? 'Checked '+R.shipN+' orders: none paid noticeably more shipping than the same product to the same state.' : 'Not enough paid orders that are also in your Orders tab yet (needs 4 orders of a product to the same state).')+'</p>';
+  // weight
+  if(R.weight.length) h += '<h3 class="h3" style="margin-top:18px">Weight Flipkart measured</h3><div class="tbl"><table><thead><tr><th>Product</th><th>Your packed weight</th><th>Flipkart measured</th><th>Orders</th></tr></thead><tbody>'
+    + R.weight.map(w => '<tr><td>'+esc(w.sku)+(w.ms? '<small class="what">'+esc(w.ms)+'</small>':'')+'</td><td class="num">'+(w.packed? (w.packed*1000).toFixed(0)+' g' : '<span class="muted">add “Packed weight (g)”</span>')+'</td><td class="num '+(w.over?'hot':'')+'">'+(w.min*1000).toFixed(0)+(w.max>w.min? ' – '+(w.max*1000).toFixed(0) : '')+' g</td><td class="num">'+w.n+'</td></tr>').join('')
+    + '</tbody></table></div>';
+  // claims
+  if(R.claims.length) h += '<h3 class="h3" style="margin-top:18px">Returns to claim</h3><div class="tbl"><table><thead><tr><th>Order</th><th>Platform</th><th>Problem</th><th>Value</th></tr></thead><tbody>'
+    + R.claims.slice(0,30).map(c => '<tr><td>'+esc(c.r.order)+'</td><td>'+c.p+'</td><td>'+esc(c.what)+'</td><td class="num">'+(c.r.value? money(c.r.value):'–')+'</td></tr>').join('')
+    + '</tbody></table></div><div class="act"><p><b>File these claims:</b> Flipkart → SPF claim, Meesho → Returns/RTO claim, Amazon → SAFE-T claim. Claims need the unboxing video of the returned parcel, so record it every time a return arrives.</p></div>';
+  $('recBody').innerHTML = h;
 }
 // ---- unit economics: profit(price) = price × (1 − share lost) − fixed cost per order ----
 let PX = {gst:5, target:20}, PXROWS = [], PXLAST = [];
