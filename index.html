@@ -268,6 +268,14 @@ body.has-files .pickbar h2{display:none}
 .delta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;margin-right:6px}
 .delta.up{background:var(--leaf-soft);color:var(--leaf)} .delta.down{background:var(--kumkum-soft);color:var(--kumkum)} .delta.flat{background:var(--soft);color:var(--muted)}
 
+/* unit economics */
+.wide{grid-column:1/-1}
+.pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
+.pxset input,#pxTable input{width:72px;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);font:inherit;text-align:right}
+#pxTable input{width:86px}
+#pxTable td.warn{color:var(--turmeric);font-weight:700}
+#pxTable td.ok{color:var(--leaf);font-weight:700}
+#pxTable tr.loss td:first-child b{color:var(--kumkum)}
 /* layout grid */
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px;align-items:start}
 #compareBox{margin:0}
@@ -450,6 +458,18 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         <p class="sub">Sorted by money lost</p>
         <ol class="fix" id="alerts"></ol>
         <p class="tip">Start at the top: HIGH first, then MEDIUM. Each item says what to do.</p>
+      </section>
+
+      <section class="card wide" id="sec-pricing" aria-labelledby="pxH">
+        <h2 id="pxH">Unit economics &amp; pricing</h2>
+        <p class="sub">Profit per order for each product, the price where it breaks even, and the price that reaches your target margin. Losing products first.</p>
+        <div class="pxset">
+          <label>GST on your sales <input type="number" id="pxGst" min="0" max="28" step="1"> %</label>
+          <label>Target margin <input type="number" id="pxTarget" min="0" max="80" step="1"> %</label>
+          <span class="muted" id="pxNote"></span>
+        </div>
+        <div class="tbl"><table id="pxTable"></table></div>
+        <p class="tip">Fixed cost per order = platform fees, shipping and product cost, which stay about the same if you change the price. "Lost per ₹100" = returns, discounts, TCS/TDS and the GST you owe, which grow with the price. Break-even and target prices assume those stay the same, and sales volume is unchanged when you try a new price. Profit here subtracts GST on sales, so it is lower than "Profit after product cost" elsewhere.</p>
       </section>
 
       <section class="card" id="sec-price" aria-labelledby="bandH">
@@ -838,7 +858,7 @@ function render(){
   drawSide(active==='All'
     ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
-       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-products','My products','Best and worst','box'],
+       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-products','My products','Best and worst','box'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
        ['sec-returns','Returns','Every order sent back','back'],['step1','My files','Add or remove files','file']]);
   if(multi){
@@ -980,12 +1000,14 @@ function analyseGeneric(P, L, X, d0, d1){
     if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
     const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold) p.n++; p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
     p.cogs+=i.cogs; if(i.cogs) p.costed=true; if(i.noCost) p.nocost++;
+    if(i.sold){ p.xs=(p.xs||0)+i.sale; p.xp=(p.xp||0)+i.payout; p.xv=(p.xv||0)+i.taxes+i.discount+i.refund; p.xr=(p.xr||0)+i.refund; p.xc=(p.xc||0)+i.cogs; } // pricing: this period's orders only
     if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; } });
   const prods=[...Pm.values()].map(p => { const sk=[...p.skus];
     p.skuText = (p.ms? p.ms+' · ':'')+(sk.length? 'SKU '+sk.join(', ') : '');
     p.name = p.title? p.title+' ('+(sk.slice(0,2).join(', ')||p.ms)+(sk.length>2?'…':'')+')' : (sk.join(', ')||p.key);
     return Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}); });
   drawProducts(prods);
+  drawPricing(prods.map(p => Object.assign({}, p, {sales:p.xs||0, payAll:p.xp||0, varAmt:p.xv||0, refSale:p.xr||0, cogs:p.xc||0})));
 
   drawBands(I.filter(i=>i.sold).map(i=>({v:i.sale, p:i.payout})));
 
@@ -1132,6 +1154,46 @@ function drawFees(det, value, payout, sale, note){
     + rows.map(([k,v]) => '<tr><td>'+esc(k)+(WHAT[k]? '<small class="what">'+esc(WHAT[k])+'</small>' : '')+'</td><td class="num">'+(v>0?'+':'')+money(v)+'</td><td class="num">'+pct(value? v/value:0)+'</td></tr>').join('')
     + '</tbody><tfoot><tr><td>Order value '+money(sale)+'<small class="what">plus all the lines above = '+money(payout)+' paid to you</small></td><td class="num">'+money(sum(rows,r=>r[1]))+'</td><td></td></tr></tfoot>';
 }
+// ---- unit economics: profit(price) = price × (1 − share lost) − fixed cost per order ----
+let PX = {gst:5, target:20}, PXROWS = [], PXLAST = [];
+try{ Object.assign(PX, JSON.parse(localStorage.getItem('payout.pricing')||'{}')); }catch(e){}
+function priceModel(p){
+  const asp = p.sales/p.n, g = PX.gst/100;
+  const rr = Math.min(1, Math.max(0, -(p.refSale||0)/p.sales));          // share of sales refunded
+  const lost = Math.min(0.95, Math.max(0, -(p.varAmt||0)/p.sales)) + g/(1+g)*(1-rr); // returns, discounts, TCS/TDS, GST owed
+  const fixed = asp - (asp*Math.min(0.95, Math.max(0, -(p.varAmt||0)/p.sales))) - p.payAll/p.n + p.cogs/p.n; // fees + shipping + product cost
+  const profitAt = price => price*(1-lost) - fixed, m = PX.target/100;
+  return {asp, lost, fixed, profitAt, profit:profitAt(asp), be: 1-lost>0? fixed/(1-lost) : NaN, tgt: 1-lost-m>0? fixed/(1-lost-m) : NaN};
+}
+function drawPricing(prods){
+  if(prods) PXLAST = prods;
+  $('pxGst').value = PX.gst; $('pxTarget').value = PX.target;
+  PXROWS = PXLAST.filter(p => p.n>0 && p.sales>0).map(p => Object.assign({p}, priceModel(p))).sort((a,b) => a.profit-b.profit);
+  const nocost = PXROWS.filter(x => !x.p.costed).length;
+  $('pxNote').textContent = nocost? nocost+' product'+(nocost>1?'s have':' has')+' no purchase cost, so their profit is too high (marked *).' : '';
+  const m = PX.target/100, cell = (v, cls) => '<td class="num '+(cls||'')+'">'+v+'</td>';
+  $('pxTable').innerHTML = PXROWS.length
+    ? '<thead><tr><th>Product</th><th>Orders</th><th>Avg price</th><th>Fixed cost / order</th><th>Lost per ₹100</th><th>Profit / order</th><th>Margin</th><th>Break-even price</th><th>Price for '+PX.target+'%</th><th>Try price</th><th>New profit / order</th><th>Change for period</th></tr></thead><tbody>'
+      + PXROWS.map((x,i) => '<tr class="'+(x.profit<0?'loss':'')+'"><td title="'+esc(x.p.name)+'">'+prodCell(x.p)+(x.p.costed?'':' *')+'</td>'
+        + cell(x.p.n) + cell(money(x.asp)) + cell(money(x.fixed)) + cell(money(x.lost*100))
+        + cell(money(x.profit), x.profit<0?'hot':'') + cell(pct(x.profit/x.asp), x.profit<0?'hot': x.profit/x.asp<m?'warn':'ok')
+        + (x.p.n<3? '<td class="num muted" colspan="2">too few orders</td>'
+          : cell(isFinite(x.be)? money(Math.ceil(x.be)) : '—', x.asp<x.be?'hot':'') + cell(isFinite(x.tgt)? money(Math.ceil(x.tgt)) : 'not reachable', x.asp<x.tgt?'warn':''))
+        + '<td class="num"><label class="sr" for="px'+i+'" style="position:absolute;left:-9999px">Try price for '+esc(x.p.name)+'</label><input type="number" min="1" step="1" id="px'+i+'" data-i="'+i+'" value="'+Math.round(x.asp)+'"></td>'
+        + '<td class="num" id="pxn'+i+'">'+money(x.profit)+'</td><td class="num" id="pxd'+i+'">—</td></tr>').join('') + '</tbody>'
+    : '<tbody><tr><td class="muted">No paid orders in this period.</td></tr></tbody>';
+}
+$('pxTable').addEventListener('input', e => {
+  const i = e.target.dataset.i; if(i===undefined) return; const x = PXROWS[+i], price = N(e.target.value);
+  const np = x.profitAt(price), d = (np - x.profit)*x.p.n;
+  $('pxn'+i).textContent = money(np); $('pxn'+i).className = 'num '+(np<0?'hot':'ok');
+  $('pxd'+i).textContent = (d>=0?'+':'')+money(d); $('pxd'+i).className = 'num '+(d<0?'hot':'ok');
+});
+['pxGst','pxTarget'].forEach(id => $(id).addEventListener('change', () => {
+  PX = {gst: Math.max(0, N($('pxGst').value)), target: Math.max(0, N($('pxTarget').value))};
+  try{ localStorage.setItem('payout.pricing', JSON.stringify(PX)); }catch(e){}
+  drawPricing();
+}));
 // orders by price band (low → high) and how much of each ₹100 reached the bank
 const BANDS = [[0,200,'₹0–199','#FCD9A8'],[200,500,'₹200–499','#F2A93B'],[500,1000,'₹500–999','#C97A12'],[1000,Infinity,'₹1000+','#8A4F00']];
 function drawBands(orders){
@@ -1144,7 +1206,7 @@ function drawBands(orders){
 // sidebar: jump to a section
 const ICONS = {home:'M3 11l9-8 9 8M5 10v10h14V10', money:'M21 12a9 9 0 1 1-9-9v9z', fix:'M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
   week:'M3 17l6-6 4 4 8-8M14 7h7v7', price:'M4 20V10M10 20V4M16 20v-7M22 20H2', box:'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8', list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
-  back:'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', plat:'M4 20V12M10 20V6M16 20V9M22 20H2', file:'M14 3H6v18h12V7zM14 3v4h4'};
+  back:'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', plat:'M4 20V12M10 20V6M16 20V9M22 20H2', tag:'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01', file:'M14 3H6v18h12V7zM14 3v4h4'};
 function drawSide(items){
   $('sideList').innerHTML = items.map(([id,label,hint,ic],i)=>'<a href="#'+id+'" aria-current="'+(i===0)+'"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+ICONS[ic]+'"></path></svg></span><span><b>'+label+'</b><small>'+hint+'</small></span></a>').join('');
   $('sideList').querySelectorAll('a').forEach(a => a.onclick = () => $('sideList').querySelectorAll('a').forEach(x => x.setAttribute('aria-current', String(x===a))));
@@ -1254,6 +1316,7 @@ function analyse(R, d0, d1){
   // profit counts free orders and refunds too, which "Net to you" (paid orders only) leaves out
   const prods=[...P.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net+p.adj+p.refAmt-p.cogs}));
   drawProducts(prods);
+  drawPricing(prods.map(p => Object.assign({}, p, {payAll:p.net+p.adj+p.refAmt, varAmt:p.promo+p.refAmt, refSale:p.refAmt})));
 
   drawBands(orders.map(r=>({v:r.charges, p:r.total})));
 
