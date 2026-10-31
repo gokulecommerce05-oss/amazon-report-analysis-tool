@@ -427,13 +427,6 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
   </section>
 
-  <section class="card" id="recCard" aria-labelledby="recH" style="display:none">
-    <h2 id="recH">Money to recover</h2>
-    <p class="sub">Money the platforms may owe you: orders never paid, shipping charged above what the same product usually costs, and returns to claim. Uses every file you added, all dates.</p>
-    <div id="recBody"></div>
-    <p class="tip">"Usual" shipping = the middle charge for single-unit orders of the same product to the same state (needs at least 4 such orders, so state and distance do not cause false alarms). Add a "Packed weight (g)" column to the Purchase Cost tab to compare it with the weight Flipkart measures.</p>
-  </section>
-
   <div id="report">
     <section class="card pickbar" aria-labelledby="pickH">
       <h2 id="pickH">Step 2 · Choose platform and dates</h2>
@@ -549,6 +542,13 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 
     <footer id="foot">Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
   </div>
+
+  <section class="card" id="recCard" aria-labelledby="recH" style="display:none">
+    <h2 id="recH">Money to recover</h2>
+    <p class="sub">Money the platforms may owe you: orders never paid, shipping charged above what the same product usually costs, and returns to claim. Uses every file you added, all dates.</p>
+    <div id="recBody"></div>
+    <p class="tip">"Usual" shipping = the middle charge for single-unit orders of the same product to the same state (needs at least 4 such orders, so state and distance do not cause false alarms). Add a "Packed weight (g)" column to the Purchase Cost tab to compare it with the weight Flipkart measures.</p>
+  </section>
 </main>
 </div>
 
@@ -979,11 +979,11 @@ function render(){
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]
+    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['sec-pl','Profit & loss','Month by month','money'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-pl','Profit & loss','Month by month','money'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
        ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
-       ['sec-returns','Returns','Every order sent back','back'],['step1','My files','Add or remove files','file']]);
+       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['step1','My files','Add or remove files','file']]);
   if(multi){
     const S = have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
     const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0,profit:0});
