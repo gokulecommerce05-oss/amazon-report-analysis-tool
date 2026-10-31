@@ -197,7 +197,7 @@ table{border-collapse:collapse;width:100%;font-size:14.5px}
 th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-weight:700;color:var(--muted);font-size:13px;background:var(--surface);position:sticky;top:0}
 th.sort{cursor:pointer} th.sort:hover{color:var(--ink)}
-td:first-child,th:first-child{text-align:left;white-space:normal;min-width:200px}
+td:first-child,th:first-child{text-align:left;white-space:normal;min-width:150px}
 tr:last-child td{border-bottom:0}
 tfoot td{font-weight:800}
 tr.pick{cursor:pointer} tr.pick:hover td{background:var(--peacock-soft)}
@@ -206,6 +206,8 @@ tr.pick{cursor:pointer} tr.pick:hover td{background:var(--peacock-soft)}
 .tag.warn{background:var(--turmeric-soft);color:var(--turmeric)}
 .tag.ok{background:var(--leaf-soft);color:var(--leaf)}
 td.hot{color:var(--kumkum);font-weight:700}
+td small.what{display:block;font-weight:400;color:var(--muted);font-size:12.5px;white-space:normal;max-width:52ch}
+
 footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-width:80ch;margin:0 auto}
 @media (max-width:600px){
   main{padding:16px 12px 48px}
@@ -300,6 +302,7 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
           <div class="money"><div class="donut" id="rupee" role="img"></div><div class="legend" id="legend"></div></div>
           <p class="tip"><b>How to read:</b> bigger slice = more money went there. Dark teal is what you keep.</p>
           <details class="more"><summary>Show the ₹ table</summary><div class="tbl"><table id="dedTable"></table></div></details>
+          <details class="more"><summary>Every fee, line by line</summary><p class="sub" id="feeNote"></p><div class="tbl"><table id="feeTable"></table></div></details>
         </section>
         <section class="card" id="sec-fix" aria-labelledby="fixH">
           <h2 id="fixH">Fix these first</h2>
@@ -439,6 +442,13 @@ function parseFlipkart(wb){
   const miss = ['pay','settle','item','sale','mp','refund'].filter(k => c[k]<0);
   if(miss.length) throw new Error('This Flipkart file is missing columns: '+miss.join(', ')+'.');
   const g = (r,k) => c[k]>=0? r[c[k]] : '';
+  // each deduction column, for the line-by-line fee table
+  const FK_DET = [['Commission','commission (rs.)'],['Fixed fee','fixed fee'],['Collection fee','collection fee'],['Pick and pack fee','pick and pack fee'],
+    ['Shipping fee','shipping fee (rs.)'],['Reverse shipping fee','reverse shipping fee'],['No-cost EMI fee','no cost emi'],['Installation fee','installation fee'],
+    ['Tech visit fee','tech visit fee'],['Uninstallation fee','uninstallation'],['Add-ons recovery','customer add-ons amount recovery'],['Franchise fee','franchise fee'],
+    ['Shopsy marketing fee','shopsy marketing fee'],['Product cancellation fee','product cancellation fee'],['TCS','tcs (rs.)'],['TDS','tds (rs.)'],
+    ['GST on fees','gst on mp fees'],['Discount you funded','my share (rs.)'],['Offer adjustment','offer adjustments (rs.)'],['Protection fund (credit)','protection fund (rs.)'],
+    ['Refunded to buyer','refund (rs.)']].map(([lab,key]) => [lab, t[hi].findIndex(x => low(x).startsWith(key))]).filter(x => x[1]>=0);
   const lines = t.slice(hi+1).filter(r => String(g(r,'item')).trim() && xlDate(g(r,'pay'))).map(r => {
     const rt = low(g(r,'rtype'));
     const l = Object.assign(blank(), {platform:'Flipkart', date:xlDate(g(r,'pay')), orderDate:xlDate(g(r,'odate')),
@@ -451,6 +461,7 @@ function parseFlipkart(wb){
     l.fees = N(g(r,'mp')) - ship - rev; l.shipping = ship; l.returnShip = rev;
     l.refund = N(g(r,'refund')); l.taxes = N(g(r,'tax')); l.other = N(g(r,'prot'));
     l.payout = N(g(r,'settle'));
+    l.det = {}; FK_DET.forEach(([lab,i]) => { const v=N(r[i]); if(v) l.det[lab]=(l.det[lab]||0)+v; });
     return settle(l);
   });
   const kinds = {'Ads':'Advertising','Fines':'Fines','MP Fee Rebate':'Fee rebates','TCS_Recovery':'Tax adjustments','TDS':'Tax adjustments'};
@@ -478,6 +489,9 @@ function parseMeesho(wb){
   if(miss.length) throw new Error('This Meesho file is missing columns: '+miss.join(', ')+'.');
   const g = (r,k) => c[k]>=0? r[c[k]] : '';
   const st = {delivered:'Delivered', rto:'RTO', 'return':'Customer return', cancelled:'Cancelled'};
+  const ME_DET = [['Sale reversed (return / RTO)','ret'],['Commission','comm'],['Gold platform fee','gold'],['Mall platform fee','mall'],['Fixed fee','fixed'],['Warehousing fee','ware'],
+    ['Support service charges','support'],['Return premium','prem'],['Return premium (on returns)','premRet'],['Shipping charge','ship'],['GST compensation (shipping)','gstComp'],
+    ['Return shipping charge','retShip'],['TCS','tcs'],['TDS','tds'],['Compensation (credit)','comp'],['Claims (credit)','claims'],['Recovery','recovery']];
   const lines = t.slice(hi+1).filter(r => String(g(r,'sub')).trim() && xlDate(g(r,'pay')) && g(r,'fin')!=='').map(r => {
     const l = Object.assign(blank(), {platform:'Meesho', date:xlDate(g(r,'pay')), orderDate:xlDate(g(r,'odate')),
       id:String(g(r,'sub')).trim(), order:String(g(r,'sub')).trim(), sku:String(g(r,'sku')).trim(), prod:String(g(r,'prod')).trim(),
@@ -488,6 +502,7 @@ function parseMeesho(wb){
     l.taxes = N(g(r,'tcs')) + N(g(r,'tds'));
     l.other = N(g(r,'comp')) + N(g(r,'claims')) + N(g(r,'recovery'));
     l.payout = N(g(r,'fin'));
+    l.det = {}; ME_DET.forEach(([lab,k]) => { const v=N(g(r,k)); if(v) l.det[lab]=(l.det[lab]||0)+v; });
     return settle(l);
   });
   const extras = [];
@@ -566,14 +581,21 @@ function parseAmazonXml(doc){
   if(!sd) throw new Error('This XML is not an Amazon settlement report.');
   const SALE = /^(Principal|Tax|Shipping|ShippingTax|GiftWrap|GiftWrapTax)$/, TAX = /^(TCS|ItemTDS)/, SHIP = /^(FBAWeightBasedFee|ShippingChargeback)/;
   const lines = [], extras = [];
+  const FEE_NAME = {FixedClosingFee:'Closing fee', FBAPerUnitFulfillmentFee:'FBA pick & pack fee', FBAWeightBasedFee:'FBA weight handling fee', ShippingChargeback:'Shipping chargeback',
+    GiftwrapChargeback:'Gift wrap chargeback', RefundCommission:'Refund administration fee', Commission:'Referral fee (commission)'};
+  const feeName = t => / (IGST|CGST|SGST)$/.test(t)? 'GST on Amazon fees' : (FEE_NAME[t] || t);
+  const add = (l, k, a) => { if(a) l.det[k] = (l.det[k]||0) + a; };
   // price components → sale (or refund), TCS/TDS → tax; fees → shipping or fees; promotions → discount
   const item = (o, it, status, refund) => {
     const l = Object.assign(blank(), {platform:'Amazon', date:xday(xtext(o,'PostedDate')), orderDate:null, id:xtext(it,'AmazonOrderItemCode')||xtext(o,'AmazonOrderID'),
-      order:xtext(o,'AmazonOrderID'), sku:xtext(it,'SKU'), prod:xtext(it,'SKU'), qty:refund? 0 : (N(xtext(it,'Quantity'))||1), pay:'', status});
+      order:xtext(o,'AmazonOrderID'), sku:xtext(it,'SKU'), prod:xtext(it,'SKU'), qty:refund? 0 : (N(xtext(it,'Quantity'))||1), pay:'', status, det:{}});
     [...it.getElementsByTagName('Component')].forEach(c => { const t=xtext(c,'Type'), a=N(xtext(c,'Amount'));
-      if(TAX.test(t)) l.taxes+=a; else if(SALE.test(t)) l[refund?'refund':'sale']+=a; else l.other+=a; });
-    [...it.getElementsByTagName('Fee')].forEach(c => { const a=N(xtext(c,'Amount')); if(SHIP.test(xtext(c,'Type'))) l.shipping+=a; else l.fees+=a; });
-    [...it.getElementsByTagName(refund? 'PromotionAdjustment' : 'Promotion')].forEach(c => l.discount+=N(xtext(c,'Amount')));
+      if(TAX.test(t)){ l.taxes+=a; add(l, /^TCS/.test(t)? 'TCS' : 'TDS', a); }
+      else if(SALE.test(t)){ l[refund?'refund':'sale']+=a; if(refund) add(l, 'Refunded to buyer', a); }
+      else { l.other+=a; add(l, t, a); } });
+    [...it.getElementsByTagName('Fee')].forEach(c => { const t=xtext(c,'Type'), a=N(xtext(c,'Amount')); if(SHIP.test(t)) l.shipping+=a; else l.fees+=a; add(l, feeName(t), a); });
+    [...it.getElementsByTagName(refund? 'PromotionAdjustment' : 'Promotion')].forEach(c => { const a=N(xtext(c,'Amount')); l.discount+=a;
+      add(l, xtext(c,'Type')==='Shipping'? 'Free-delivery promotion' : 'Price promotion', a); });
     l.payout = PARTS.reduce((s,k)=>s+l[k],0); lines.push(l);
   };
   [...doc.getElementsByTagName('Order')].forEach(o => [...o.getElementsByTagName('Item')].forEach(it => item(o, it, 'Delivered', false)));
@@ -582,8 +604,9 @@ function parseAmazonXml(doc){
   [...doc.getElementsByTagName('OtherTransaction')].forEach(o => {
     const t = xtext(o,'TransactionType'), amt = [...o.children].find(c=>c.tagName==='Amount'), a = N(amt? amt.textContent : 0), d = xday(xtext(o,'PostedDate'));
     if(/^(Amazon Easy Ship Charges|Fulfillment Fee Refund)/.test(t)){
-      const l = Object.assign(blank(), {platform:'Amazon', date:d, id:'order:'+xtext(o,'AmazonOrderID'), order:xtext(o,'AmazonOrderID'), sku:'', prod:'', qty:0, pay:'', status:null, attach:true});
-      l[/^Amazon Easy Ship/.test(t)? 'shipping' : 'fees'] = a; l.payout = a; lines.push(l);
+      const l = Object.assign(blank(), {platform:'Amazon', date:d, id:'order:'+xtext(o,'AmazonOrderID'), order:xtext(o,'AmazonOrderID'), sku:'', prod:'', qty:0, pay:'', status:null, attach:true, det:{}});
+      l[/^Amazon Easy Ship/.test(t)? 'shipping' : 'fees'] = a; l.payout = a;
+      add(l, / IGST$/.test(t)? 'GST on Amazon fees' : /^Amazon Easy Ship/.test(t)? 'Easy Ship delivery charge' : 'FBA fee refunded', a); lines.push(l);
     } else extras.push({platform:'Amazon', date:d, kind:'Other services', label:t.replace(/ (IGST|CGST|SGST)$/,''), amount:a});
   });
   [...doc.getElementsByTagName('AdvertisingTransactionDetails')].forEach(o => extras.push({platform:'Amazon', date:xday(xtext(o,'PostedDate')), kind:'Advertising', label:'Ads', amount:N(xtext(o,'TransactionAmount'))}));
@@ -744,11 +767,15 @@ function compute(P, L, X){
     it.ms = master(P, it.sku, it.prod); it.unit = unitCost(it.ms);
     it.kept = it.sold && !it.rto && !it.ret; it.cogs = it.kept && it.unit!=null? it.unit*it.qty : 0; it.noCost = it.kept && it.unit==null; });
   const t = blank(); L.forEach(l => PARTS.concat('payout').forEach(k => t[k]+=l[k]));
+  // every fee by name; anything a report doesn't name goes to "Other", so the lines add up to (paid − order value)
+  const det = {}; L.forEach(l => Object.entries(l.det||{}).forEach(([k,v]) => det[k]=(det[k]||0)+v));
+  const rest = t.payout - t.sale - sum(Object.values(det), v=>v); if(Math.abs(rest)>=0.5) det['Other'] = (det['Other']||0) + rest;
+  X.forEach(x => { const k = x.kind==='Other services'? x.label : x.kind; det[k]=(det[k]||0)+x.amount; });
   const byKind = {}; X.forEach(x => byKind[x.kind] = (byKind[x.kind]||0) + x.amount);
   const ads = -(byKind.Advertising||0), fines = -(byKind.Fines||0);
   const otherX = sum(X.filter(x => x.kind!=='Advertising' && x.kind!=='Fines'), x=>x.amount);
   const payout = t.payout + sum(X,x=>x.amount), cogs = sum(I,i=>i.cogs);
-  return {L, X, I, t, byKind, ads, fines, otherX, sold:I.filter(i=>i.sold), value:t.sale, payout, cogs, profit:payout-cogs,
+  return {L, X, I, t, det, byKind, ads, fines, otherX, sold:I.filter(i=>i.sold), value:t.sale, payout, cogs, profit:payout-cogs,
     missing:I.filter(i=>i.noCost).map(i=>i.sku||short(i.prod,30))};
 }
 function genericSummary(c){
@@ -804,10 +831,11 @@ function analyseGeneric(P, L, X, d0, d1){
   ded.forEach(d => { if(Math.abs(d.v)<0.5) return;
     const s=share(d.v), v=(vt[d.k]||(()=>'ok'))(s);
     const label = v==='bad'?'<span class="tag bad">Problem</span>':v==='warn'?'<span class="tag warn">Can cut</span>':'<span class="tag ok">Normal</span>';
-    h+='<tr><td>'+d.k+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>'; });
+    h+='<tr><td>'+dedCell(d.k)+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>'; });
   const totDed = sum(ded,d=>d.v);
   h+='</tbody><tfoot><tr><td>Total deducted</td><td class="num">'+money(totDed)+'</td><td class="num">'+pct(share(totDed))+'</td><td></td></tr></tfoot>';
   $('dedTable').innerHTML=h;
+  drawFees(c.det, value, payout, t.sale, 'Every deduction and credit from the report, biggest cost first. Minus = taken from you, plus = given back.');
 
   // weekly: everything paid, grouped by the Monday of the payment date
   const wk = new Map();
@@ -907,6 +935,59 @@ function drawResult(who, value, payout, keep, ded){
   rb.setAttribute('aria-label', 'Donut chart: '+segs.map(x=>name(x.k)+' '+pct(share(x.v))).join(', '));
   $('legend').innerHTML = segs.map(x => '<div><i style="background:'+x.c+'"></i><span>'+esc(name(x.k))+'</span><b class="num">'+pct(share(x.v))+'</b></div>').join('');
 }
+// plain-English meaning of each expense and fee line
+const WHAT = {
+  'Commission':'The platform\'s cut of each sale (a % of the price).', 'Referral fee (commission)':'Amazon\'s cut of each sale (a % of the price).',
+  'Fixed fee':'A flat fee charged on every order.', 'Closing fee':'Amazon\'s flat fee on every order, set by price band.',
+  'Collection fee':'Fee for collecting the payment (COD or online).', 'Pick and pack fee':'Fee for packing the order in the platform warehouse.',
+  'FBA pick & pack fee':'Amazon warehouse fee to pick and pack each unit (FBA).', 'FBA weight handling fee':'Amazon\'s delivery fee, based on the parcel weight (FBA).',
+  'Shipping chargeback':'Delivery cost Amazon charges back for orders where the buyer paid shipping.', 'Gift wrap chargeback':'Cost of gift wrapping charged back to you.',
+  'Refund administration fee':'Part of the referral fee Amazon keeps when an order is refunded.', 'GST on Amazon fees':'18% GST on Amazon\'s fees. You can claim it as input tax credit if you are GST registered.',
+  'GST on fees':'18% GST on the platform\'s fees. Claimable as input tax credit if GST registered.',
+  'Shipping fee':'Forward delivery charge.', 'Shipping charge':'Forward delivery charge for the parcel.', 'Reverse shipping fee':'Courier charge to bring a returned parcel back.',
+  'Return shipping charge':'Courier charge to bring a returned parcel back.', 'GST compensation (shipping)':'GST adjustment on the shipping charge.',
+  'Easy Ship delivery charge':'Amazon\'s courier charge for self-shipped (Easy Ship) orders.', 'FBA fee refunded':'FBA fees Amazon gave back (for a cancelled or returned order).',
+  'TCS':'1% tax held back. Claim it in your GST return (GSTR-3B).', 'TDS':'Income tax held back. Claim it in your income tax return.',
+  'Price promotion':'Discount on the price that you funded (coupon or deal).', 'Free-delivery promotion':'Free delivery you offered: you paid the shipping the buyer didn\'t.',
+  'Discount you funded':'Your share of an offer or coupon shown to the buyer.', 'Offer adjustment':'Correction to an offer already settled.',
+  'Refunded to buyer':'Sale amount given back to the buyer for a return or cancellation.', 'Sale reversed (return / RTO)':'Sale amount taken back because the parcel came back.',
+  'Advertising':'Sponsored ads spend, including GST.', 'Fines':'Penalties charged by the platform.', 'Cancellation Charges':'Charge for cancelling an order after accepting it.',
+  'Other':'Small items the report does not name (rounding, minor adjustments).', 'Add-ons recovery':'Cost of buyer add-ons (like extended warranty) recovered from you.', 'Protection fund (credit)':'Money Flipkart paid you for a damaged or lost return.',
+  'Warehousing fee':'Storage charge in the platform warehouse.', 'Support service charges':'Meesho support/service fees.', 'Return premium':'Fee for the free-return option on the listing.',
+  'Gold platform fee':'Fee for the Meesho Gold programme.', 'Mall platform fee':'Fee for the Meesho Mall programme.',
+  'Compensation (credit)':'Money Meesho paid you (for example, a lost parcel).', 'Claims (credit)':'Claim amount paid to you.', 'Recovery':'Amount Meesho recovered from you.',
+  // Amazon transaction CSV
+  'Amazon fees on orders':'"Amazon fees" column on orders: referral/closing fee, FBA pick & pack and weight fees, and their GST, all added together.',
+  'Shipping and tax credits on orders':'"Other" column on orders: shipping and gift-wrap the buyer paid, which Amazon passes to you, less TCS/TDS.',
+  'Promotional rebates on orders':'"Total promotional rebates" column: discounts and free-delivery offers you funded.',
+  'Refunded to buyers':'Product price (and your promotion) given back on refunded orders.', 'Fees on refunds':'Fee changes on refunds: Amazon keeps a refund admin fee and gives back the rest.',
+  'Other on refunds':'Shipping and tax credits taken back on refunded orders.', 'Easy Ship delivery charges':'"Billing" lines: Amazon\'s courier charge for Easy Ship orders.',
+  'FBA inventory reimbursement':'Amazon paid you for stock it lost or damaged.', 'FBA removal / return fee':'Fee to send stock back from the Amazon warehouse.',
+  'Inbound transport fee':'Fee for moving your stock into the Amazon warehouse.', 'Weight handling fee reversal':'Weight fee Amazon gave back.',
+  'Cancellation charge':'Charge for cancelling an order after accepting it.', 'Fee adjustment':'Correction Amazon made to an earlier fee.'
+};
+// short meaning under each row of the "where the money went" table
+const DED_WHAT = {
+  'Amazon fees (after shipping and tax credits)':'Referral/closing fees and FBA fees on paid orders, minus the shipping and tax credits Amazon passes back.',
+  'Refunds (after fee refunds and reimbursements)':'Money given back to buyers, after Amazon returns part of its fee.',
+  'Coupons on paid orders':'Discounts and free-delivery offers you funded ("Total promotional rebates").',
+  'Free orders (product given away plus fees)':'Orders where the discount was the full price.',
+  'Easy Ship (self-ship) charges':'Amazon\'s courier charge for orders you ship with Easy Ship.',
+  'Inbound, storage, removal, cancellations':'Warehouse transport, storage, removal and cancellation charges, less reimbursements.',
+  'Marketplace fees (commission, fixed and other fees)':'Commission, fixed/closing fee, pick & pack and similar platform fees.',
+  'Shipping':'Delivery charges for sending orders to buyers.', 'Returns and RTO (sale amount taken back)':'Sale amount reversed for returned or undelivered orders.',
+  'Return shipping':'Courier charge to bring returns back.', 'Discounts you paid for':'Offers and coupons funded by you.', 'Advertising':'Sponsored ads.',
+  'Tax held back (TCS, TDS, GST on fees)':'Taxes deducted from payouts; most can be claimed back.', 'Fines':'Penalties from the platform.',
+  'Other charges and credits':'Everything else: services, recoveries, compensation.'
+};
+const dedCell = k => esc(k)+(DED_WHAT[k]? '<small class="what">'+DED_WHAT[k]+'</small>' : '');
+function drawFees(det, value, payout, sale, note){
+  const rows = Object.entries(det).filter(([k,v]) => Math.abs(v)>=0.5).sort((a,b)=>a[1]-b[1]);
+  $('feeNote').textContent = note;
+  $('feeTable').innerHTML = '<thead><tr><th>Line</th><th>Amount</th><th>% of order value</th></tr></thead><tbody>'
+    + rows.map(([k,v]) => '<tr><td>'+esc(k)+(WHAT[k]? '<small class="what">'+esc(WHAT[k])+'</small>' : '')+'</td><td class="num">'+(v>0?'+':'')+money(v)+'</td><td class="num">'+pct(value? v/value:0)+'</td></tr>').join('')
+    + '</tbody><tfoot><tr><td>Order value '+money(sale)+'<small class="what">plus all the lines above = '+money(payout)+' paid to you</small></td><td class="num">'+money(sum(rows,r=>r[1]))+'</td><td></td></tr></tfoot>';
+}
 // orders by price band (low → high) and how much of each ₹100 reached the bank
 const BANDS = [[0,200,'₹0–199','#FCD9A8'],[200,500,'₹200–499','#F2A93B'],[500,1000,'₹500–999','#C97A12'],[1000,Infinity,'₹1000+','#8A4F00']];
 function drawBands(orders){
@@ -995,11 +1076,22 @@ function analyse(R, d0, d1){
   ded.forEach(d => {
     const s=share(d.v), v=(vt[d.k]||(()=> 'ok'))(s);
     const label = v==='bad'?'<span class="tag bad">Problem</span>':v==='warn'?'<span class="tag warn">Can cut</span>':'<span class="tag ok">Normal</span>';
-    t+='<tr><td>'+d.k+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>';
+    t+='<tr><td>'+dedCell(d.k)+'</td><td class="num">'+money(d.v)+'</td><td class="num">'+pct(s)+'</td><td>'+label+'</td></tr>';
   });
   const totDed = sum(ded,d=>d.v);
   t+='</tbody><tfoot><tr><td>Total deducted</td><td class="num">'+money(totDed)+'</td><td class="num">'+pct(share(totDed))+'</td><td></td></tr></tfoot>';
   $('dedTable').innerHTML=t;
+  // the CSV only has three money columns, so split them by transaction type and the "Product details" text
+  const CSV_LINE = {'Billing':'Easy Ship delivery charges','Cost of Advertising':'Advertising','FBA Inventory Reimbursement':'FBA inventory reimbursement','Fulfillment Fee Refund':'FBA fee refunded',
+    'FBA Removal Order: Return Fee':'FBA removal / return fee','Inbound Transportation Fee':'Inbound transport fee','Weight Handling Fees Reversal':'Weight handling fee reversal',
+    'Order Cancellation Charge':'Cancellation charge','Fee Adjustment':'Fee adjustment'};
+  const cd = {}, put = (k,v) => { if(v) cd[k]=(cd[k]||0)+v; };
+  R.forEach(r => {
+    if(r.type==='Order Payment'){ put('Amazon fees on orders', r.fees); put('Shipping and tax credits on orders', r.other); put('Promotional rebates on orders', r.promo); }
+    else if(r.type==='Refund'){ put('Refunded to buyers', r.charges+r.promo); put('Fees on refunds', r.fees); put('Other on refunds', r.other); }
+    else put(CSV_LINE[r.prod] || r.prod || r.type, r.total);
+  });
+  drawFees(cd, orderValue, payout, orderValue, 'The Amazon transaction CSV only has three money columns (promotional rebates, Amazon fees, other), so fees cannot be split further. Upload the settlement XML (Payments → All statements) for the exact fee-by-fee breakdown.');
 
   // weekly
   const wk = new Map();
