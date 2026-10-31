@@ -124,18 +124,18 @@ body.has-files .top .addbtn{display:inline-flex} body.has-files .lock{margin-lef
 .result .eyebrow{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--result-accent)}
 .result h2#headline{margin:6px 0 4px;font-size:clamp(20px,2.6vw,27px);font-weight:600;line-height:1.35}
 .result h2 b.amt{color:var(--result-accent)} .result h2 b.cut{color:var(--result-cut)}
-.result #subline{font-size:15px;color:#C9DDD7}
+.result #subline{font-size:16px;color:#D5E6E1;line-height:1.55}
 .result .wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:center}
 .result .say{flex:2 1 320px}
-.result .kpis{flex:1 1 300px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.result .kpis{flex:1 1 400px;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .result .kpi{background:var(--result-card);color:var(--result-ink)}
-.result .kpi small{color:#B5CFC7}
-.result .kpi b{font-size:20px}
+.result .kpi small{color:#CFE2DC}
+.result .kpi b{font-size:clamp(24px,2.3vw,32px)}
 .result .kpi.hold b{color:var(--result-cut)} .result .kpi.good b{color:var(--result-accent)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.kpi{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px 14px}
-.kpi small{display:block;color:var(--muted);font-size:13px;font-weight:600}
-.kpi b{display:block;font-size:24px;font-weight:800;line-height:1.25}
+.kpi{background:var(--surface);color:var(--ink);border-radius:14px;padding:16px 18px}
+.kpi small{display:block;color:var(--muted);font-size:14.5px;font-weight:600;line-height:1.4}
+.kpi b{display:block;font-size:clamp(24px,2.3vw,32px);font-weight:800;line-height:1.2;margin:4px 0 2px;letter-spacing:-.01em}
 .kpi.hold b{color:var(--turmeric)}
 .kpi.good b{color:var(--peacock)}
 
@@ -210,6 +210,11 @@ td small.what{display:block;font-weight:400;color:var(--muted);font-size:12.5px;
 
 footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-width:80ch;margin:0 auto}
 @media (max-width:600px){
+  .result{padding:18px 14px}
+  .result .kpis{gap:8px}
+  .result .kpi{padding:12px}
+  .result .kpi b{font-size:21px}
+  .kpi small{font-size:13px}
   main{padding:16px 12px 48px}
   .card{padding:16px}
   ol.fix li{grid-template-columns:1fr auto}
