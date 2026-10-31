@@ -511,7 +511,7 @@ function parseCosts(wb, file){
   if(ph<0 || mh<0) throw new Error('The Purchase Cost and SKU Mapping tabs need a "Master SKU" header.');
   const a = cols(pc[ph], {ms:'master sku', name:'product name', cost:'purchase cost'});
   const b = cols(sm[mh], {ms:'master sku', name:'master product', plat:'platform', sku:'platform sku', title:'product title'});
-  const out = {file, map:{}, titles:[], name:{}, cost:{}, problems:[]};
+  const out = {file, map:{}, titles:[], name:{}, cost:{}, problems:[], ptitle:{}};
   pc.slice(ph+1).forEach(r => { const ms=String(r[a.ms]).trim(); if(!ms) return;
     out.name[ms] = String(r[a.name]||'').trim();
     if(/check master sku/i.test(out.name[ms])) out.problems.push(ms+' is still named "'+out.name[ms]+'" in Purchase Cost.');
@@ -520,7 +520,9 @@ function parseCosts(wb, file){
     if(!out.name[ms] && b.name>=0) out.name[ms] = String(r[b.name]||'').trim();
     if(sku){ const k=plat+'|'+low(sku);
       if(out.map[k] && out.map[k]!==ms) out.problems.push(r[b.plat]+' SKU '+sku+' is mapped to both '+out.map[k]+' and '+ms+'.');
-      else out.map[k]=ms; }
+      else out.map[k]=ms;
+      const t = b.title>=0? String(r[b.title]||'').replace(/(\.\.\.|…)\s*$/,'').trim() : '';
+      if(t && !/not added yet/i.test(t) && !out.ptitle[k]) out.ptitle[k] = t; }
     if(plat==='amazon' && b.title>=0 && String(r[b.title]).trim()) out.titles.push({t:stripTitle(r[b.title]), ms}); });
   return out;
 }
@@ -535,12 +537,17 @@ function master(platform, sku, title){
   if(!costs) return null;
   return (sku && costs.map[low(platform)+'|'+low(sku)]) || (platform==='Amazon' && title? byTitle(title) : null);
 }
+// product title for display: Master Product name, else the platform title from SKU Mapping, else what the report says
+function productTitle(platform, ms, sku, prod){
+  const t = costs && ((ms && costs.name[ms] && !/check master sku/i.test(costs.name[ms]) && costs.name[ms]) || (sku && costs.ptitle && costs.ptitle[low(platform)+'|'+low(sku)]));
+  return t || (prod && prod!==sku? prod : '') || '';
+}
 const unitCost = ms => ms && costs && costs.cost[ms]!=null? costs.cost[ms] : null;
 // alerts shared by every platform once costs are loaded
 function profitAlerts(prods, missing){
   const A=[]; if(!costs) return A;
   prods.filter(p => p.n>=3 && p.costed && p.profit<0).sort((a,b)=>a.profit-b.profit).slice(0,4).forEach(p => A.push({sev:'bad', cost:-p.profit,
-    title:short(p.name,44)+' loses money', why:p.n+' orders: paid '+money(p.net)+', product cost '+money(p.cogs)+', so you lost '+money(-p.profit)+' ('+money(p.profit/p.n)+' per order).',
+    title:short(p.name,72)+' loses money', why:p.n+' orders: paid '+money(p.net)+', product cost '+money(p.cogs)+', so you lost '+money(-p.profit)+' ('+money(p.profit/p.n)+' per order).',
     todo:'Raise the price, sell it in a combo, or cut its returns; if none of these work, stop selling it on this platform.'}));
   if(missing.length){ const by={}; missing.forEach(m => by[m]=(by[m]||0)+1);
     A.push({sev:'warn', cost:0, title:missing.length+' order'+(missing.length>1?'s have':' has')+' no purchase cost, so profit is overstated',
@@ -809,12 +816,15 @@ function analyseGeneric(P, L, X, d0, d1){
 
   // products
   const Pm=new Map();
-  I.forEach(i => { const key = i.ms? i.ms+' · '+(costs.name[i.ms]||i.sku) : (i.prod||i.sku||'(no SKU)');
-    if(!Pm.has(key)) Pm.set(key,{name:key,n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
-    const p=Pm.get(key); if(i.sold) p.n++; p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
+  I.forEach(i => { const key = i.ms || i.sku || i.prod || 'Charges for orders paid in an earlier settlement';
+    if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
+    const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold) p.n++; p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
     p.cogs+=i.cogs; if(i.cogs) p.costed=true; if(i.noCost) p.nocost++;
     if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; } });
-  const prods=[...Pm.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}));
+  const prods=[...Pm.values()].map(p => { const sk=[...p.skus];
+    p.skuText = (p.ms? p.ms+' · ':'')+(sk.length? 'SKU '+sk.join(', ') : '');
+    p.name = p.title? p.title+' ('+(sk.slice(0,2).join(', ')||p.ms)+(sk.length>2?'…':'')+')' : (sk.join(', ')||p.key);
+    return Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}); });
   drawProducts(prods);
 
   drawBands(I.filter(i=>i.sold).map(i=>({v:i.sale, p:i.payout})));
@@ -834,7 +844,7 @@ function analyseGeneric(P, L, X, d0, d1){
   $('refTitle').textContent='Returns and RTO';
   const back = I.filter(i=>i.rto||i.ret).sort((a,b)=>(a.refund+a.returnShip)-(b.refund+b.returnShip));
   $('refTable').innerHTML = back.length
-    ? '<thead><tr><th>Product</th><th>Paid on</th><th>Order ID</th><th>Type</th><th>Sale taken back</th><th>Return shipping</th><th>Net for this item</th></tr></thead><tbody>'+back.map(i=>'<tr><td title="'+esc(i.prod)+'">'+esc(short(i.prod||i.sku,46))+'</td><td>'+i.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(i.order)+'</td><td>'+(i.rto?'RTO':'Customer return')+'</td><td class="num">'+money(i.refund)+'</td><td class="num">'+money(i.returnShip)+'</td><td class="num">'+money(i.payout)+'</td></tr>').join('')+'</tbody>'
+    ? '<thead><tr><th>Product</th><th>Paid on</th><th>Order ID</th><th>Type</th><th>Sale taken back</th><th>Return shipping</th><th>Net for this item</th></tr></thead><tbody>'+back.map(i=>{ const t=productTitle(P, i.ms, i.sku, i.prod); return '<tr><td title="'+esc(t||i.sku)+'">'+(t? esc(short(t,46))+'<br><small class="muted">SKU '+esc(i.sku)+'</small>' : esc(i.sku||i.prod))+'</td><td>'+i.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(i.order)+'</td><td>'+(i.rto?'RTO': i.status==='Refund'?'Refund':'Customer return')+'</td><td class="num">'+money(i.refund)+'</td><td class="num">'+money(i.returnShip)+'</td><td class="num">'+money(i.payout)+'</td></tr>'; }).join('')+'</tbody>'
     : '<tbody><tr><td>No returns or RTO in this period.</td></tr></tbody>';
   $('foot').textContent = FOOT[P] + (costs? COST_NOTE : '');
 
@@ -848,7 +858,7 @@ function analyseGeneric(P, L, X, d0, d1){
   if(cr>0.06) A.push({sev:cr>0.1?'bad':'warn', cost:-sum(ret,i=>i.refund+i.returnShip), title:'Customers sent back '+pct(cr)+' of orders',
     why:ret.length+' customer returns took back '+money(-sum(ret,i=>i.refund))+(sum(ret,i=>i.returnShip)<-0.5? ' plus '+money(-sum(ret,i=>i.returnShip))+' in return shipping':'')+'. A healthy target is under 5%.',
     todo:'Read the return reasons. Add a size-reference photo, show the real colour and finish, and pack fragile idols better.'});
-  prods.filter(p=>p.n>=4 && p.refRate>=0.25).sort((a,b)=>a.refAmt-b.refAmt).slice(0,4).forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,44)+' comes back too often',
+  prods.filter(p=>p.n>=4 && p.refRate>=0.25).sort((a,b)=>a.refAmt-b.refAmt).slice(0,4).forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,72)+' comes back too often',
     why:p.ref+' of '+p.n+' orders ('+pct(p.refRate)+') were returned or RTO.', todo:'Check this listing’s photos, size and description against the product, or pause it until the cause is fixed.'}));
   const sh = share(-t.shipping);
   if(sh>0.18) A.push({sev:'warn', cost:-t.shipping, title:'Shipping takes '+pct(sh)+' of order value',
@@ -860,7 +870,7 @@ function analyseGeneric(P, L, X, d0, d1){
   if(c.fines>0) A.push({sev:'bad', cost:c.fines, title:money(c.fines)+' in fines', why:'See the Fines entries under Charges outside orders.', todo:'Open each fine in the seller panel and dispute any that are wrong.'});
   const lowKept = prods.filter(p=>p.n>=10 && p.kept<0.6).sort((a,b)=>b.n-a.n);
   if(lowKept.length) A.push({sev:'warn', cost:sum(lowKept,p=>p.n)*25, title:'Some products keep only '+pct(sum(lowKept,p=>p.net)/sum(lowKept,p=>p.sales))+' of their price',
-    why:lowKept.slice(0,3).map(p=>short(p.name,36)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Shipping and fees are nearly fixed per order, so cheap items lose a bigger share.',
+    why:lowKept.slice(0,3).map(p=>short(p.name,60)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Shipping and fees are nearly fixed per order, so cheap items lose a bigger share.',
     todo:'Raise these by ₹20–30 or sell them as combos. Estimated gain shown at ₹25 per order.'});
   A.push(...profitAlerts(prods, c.missing));
   if(t.taxes<-0.5) A.push({sev:'info', cost:0, title:money(-t.taxes)+' tax held back, not lost', why:'TCS, TDS and GST on fees were deducted from your payouts.', todo:'Ask your accountant to claim TCS in GSTR-3B and TDS in your income tax return.'});
@@ -1038,7 +1048,7 @@ function analyse(R, d0, d1){
       todo:'Open order '+free[0].order+' in Manage Orders. If it says Vine, cut Vine units on these products; if not, end any 100%-off promotion or promo code today.'});
   }
   const badProds = prods.filter(p=>p.n>=4 && p.refRate>=0.2).sort((a,b)=>a.refAmt-b.refAmt);
-  badProds.forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,44)+' is returned too often',
+  badProds.forEach(p => A.push({sev:'bad', cost:-p.refAmt, title:short(p.name,72)+' is returned too often',
     why:p.ref+' refunds on '+p.n+' paid orders ('+pct(p.refRate)+'), costing '+money(-p.refAmt)+'.',
     todo:'Read the return reasons. Fix photos, size details or packaging, or pause the product until the cause is fixed.'}));
   const rr = orders.length? refunds.length/orders.length:0;
@@ -1060,7 +1070,7 @@ function analyse(R, d0, d1){
     todo:'Move steady self-ship products into FBA and avoid cancelling accepted orders.'});
   const lowKept = prods.filter(p=>p.n>=10 && p.kept<0.78).sort((a,b)=>b.n-a.n);
   if(lowKept.length) A.push({sev:'warn', cost:sum(lowKept,p=>p.n)*25, title:'Low-priced items keep only about '+pct(sum(lowKept,p=>p.net)/sum(lowKept,p=>p.sales)),
-    why:lowKept.slice(0,3).map(p=>short(p.name,36)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Fees are nearly fixed per order, so cheap items lose a bigger share.',
+    why:lowKept.slice(0,3).map(p=>short(p.name,60)+' ('+money(p.perOrder)+' per order)').join(', ')+'. Fees are nearly fixed per order, so cheap items lose a bigger share.',
     todo:'Raise these by ₹20–30 or sell 2-packs. Estimated gain shown at ₹25 per order.'});
   const zero = orders.filter(r=>r.charges===0 && r.fees<0);
   if(zero.length) A.push({sev:'warn', cost:-sum(zero,r=>r.total), title:zero.length+' order'+(zero.length>1?'s':'')+' with ₹0 sale but fees charged',
@@ -1074,6 +1084,9 @@ function analyse(R, d0, d1){
   drawAlerts(A);
 }
 
+const prodCell = p => p.title
+  ? '<b>'+esc(short(p.title,64))+'</b><br><small class="muted">'+esc(p.skuText)+'</small>'
+  : esc(short(p.name,52))+(p.ms? '<br><small class="muted">'+esc(p.ms)+'</small>' : '');
 function drawProducts(prods){
   const amz = amazonCsv;
   // top 5: by profit once costs are loaded (costed products only), else by money paid
@@ -1081,7 +1094,7 @@ function drawProducts(prods){
   const top = prods.filter(p => p.n>0 && (by==='net' || p.costed)).slice().sort((a,b)=>b[by]-a[by]).slice(0,5);
   const mx = Math.max(1,...top.map(p=>Math.abs(p[by])));
   $('topNote').textContent = by==='profit'? 'Top 5 by profit after product cost.' : 'Top 5 by money paid to you. Add your profit sheet to rank by profit.';
-  $('topProd').innerHTML = top.map(p=>'<div class="'+(p[by]<0?'loss':'')+'"><div class="row"><span>'+esc(short(p.name,50))+' <span class="muted">· '+p.n+' order'+(p.n>1?'s':'')+'</span></span><b class="num">'+money(p[by])+'</b></div><div class="track"><div style="width:'+(Math.abs(p[by])/mx*100)+'%"></div></div></div>').join('') || '<p class="muted">No paid orders in this period.</p>';
+  $('topProd').innerHTML = top.map(p=>'<div class="'+(p[by]<0?'loss':'')+'"><div class="row"><span>'+(p.title? '<b>'+esc(short(p.title,60))+'</b>' : esc(short(p.name,50)))+' <span class="muted">· '+p.n+' order'+(p.n>1?'s':'')+'</span>'+(p.skuText? '<br><small class="muted">'+esc(p.skuText)+'</small>':'')+'</span><b class="num">'+money(p[by])+'</b></div><div class="track"><div style="width:'+(Math.abs(p[by])/mx*100)+'%"></div></div></div>').join('') || '<p class="muted">No paid orders in this period.</p>';
   const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
     .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']])
     .concat(costs? [['cogs','Product cost'],['profit','Profit']] : []);
@@ -1090,7 +1103,7 @@ function drawProducts(prods){
   const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0,cogs:0,profit:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]));
   let h='<thead><tr>'+cols.map(c=>'<th class="sort" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'">'+c[1]+(c[0]===k?(d<0?' ↓':' ↑'):'')+'</th>').join('')+'</tr></thead><tbody>';
   prods.forEach(p=>{
-    h+='<tr><td title="'+esc(p.name)+'">'+esc(short(p.name,52))+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td>'
+    h+='<tr><td title="'+esc(p.name)+'">'+prodCell(p)+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td>'
       +(costs? (p.costed? '<td class="num">'+money(p.cogs)+'</td><td class="num '+(p.profit<0?'hot':'')+'">'+money(p.profit)+'</td>' : '<td class="num muted" colspan="2">no cost</td>') : '')+'</tr>';
   });
   h+='</tbody><tfoot><tr><td>Total</td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td>'+(amz? '<td class="num">'+(tot.free||'')+'</td>':'')+'<td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td>'+(costs? '<td class="num">'+money(tot.cogs)+'</td><td class="num">'+money(tot.profit)+'</td>':'')+'</tr></tfoot>';
