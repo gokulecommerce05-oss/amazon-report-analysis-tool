@@ -287,6 +287,7 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .retp+.retp{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
 .rph{display:flex;align-items:center;gap:8px;font-size:18px;margin:0 0 12px}.rph i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .retk{margin-bottom:6px}.retk .kpi{border:1px solid var(--line)}.retk .kpi span{font-size:13.5px}
+table.recv select{min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}
 .act p{margin:0}.act p+p{margin-top:8px}
 .act{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--turmeric-soft)}
 .act b{display:block;margin-bottom:4px}
@@ -769,23 +770,23 @@ function isReturnsCsv(text){ const head = text.slice(0, 3000);
 function parseFlipkartReturns(t){
   const hi = t.findIndex(r => r.some(c => low(c)==='return id')); if(hi<0) throw new Error('No "Return ID" header found in this Flipkart returns file.');
   const k = cols(t[hi], {order:'=order id', item:'=order item id', type:'=return type', reason:'=return reason', sub:'=return sub-reason', sku:'=sku', title:'=product',
-    price:'=total price', date:'=return requested date', status:'=return status', comp:'=completion status', vendor:'=vendor name'});
+    price:'=total price', date:'=return requested date', status:'=return status', comp:'=completion status', vendor:'=vendor name', done:'=completed date'});
   return t.slice(hi+1).filter(r => String(r[k.order]||r[k.item]||'').trim()).map(r => { const g = c => k[c]>=0? String(r[k[c]]||'').trim() : '';
     const v = low(g('vendor')), st = low(g('status'));
     return {platform:'Flipkart', order:g('order')||g('item'), item:g('item'), ret:/courier/.test(low(g('type')))? 'rto' : 'cust', reason:pretty(g('sub')||g('reason')), sku:g('sku'), title:g('title'),
-      date:retDate(g('date')), state: st==='lost'? 'lost' : low(g('comp'))==='open'? 'open' : 'done', value:N(g('price')),
+      date:retDate(g('date')), state: st==='lost'? 'lost' : low(g('comp'))==='open'? 'open' : 'done', value:N(g('price')), delivered: st==='delivered'? retDate(g('done')) : null,
       courier: !v? '' : /^flipkartlogistics/.test(v)? 'Ekart' : v.replace(/-(cod|prepaid|reverse)$/,'').replace(/^\w/, c=>c.toUpperCase()),
       pay: /-cod$/.test(v)? 'COD' : /-prepaid$/.test(v)? 'Prepaid' : ''}; });
 }
 function parseMeeshoReturns(t){
   const hi = t.findIndex(r => r.some(c => low(c)==='suborder number')); if(hi<0) throw new Error('No "Suborder Number" header found in this Meesho returns file.');
   const h = t[hi].map(low), k = cols(t[hi], {sub:'=suborder number', type:'=type of return', reason:'=return reason', detail:'=detailed return reason', sku:'=sku',
-    title:'=product name', date:'=return created date', courier:'=courier partner', status:'=status'});
+    title:'=product name', date:'=return created date', courier:'=courier partner', status:'=status', done:'=delivered date'});
   const state = h.includes('lost date')? 'lost' : h.includes('delivered date')? 'done' : 'open';
   return t.slice(hi+1).filter(r => String(r[k.sub]||'').trim()).map(r => { const g = c => k[c]>=0? String(r[k[c]]||'').trim() : '';
     const why = pretty(g('reason')), det = pretty(g('detail'));
     return {platform:'Meesho', order:g('sub'), ret:/rto/i.test(g('type'))? 'rto' : 'cust', reason: why? why+(det && det!==why? ' · '+det : '') : '', sku:g('sku'), title:g('title'),
-      date:parseDate(g('date')), state, value:0, courier:g('courier'), pay:''}; });
+      date:parseDate(g('date')), state, value:0, courier:g('courier'), pay:'', delivered: state==='done' && g('done')? parseDate(g('done')) : null}; });
 }
 function parseFlipkartReturnsXlsx(wb){ // Seller Hub "Returns" Excel: order item IDs only
   const t = sheet(wb,'Returns'), hi = headerAt(t,'return_id'); const k = cols(t[hi], {item:'=order_item_id', type:'=return_type', reason:'=return_reason', sub:'=return_sub_reason',
@@ -1324,6 +1325,10 @@ function rtoAlerts(R){
 }
 // ---- returns reports joined with the Orders tab: real RTO and return rates, reasons, and money to claim ----
 const RANK = {open:0, done:1, lost:2};
+// your own check of returns the platform marked delivered to you: key → 'ok' | 'bad' | 'missing'
+let RECV = {}; try{ RECV = JSON.parse(localStorage.getItem('payout.received')||'{}'); }catch(e){}
+const rkey = r => r.platform+'|'+(r.item||r.order)+'|'+low(r.sku);
+const RECV_WHAT = {bad:'You marked it damaged, used, empty or a different item', missing:'Marked delivered to you, but it never arrived'};
 const guessPlat = id => /^od\d/i.test(id)? 'Flipkart' : /_\d+$/.test(id)? 'Meesho' : 'Amazon';
 const CLAIM = /damag|defect|missing|incomplete|different|received wrong|wrong product received|torn|broken|used/i;
 function returnsReport(){
@@ -1352,12 +1357,15 @@ function returnsReport(){
     const age = r => r.date && newest? Math.round((newest - r.date)/864e5) : 0;
     const claims = [];
     R.forEach(r => {
+      const mk = RECV[rkey(r)];
+      if(mk==='missing' || mk==='bad'){ claims.push({r, sev:3, what:RECV_WHAT[mk], todo: mk==='missing'? 'Claim now: share the delivery proof request and say the parcel never reached you' : 'Claim now with the unboxing video and photos'}); return; }
       if(r.state==='lost') claims.push({r, sev:3, what:'Lost in transit', todo:'Raise a claim: the parcel never came back'});
       else if(r.state==='open' && age(r)>=30) claims.push({r, sev:2, what:'Not back after '+age(r)+' days', todo:'Raise a ticket: ask for the parcel or compensation'});
       else if(r.ret==='cust' && CLAIM.test(r.reason) && !/ordered/i.test(r.reason)) claims.push({r, sev:1, what:r.reason, todo: r.state==='open'? 'Open the parcel on video when it arrives; claim if it is damaged, empty or a different item' : 'Check this parcel; if it came back damaged or different, file a claim'});
     });
     claims.sort((a,b) => b.sev-a.sev || b.r.value-a.r.value);
-    return {p, hasTab, R, n, rto, ret, avg, matched:R.filter(r => O[low(r.order)]).length, byPay:group('pay'), byCourier:group('courier').sort((a,b)=>b.n-a.n), byState, flagged,
+    const recv = R.filter(r => r.delivered).sort((a,b) => (RECV[rkey(a)]? 1:0)-(RECV[rkey(b)]? 1:0) || b.delivered-a.delivered);
+    return {p, hasTab, R, recv, n, rto, ret, avg, matched:R.filter(r => O[low(r.order)]).length, byPay:group('pay'), byCourier:group('courier').sort((a,b)=>b.n-a.n), byState, flagged,
       prods, reasons, claims, value:sum(R, r=>r.value), open:R.filter(r=>r.state==='open').length,
       rtoN:R.filter(r=>r.ret==='rto').length, custN:R.filter(r=>r.ret==='cust').length, from:Math.min(...R.map(r => +r.date||Infinity)), to:newest};
   });
@@ -1393,8 +1401,35 @@ function drawReturns(){
       + (X.claims.length? '<h4 class="h3" style="margin-top:14px">Check or claim ('+X.claims.length+')</h4><div class="tbl"><table><thead><tr><th>Order</th><th>Product</th><th>Problem</th><th>What to do</th>'+(X.value?'<th>Value</th>':'')+'</tr></thead><tbody>'
           + X.claims.slice(0,25).map(c => '<tr><td>'+esc(c.r.order)+'<small class="what">'+d(+c.r.date)+(c.r.courier? ' · '+esc(c.r.courier):'')+'</small></td><td>'+esc(c.r.sku)+'</td><td'+(c.sev>1?' class="hot"':'')+'>'+esc(c.what)+'</td><td>'+esc(c.todo)+'</td>'+(X.value?'<td class="num">'+money(c.r.value)+'</td>':'')+'</tr>').join('')
           + '</tbody>'+(X.claims.length>25? '<tfoot><tr><td colspan="5" class="muted">+ '+(X.claims.length-25)+' more customer returns to check when they arrive</td></tr></tfoot>' : '')+'</table></div>' : '')
+      + recvHtml(X)
       + '</div>';
   }).join('');
+  $('retBody').querySelectorAll('select[data-rk]').forEach(sel => sel.onchange = () => {
+    if(sel.value) RECV[sel.dataset.rk] = sel.value; else delete RECV[sel.dataset.rk];
+    try{ localStorage.setItem('payout.received', JSON.stringify(RECV)); }catch(e){}
+    setTimeout(render, 0); });
+  $('retBody').querySelectorAll('[data-bulk]').forEach(btn => btn.onclick = () => {
+    const X = returnsReport().find(x => x.p===btn.dataset.bulk); if(!X) return;
+    if(!confirm('Mark these as received OK? Only do this if you already checked them.')) return;
+    X.recv.forEach(r => { if(!RECV[rkey(r)] && (Date.now()-r.delivered)/864e5 >= 14) RECV[rkey(r)] = 'ok'; });
+    try{ localStorage.setItem('payout.received', JSON.stringify(RECV)); }catch(e){}
+    render(); });
+}
+// returns the platform says were delivered back to you: tick each one when it really arrives
+function recvHtml(X){
+  if(!X.recv.length) return '';
+  const now = Date.now(), age = r => Math.max(0, Math.floor((now - r.delivered)/864e5));
+  const todo = X.recv.filter(r => !RECV[rkey(r)]), late = todo.filter(r => age(r)>=3), done = X.recv.length - todo.length;
+  const opt = (r) => { const v = RECV[rkey(r)]||''; return '<select data-rk="'+esc(rkey(r))+'" aria-label="Did return '+esc(r.order)+' arrive?">'
+      + [['','Not checked'],['ok','Received OK'],['bad','Damaged / wrong / empty'],['missing','Never arrived']].map(([k,t]) => '<option value="'+k+'"'+(k===v?' selected':'')+'>'+t+'</option>').join('')+'</select>'; };
+  const row = r => '<tr><td>'+esc(r.order)+'<small class="what">'+(r.ret==='rto'?'RTO':'Customer return')+(r.courier? ' · '+esc(r.courier):'')+'</small></td><td>'+esc(r.sku)+'</td><td class="num'+(!RECV[rkey(r)] && age(r)>=3?' hot':'')+'">'+r.delivered.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'<small class="what">'+age(r)+' days ago</small></td><td>'+opt(r)+'</td></tr>';
+  const head = '<thead><tr><th>Order</th><th>Product</th><th>Marked delivered</th><th>Did it arrive?</th></tr></thead>';
+  return '<h4 class="h3" style="margin-top:18px">Returns marked delivered to you ('+X.recv.length+')</h4>'
+    + '<p class="sub">'+done+' checked · '+todo.length+' not checked'+(late.length? ' · <b style="color:var(--kumkum)">'+late.length+' not checked for 3+ days</b>' : '')+'. Open every return on video when it arrives and set it here: "Damaged / wrong / empty" and "Never arrived" go straight to the claim list.</p>'
+    + (todo.filter(r => age(r)>=14).length>=5? '<button type="button" class="btn ghost" data-bulk="'+esc(X.p)+'">Mark '+todo.filter(r => age(r)>=14).length+' older than 14 days as received OK</button>' : '')
+    + '<div class="tbl"><table class="recv">'+head+'<tbody>'+todo.slice(0,40).map(row).join('')+'</tbody></table></div>'
+    + (todo.length>40? '<p class="muted" style="font-size:14px">+ '+(todo.length-40)+' more not checked (oldest).</p>' : '')
+    + (done? '<details class="more"><summary>See the '+done+' you checked</summary><div class="tbl"><table class="recv">'+head+'<tbody>'+X.recv.filter(r => RECV[rkey(r)]).map(row).join('')+'</tbody></table></div></details>' : '');
 }
 // ---- money to recover: missing payments, shipping above normal, weight, return claims ----
 const LAG = 21; // days after dispatch by which every platform should have paid an order

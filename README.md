@@ -36,6 +36,7 @@ With payment files and your business sheet loaded, the **Money to recover** card
 - **Orders shipped but never paid**: orders in the Orders tab shipped inside the dates your payment files cover (and at least 21 days before the last payment), that appear in no payment file and did not come back as RTO. Raise a ticket for each.
 - **Shipping charged above usual**: single-unit orders whose shipping charge is 20% (and ₹8) above the usual charge for the same product to the same state. Ask for a weight-slab review.
 - **Weight Flipkart measured**: the dead weight Flipkart's system measured, compared with an optional **Packed weight (g)** column in the Purchase Cost tab.
+- **Returns marked delivered to you**: in the returns card, set each return the platform says was delivered back to *Received OK*, *Damaged / wrong / empty* or *Never arrived* (saved in that browser). The last two go straight to the claim list.
 - **Returns to claim**: lost parcels, returns not back after 30 days and damaged/missing/wrong-item returns from the returns reports (SPF on Flipkart, SAFE-T on Amazon, Meesho claims).
 
 ## Profit after product cost
