@@ -6,32 +6,32 @@
 <title>2G VIBE Payout Analyser</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#1B2225; --muted:#4A5559; --line:#DCE2E0; --soft:#EEF2F1;
-  --peacock:#0F5560; --peacock-soft:#E1F0F2; --turmeric:#B86E00; --turmeric-soft:#FFF1E0;
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#12201C; --muted:#4D615B; --line:#DDE3E1; --soft:#EEF2F1;
+  --peacock:#0B6B57; --peacock-soft:#E2F4EE; --turmeric:#B86E00; --turmeric-soft:#FFF1E0;
   --kumkum:#9B1C1C; --kumkum-soft:#FBE7E5; --leaf:#1F6B43; --leaf-soft:#E2F4EA;
-  --kept:#0F5560; --result:#0F5560; --result-ink:#FFFFFF; --result-accent:#A8DCE2; --result-cut:#FFD08A;
+  --kept:#0E7C66; --result:#0F2A24; --result-card:#173A32; --result-ink:#FFFFFF; --result-accent:#8FD3BF; --result-cut:#FFC48A;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#A3B1AF; --line:#2B393C; --soft:#1F2C2F;
-    --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
-    --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2; --result:#0D3E46;
+    --peacock:#6CCBAE; --peacock-soft:#173A32; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
+    --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#6CCBAE; --result:#0F2A24;
   }
 }
 :root[data-theme="dark"]{
   --bg:#111A1C; --surface:#182326; --ink:#E7EEEC; --muted:#A3B1AF; --line:#2B393C; --soft:#1F2C2F;
-  --peacock:#5FB3C2; --peacock-soft:#18363C; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
-  --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#5FB3C2; --result:#0D3E46;
+  --peacock:#6CCBAE; --peacock-soft:#173A32; --turmeric:#E8B449; --turmeric-soft:#3A2F14;
+  --kumkum:#F0857C; --kumkum-soft:#3D1F1C; --leaf:#86C77F; --leaf-soft:#1D3320; --kept:#6CCBAE; --result:#0F2A24;
 }
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Mukta,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',"Segoe UI",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.5}
 h1,h2,h3{line-height:1.2;margin:0}
 p{margin:0}
 .muted{color:var(--muted)}
@@ -47,7 +47,28 @@ a{color:var(--peacock)}
 .brand b{display:block;font-size:19px;font-weight:800}
 .brand span{font-size:14px;color:var(--muted)}
 .lock{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--leaf);background:var(--leaf-soft);padding:5px 12px;border-radius:999px}
-main{max-width:1100px;margin:0 auto;padding:22px 16px 56px;display:flex;flex-direction:column;gap:20px}
+main{flex:999 1 640px;min-width:0;max-width:1100px;margin:0 auto;padding:22px 16px 56px;display:flex;flex-direction:column;gap:20px}
+.shell{display:flex;align-items:flex-start}
+.side{display:none;position:sticky;top:0;flex:0 0 250px;max-height:100vh;overflow:auto;background:var(--surface);border-right:1px solid var(--line);padding:20px 12px;flex-direction:column;gap:14px}
+.shell.has .side{display:flex}
+.side-label{font-size:12px;font-weight:700;color:var(--muted);padding:0 8px;letter-spacing:.04em}
+.side-list{display:flex;flex-direction:column;gap:4px}
+.side-list a{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 8px;border-radius:12px;text-decoration:none;color:var(--ink)}
+.side-list a:hover,.side-list a[aria-current="true"]{background:var(--peacock-soft)}
+.side-list .ic{width:36px;height:36px;border-radius:10px;background:var(--soft);display:grid;place-items:center;flex:none;color:var(--ink)}
+.side-list a[aria-current="true"] .ic{background:var(--kept);color:#FFFFFF}
+.side-list b{display:block;font-size:15px} .side-list small{display:block;font-size:12px;color:var(--muted)}
+.side-note{margin-top:8px;display:flex;gap:10px;background:var(--leaf-soft);color:var(--leaf);border-radius:12px;padding:12px;font-size:13px;line-height:1.45}
+.top .addbtn{display:none;margin-left:auto}
+body.has-files .top .addbtn{display:inline-flex} body.has-files .lock{margin-left:0}
+#step1.compact .drop,#step1.compact .sources,#step1.compact .sub{display:none}
+@media (max-width:760px){
+  .shell{flex-direction:column;align-items:stretch}
+  .side{flex:none;max-height:none;position:sticky;top:0;z-index:5;border-right:0;border-bottom:1px solid var(--line);padding:8px 10px}
+  .side-label,.side-note,.side-list small{display:none}
+  .side-list{flex-direction:row;overflow-x:auto}
+  .side-list a{flex:none;min-height:48px}
+}
 
 /* steps */
 .steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
@@ -103,7 +124,14 @@ main{max-width:1100px;margin:0 auto;padding:22px 16px 56px;display:flex;flex-dir
 .result .eyebrow{font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--result-accent)}
 .result h2#headline{margin:6px 0 4px;font-size:clamp(20px,2.6vw,27px);font-weight:600;line-height:1.35}
 .result h2 b.amt{color:var(--result-accent)} .result h2 b.cut{color:var(--result-cut)}
-.result #subline{font-size:15px;color:#D7ECEE;margin-bottom:16px}
+.result #subline{font-size:15px;color:#C9DDD7}
+.result .wrap{display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+.result .say{flex:2 1 320px}
+.result .kpis{flex:1 1 300px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.result .kpi{background:var(--result-card);color:var(--result-ink)}
+.result .kpi small{color:#B5CFC7}
+.result .kpi b{font-size:20px}
+.result .kpi.hold b{color:var(--result-cut)} .result .kpi.good b{color:var(--result-accent)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 .kpi{background:var(--surface);color:var(--ink);border-radius:12px;padding:12px 14px}
 .kpi small{display:block;color:var(--muted);font-size:13px;font-weight:600}
@@ -140,6 +168,20 @@ ol.fix li.good .lvl{background:var(--leaf-soft);color:var(--leaf)}
 /* weekly line */
 .line svg{width:100%;height:200px;display:block;margin-top:12px}
 .line .axis{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--muted);gap:6px}
+
+/* platform bars and price bands */
+.pbars{display:grid;gap:14px;margin-top:14px}
+.pbars .row{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.pbars .track{height:24px;background:var(--soft);border-radius:6px;margin-top:6px}
+.pbars .track div{height:24px;border-radius:6px}
+.pbars small{display:block;font-size:13px;color:var(--muted);margin-top:4px}
+.bands{display:flex;align-items:flex-end;gap:14px;height:190px;border-bottom:2px solid var(--line);margin-top:16px}
+.bands .col{flex:1 1 0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.bands .col b{font-size:14px}
+.bands .col div{width:100%;border-radius:8px 8px 0 0;min-height:2px}
+.blabels{display:flex;gap:14px;margin-top:6px}
+.blabels span{flex:1 1 0;text-align:center;font-size:13px;font-weight:700}
+.blabels small{display:block;font-weight:500;color:var(--muted)}
 
 /* products */
 .top5{display:grid;gap:12px;margin-top:14px}
@@ -180,9 +222,16 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
 <header class="top"><div class="in">
   <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9"></path><path d="M12 3v9h9"></path></svg></div>
   <div class="brand"><b>2G VIBE Payout Analyser</b><span>See where your selling money goes <span id="fileCount"></span></span></div>
+  <label class="btn addbtn" id="addTop"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add files<input type="file" id="file2" accept=".csv,text/csv,.xlsx,.xls,.xml,text/xml" multiple hidden></label>
   <span class="lock"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Files stay on your computer</span>
 </div></header>
 
+<div class="shell" id="shell">
+<nav class="side" aria-label="Sections">
+  <div class="side-label">WHAT DO YOU WANT TO SEE?</div>
+  <div class="side-list" id="sideList"></div>
+  <div class="side-note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span><b>Your files stay safe.</b> They are read on your computer, never uploaded.</span></div>
+</nav>
 <main>
   <ol class="steps" id="steps" aria-label="Steps">
     <li class="on"><span class="n">1</span><span><b>Add files</b><small>From any platform</small></span></li>
@@ -190,7 +239,7 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
     <li><span class="n">3</span><span><b>See results</b><small>With easy tips</small></span></li>
   </ol>
 
-  <section class="card" aria-labelledby="addH">
+  <section class="card" id="step1" aria-labelledby="addH">
     <h2 id="addH">Step 1 · Add your payment files</h2>
     <p class="sub">Add one or many, from any platform. Not sure where a file is? Follow the steps on its card.</p>
     <label class="drop" id="drop" tabindex="0">
@@ -198,12 +247,12 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
       <strong>Drag files here</strong>
       <span class="muted">or</span>
       <span class="btn" role="button">Choose files</span>
-      <span class="muted" style="font-size:14px">CSV or Excel (.xlsx)</span>
-      <input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls" multiple hidden>
+      <span class="muted" style="font-size:14px">CSV, Excel (.xlsx) or Amazon XML</span>
+      <input type="file" id="file" accept=".csv,text/csv,.xlsx,.xls,.xml,text/xml" multiple hidden>
     </label>
     <div class="sources" id="sources">
-      <div class="src"><div class="hd"><span><i style="background:#E47911"></i>Amazon</span><span class="fmt">CSV</span></div>
-        <ol><li><span>1</span>Seller Central</li><li><span>2</span>Payments</li><li><span>3</span>Transaction view</li><li><span>4</span>Download CSV</li></ol>
+      <div class="src"><div class="hd"><span><i style="background:#E47911"></i>Amazon</span><span class="fmt">XML / CSV</span></div>
+        <ol><li><span>1</span>Seller Central → Payments</li><li><span>2</span>All statements → Download XML (best: has SKUs)</li><li><span>3</span>or Transaction view → Download CSV</li></ol>
         <div class="st" data-src="Amazon">Not added yet</div></div>
       <div class="src"><div class="hd"><span><i style="background:#2874F0"></i>Flipkart</span><span class="fmt">XLSX</span></div>
         <ol><li><span>1</span>Seller Hub</li><li><span>2</span>Payments</li><li><span>3</span>Previous payments</li><li><span>4</span>Order-level settlement report</li></ol>
@@ -229,55 +278,63 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
       <button class="btn ghost" id="resetDates" type="button">All dates</button>
     </section>
 
-    <section class="result" aria-labelledby="headline">
-      <div class="eyebrow">STEP 3 · YOUR RESULT</div>
-      <h2 id="headline"></h2>
-      <p id="subline"></p>
-      <div class="kpis" id="kpis"></div>
+    <section class="result" id="sec-home" aria-labelledby="headline">
+      <div class="wrap">
+        <div class="say"><div class="eyebrow">STEP 3 · IN ONE LINE</div><h2 id="headline"></h2><p id="subline"></p></div>
+        <div class="kpis" id="kpis"></div>
+      </div>
     </section>
 
     <section class="card" id="compareBox" aria-labelledby="cmpH">
-      <h2 id="cmpH">Which platform earns most?</h2>
-      <p class="sub">Click a platform to see its details.</p>
+      <h2 id="cmpH">Which platform earned most?</h2>
+      <p class="sub">Money paid to you, biggest first. Click a platform in the table to see its details.</p>
+      <div class="pbars" id="platBars"></div>
       <div class="tbl"><table id="compareTable"></table></div>
       <p class="tip"><b>How to read:</b> "Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
     </section>
 
     <div id="detail" style="display:flex;flex-direction:column;gap:20px">
       <div class="grid2">
-        <section class="card" aria-labelledby="moneyH">
+        <section class="card" id="sec-money" aria-labelledby="moneyH">
           <h2 id="moneyH">Where did the money go?</h2>
           <div class="money"><div class="donut" id="rupee" role="img"></div><div class="legend" id="legend"></div></div>
           <p class="tip"><b>How to read:</b> bigger slice = more money went there. Dark teal is what you keep.</p>
           <details class="more"><summary>Show the ₹ table</summary><div class="tbl"><table id="dedTable"></table></div></details>
         </section>
-        <section class="card" aria-labelledby="fixH">
+        <section class="card" id="sec-fix" aria-labelledby="fixH">
           <h2 id="fixH">Fix these first</h2>
           <ol class="fix" id="alerts"></ol>
           <p class="tip"><b>How to read:</b> start at the top. High → Medium, sorted by money lost.</p>
         </section>
       </div>
 
-      <section class="card line" aria-labelledby="wkH">
+      <section class="card line" id="sec-weeks" aria-labelledby="wkH">
         <h2 id="wkH">Money received each week</h2>
         <p class="sub">Each week starts on Monday.</p>
         <div id="weeks"></div>
         <p class="tip"><b>How to read:</b> above the dashed line = a better-than-usual week. A sudden dip? Check returns for that week.</p>
       </section>
 
-      <section class="card" aria-labelledby="prH">
+      <section class="card" id="sec-price" aria-labelledby="bandH">
+        <h2 id="bandH">At what price do people buy?</h2>
+        <p class="sub">Orders by price, cheap → expensive. Under each column: how much of every ₹100 reached your bank.</p>
+        <div id="bands"></div>
+        <p class="tip"><b>How to read:</b> the tallest column is the price most customers buy at. If cheap orders keep much less of every ₹100, shipping and fees are eating them: raise those prices or sell combos.</p>
+      </section>
+
+      <section class="card" id="sec-products" aria-labelledby="prH">
         <h2 id="prH">Best products</h2>
         <p class="sub" id="topNote"></p>
         <div class="top5" id="topProd"></div>
         <details class="more"><summary>See all products (sortable)</summary><div class="tbl"><table id="prodTable"></table></div></details>
       </section>
 
-      <div class="grid2">
+      <div class="grid2" id="sec-tables">
         <section class="card"><h2 id="leftTitle">Refunds by payment type</h2><div class="tbl"><table id="payTable"></table></div></section>
         <section class="card"><h2 id="rightTitle">Free orders</h2><div class="tbl"><table id="freeTable"></table></div></section>
       </div>
 
-      <section class="card" aria-labelledby="refTitle">
+      <section class="card" id="sec-returns" aria-labelledby="refTitle">
         <h2 id="refTitle">Refunds</h2>
         <details class="more"><summary>Show every order</summary><div class="tbl"><table id="refTable"></table></div></details>
       </section>
@@ -286,6 +343,7 @@ footer{color:var(--muted);font-size:14px;line-height:1.6;text-align:center;max-w
     <footer id="foot">Free order means the promotional rebate equalled the full product price. Open one in Manage Orders: if it is labelled Vine it is a Vine unit; otherwise check Advertising → Promotions for a 100%-off promotion or promo code. Deferred amounts are held by Amazon until after delivery and are paid in later settlements.</footer>
   </div>
 </main>
+</div>
 
 <script>
 (function(){
@@ -493,7 +551,47 @@ function profitAlerts(prods, missing){
   return A;
 }
 
+// ---- Amazon settlement report (XML): one line per order item or refunded item, with the SKU ----
+const xtext = (el, tag) => { const c = el && el.getElementsByTagName(tag)[0]; return c? c.textContent.trim() : ''; };
+const xday = v => { const d = new Date(v); return isNaN(d)? null : new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+function parseAmazonXml(doc){
+  const sd = doc.getElementsByTagName('SettlementData')[0];
+  if(!sd) throw new Error('This XML is not an Amazon settlement report.');
+  const SALE = /^(Principal|Tax|Shipping|ShippingTax|GiftWrap|GiftWrapTax)$/, TAX = /^(TCS|ItemTDS)/, SHIP = /^(FBAWeightBasedFee|ShippingChargeback)/;
+  const lines = [], extras = [];
+  // price components → sale (or refund), TCS/TDS → tax; fees → shipping or fees; promotions → discount
+  const item = (o, it, status, refund) => {
+    const l = Object.assign(blank(), {platform:'Amazon', date:xday(xtext(o,'PostedDate')), orderDate:null, id:xtext(it,'AmazonOrderItemCode')||xtext(o,'AmazonOrderID'),
+      order:xtext(o,'AmazonOrderID'), sku:xtext(it,'SKU'), prod:xtext(it,'SKU'), qty:refund? 0 : (N(xtext(it,'Quantity'))||1), pay:'', status});
+    [...it.getElementsByTagName('Component')].forEach(c => { const t=xtext(c,'Type'), a=N(xtext(c,'Amount'));
+      if(TAX.test(t)) l.taxes+=a; else if(SALE.test(t)) l[refund?'refund':'sale']+=a; else l.other+=a; });
+    [...it.getElementsByTagName('Fee')].forEach(c => { const a=N(xtext(c,'Amount')); if(SHIP.test(xtext(c,'Type'))) l.shipping+=a; else l.fees+=a; });
+    [...it.getElementsByTagName(refund? 'PromotionAdjustment' : 'Promotion')].forEach(c => l.discount+=N(xtext(c,'Amount')));
+    l.payout = PARTS.reduce((s,k)=>s+l[k],0); lines.push(l);
+  };
+  [...doc.getElementsByTagName('Order')].forEach(o => [...o.getElementsByTagName('Item')].forEach(it => item(o, it, 'Delivered', false)));
+  [...doc.getElementsByTagName('Refund')].forEach(o => [...o.getElementsByTagName('AdjustedItem')].forEach(it => item(o, it, 'Refund', true)));
+  // order-level charges join their order's item later (attach); anything else is a charge outside orders
+  [...doc.getElementsByTagName('OtherTransaction')].forEach(o => {
+    const t = xtext(o,'TransactionType'), amt = [...o.children].find(c=>c.tagName==='Amount'), a = N(amt? amt.textContent : 0), d = xday(xtext(o,'PostedDate'));
+    if(/^(Amazon Easy Ship Charges|Fulfillment Fee Refund)/.test(t)){
+      const l = Object.assign(blank(), {platform:'Amazon', date:d, id:'order:'+xtext(o,'AmazonOrderID'), order:xtext(o,'AmazonOrderID'), sku:'', prod:'', qty:0, pay:'', status:null, attach:true});
+      l[/^Amazon Easy Ship/.test(t)? 'shipping' : 'fees'] = a; l.payout = a; lines.push(l);
+    } else extras.push({platform:'Amazon', date:d, kind:'Other services', label:t.replace(/ (IGST|CGST|SGST)$/,''), amount:a});
+  });
+  [...doc.getElementsByTagName('AdvertisingTransactionDetails')].forEach(o => extras.push({platform:'Amazon', date:xday(xtext(o,'PostedDate')), kind:'Advertising', label:'Ads', amount:N(xtext(o,'TransactionAmount'))}));
+  // anything not recognised: keep the deposit total exact
+  const total = N(xtext(sd,'TotalAmount')), diff = total - sum(lines,l=>l.payout) - sum(extras,x=>x.amount);
+  if(Math.abs(diff)>0.5) extras.push({platform:'Amazon', date:xday(xtext(sd,'EndDate')), kind:'Other services', label:'Unmatched settlement lines', amount:diff});
+  return {lines, extras, settlement:xtext(sd,'AmazonSettlementID'), deposit:xday(xtext(sd,'DepositDate')), total};
+}
+
 function readFile(f){
+  if(/\.xml$/i.test(f.name) || /^(text|application)\/xml$/.test(f.type)) return f.text().then(txt => {
+    const doc = new DOMParser().parseFromString(txt, 'application/xml');
+    if(doc.getElementsByTagName('parsererror').length) throw new Error('This XML file could not be read.');
+    return Object.assign({platform:'Amazon'}, parseAmazonXml(doc));
+  });
   if(/\.csv$/i.test(f.name) || f.type==='text/csv') return f.text().then(txt => ({platform:'Amazon', rows:toRows(txt)}));
   if(!window.XLSX) return Promise.reject(new Error('The Excel reader did not load. Check your internet connection and reload the page.'));
   return f.arrayBuffer().then(buf => {
@@ -501,13 +599,14 @@ function readFile(f){
     if(wb.SheetNames.includes('Purchase Cost') && wb.SheetNames.includes('SKU Mapping')) return {platform:'Costs', costs:parseCosts(wb, f.name)};
     if(wb.SheetNames.includes('Order Payments')) return Object.assign({platform:'Meesho'}, parseMeesho(wb));
     if(wb.SheetNames.includes('Orders')) return Object.assign({platform:'Flipkart'}, parseFlipkart(wb));
-    throw new Error('This is not an Amazon transactions CSV, a Flipkart settlement report or a Meesho payment file.');
+    throw new Error('This is not an Amazon settlement XML or transactions CSV, a Flipkart settlement report or a Meesho payment file.');
   });
 }
 function addFiles(list){
   $('err').style.display='none';
   const jobs = [...list].map(f => readFile(f).then(d => {
       if(d.platform==='Costs'){ costs = d.costs; try{ localStorage.setItem('payout.costs', JSON.stringify(costs)); }catch(e){} return; }
+      if(d.settlement && [...files.values()].some(x=>x.settlement===d.settlement)) throw new Error('settlement '+d.settlement+' is already loaded.');
       files.set(f.name, d); }).catch(e => { showErr(f.name+': '+e.message); }));
   Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; active=null; render(); });
 }
@@ -517,6 +616,7 @@ const drop=$('drop'), input=$('file');
 drop.addEventListener('click', e => { if(e.target!==input) input.click(); });
 drop.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); } });
 input.addEventListener('change', () => { addFiles(input.files); input.value=''; });
+$('file2').addEventListener('change', e => { addFiles(e.target.files); e.target.value=''; });
 ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
@@ -553,6 +653,10 @@ function render(){
     el.textContent = p==='Costs'? (costs? '✓ Saved · '+Object.keys(costs.cost).length+' product costs' : 'Optional · add once, remembered here') : (n? '✓ Added · '+n+' file'+(n>1?'s':'') : 'Not added yet'); });
   const st = document.querySelectorAll('#steps li');
   st[0].className = files.size? 'done' : 'on'; st[1].className = st[2].className = files.size? 'on' : '';
+  document.body.classList.toggle('has-files', files.size>0);
+  $('step1').classList.toggle('compact', files.size>0);
+  $('addH').textContent = files.size? 'Your files' : 'Step 1 · Add your payment files';
+  $('shell').classList.toggle('has', have.length>0);
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
   multi = have.length>1;
@@ -569,12 +673,20 @@ function render(){
   $('detail').style.display = active==='All'? 'none':'flex';
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
+  drawSide(active==='All'
+    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['step1','My files','Add or remove files','file']]
+    : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
+       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-products','My products','Best and worst','box'],
+       ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
+       ['sec-returns','Returns','Every order sent back','back'],['step1','My files','Add or remove files','file']]);
   if(multi){
-    const S = have.map(p => Object.assign({p}, p==='Amazon'? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
+    const S = have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
     const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0,profit:0});
     const row = (x,cls) => '<tr'+(cls?' class="'+cls+'" data-p="'+x.p+'"':'')+'><td>'+(x.p||'All platforms')+'</td><td class="num">'+x.orders.toLocaleString('en-IN')+'</td><td class="num">'+money(x.value)+'</td><td class="num">'+money(x.payout)+'</td><td class="num">'+money(x.value? x.payout/x.value*100:0)+'</td><td class="num">'+x.returns+' <span class="muted">('+pct(x.orders? x.returns/x.orders:0)+')</span></td><td class="num">'+money(x.ads)+'</td>'+(costs? '<td class="num '+(x.profit<0?'hot':'')+'">'+money(x.profit)+'</td>':'')+'</tr>';
     $('compareTable').innerHTML = '<thead><tr><th>Platform</th><th>Orders</th><th>Order value</th><th>Paid to you</th><th>Kept per ₹100</th><th>Returns &amp; RTO</th><th>Ads</th>'+(costs?'<th>Profit after product cost</th>':'')+'</tr></thead><tbody>'+S.map(x=>row(x,'pick')).join('')+'</tbody><tfoot>'+row(Object.assign({p:''},T))+'</tfoot>';
     $('compareTable').querySelectorAll('tr.pick').forEach(tr => tr.onclick = () => { active = tr.dataset.p; render(); });
+    const PC = {Amazon:'#E47911', Flipkart:'#2874F0', Meesho:'#9F2089'}, pm = Math.max(1,...S.map(x=>x.payout));
+    $('platBars').innerHTML = S.slice().sort((a,b)=>b.payout-a.payout).map(x=>'<div><div class="row"><span>'+x.p+'</span><span class="num">'+money(x.payout)+'</span></div><div class="track"><div style="width:'+(Math.max(0,x.payout)/pm*100)+'%;background:'+PC[x.p]+'"></div></div><small>'+x.orders.toLocaleString('en-IN')+' orders · kept '+money(x.value? x.payout/x.value*100:0)+' of every ₹100'+(costs? ' · profit '+money(x.profit):'')+'</small></div>').join('');
     if(active==='All'){
       const share = T.value? T.payout/T.value : 0, best = S.slice().sort((a,b)=>(b.value? b.payout/b.value:0)-(a.value? a.payout/a.value:0))[0];
       $('headline').innerHTML = 'Out of every <b>₹100</b> customers paid on all platforms, <b class="amt">'+money(share*100)+'</b> reached your bank. <b class="cut">'+esc(best.p)+'</b> kept the most.';
@@ -587,7 +699,8 @@ function render(){
       return;
     }
   }
-  if(active==='Amazon') analyse(view.Amazon.rows, dateFrom||minD, dateTo||maxD);
+  amazonCsv = active==='Amazon' && !view.Amazon.lines.length;
+  if(amazonCsv) analyse(view.Amazon.rows, dateFrom||minD, dateTo||maxD);
   else analyseGeneric(active, view[active].lines, view[active].extras, dateFrom||minD, dateTo||maxD);
 }
 
@@ -608,12 +721,15 @@ function amazonSummary(R){
 // ---- Flipkart and Meesho analysis ----
 // One item = one Flipkart order item or Meesho sub-order, summed over all its payment lines.
 function compute(P, L, X){
-  const items = new Map();
+  const items = new Map(), orderItem = {};
+  L.forEach(l => { if(!l.attach && l.sale>0 && !orderItem[l.order]) orderItem[l.order] = l.id; });
+  L = L.map(l => l.attach? Object.assign({}, l, {id: orderItem[l.order] || l.id}) : l);
   L.forEach(l => { let it = items.get(l.id);
-    if(!it){ it = Object.assign(blank(), {id:l.id, order:l.order, sku:l.sku, prod:l.prod, status:l.status, date:l.date, orderDate:l.orderDate, qty:0}); items.set(l.id, it); }
+    if(!it){ it = Object.assign(blank(), {id:l.id, order:l.order, sku:l.sku, prod:l.prod, status:l.status||'Other', date:l.date, orderDate:l.orderDate, qty:0}); items.set(l.id, it); }
     PARTS.concat('payout').forEach(k => it[k]+=l[k]);
     if(l.sale>0) it.qty += l.qty;
-    if(l.date>=it.date){ it.status=l.status; it.date=l.date; }
+    if(l.status && l.date>=it.date){ it.status=l.status; it.date=l.date; }
+    if(!it.sku && l.sku){ it.sku=l.sku; it.prod=l.prod; }
   });
   const I = [...items.values()];
   I.forEach(it => { it.sold = it.sale>0; it.rto = it.status==='RTO'; it.ret = it.status==='Customer return' || (!it.rto && it.refund<0);
@@ -632,6 +748,7 @@ function genericSummary(c){
   return {orders:c.sold.length, value:c.value, payout:c.payout, returns:c.I.filter(i=>i.rto||i.ret).length, ads:c.ads, profit:c.profit};
 }
 const FOOT = {
+  Amazon:'Amounts come from Amazon settlement reports, so they follow the date Amazon posted each line, and each report matches its bank deposit exactly. Amazon refunds do not say whether the buyer returned it or it never reached them, so all refunds are counted together. TCS and TDS are taxes held back for you: claim TCS in your GST return and TDS in your income tax return. FBA weight-based fees and shipping chargebacks count as shipping; Easy Ship charges are added to their order.',
   Flipkart:'Amounts come from the settlement report, so they follow the payment date, not the order date. RTO means Flipkart marked it a logistics return (the buyer never accepted it); customer return means the buyer sent it back. TCS and TDS are taxes held back for you: claim TCS in your GST return and TDS in your income tax return. Ads show the wallet top-ups taken from your payouts.',
   Meesho:'Amounts come from the payment file, so they follow the payment date, not the order date. RTO means the parcel came back undelivered; return means the buyer sent it back. TCS and TDS are taxes held back for you: claim TCS in your GST return and TDS in your income tax return. Meesho marks these figures as estimates until courier costs are final.'
 };
@@ -665,14 +782,16 @@ function analyseGeneric(P, L, X, d0, d1){
     + (costs? ' After '+money(c.cogs)+' of product cost, your profit is '+money(c.profit)+' ('+pct(share(c.profit))+' of order value).' : '');
   drawResult(multi? P : '', value, payout, costs? [{k:'Profit',v:c.profit},{k:'Product cost',v:c.cogs}] : [{k:'You keep',v:payout}], ded);
 
+  const returnCards = P==='Amazon'
+    ? [['Refunds', ret.length, pct(sold.length? ret.length/sold.length:0)+' of orders', ret.length/Math.max(1,sold.length)>0.06?'hold':'']] // Amazon refunds don't say RTO or return
+    : [['RTO', rto.length, pct(sold.length? rto.length/sold.length:0)+' of orders', rto.length/Math.max(1,sold.length)>0.15?'hold':''],
+       ['Customer returns', ret.length, pct(sold.length? ret.length/sold.length:0)+' of orders']];
   $('kpis').innerHTML = [
     ['Orders', sold.length.toLocaleString('en-IN'), sum(sold,i=>i.qty)+' units'],
     ['Order value', money(value), 'before any deductions'],
-    ['Paid to you', money(payout), pct(share(payout))+' of order value'],
-    ['RTO', rto.length, pct(sold.length? rto.length/sold.length:0)+' of orders', rto.length/Math.max(1,sold.length)>0.15?'hold':''],
-    ['Customer returns', ret.length, pct(sold.length? ret.length/sold.length:0)+' of orders'],
-    ['Tax held back', money(-t.taxes), 'claim it back in your returns']
-  ].concat(costs? [['Profit after product cost', money(c.profit), c.missing.length? c.missing.length+' orders have no cost' : pct(share(c.profit))+' of order value', c.profit<0||c.missing.length?'hold':'']] : []).map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
+    ['Paid to you', money(payout), pct(share(payout))+' of order value']
+  ].concat(returnCards, [['Tax held back', money(-t.taxes), 'claim it back in your returns']])
+  .concat(costs? [['Profit after product cost', money(c.profit), c.missing.length? c.missing.length+' orders have no cost' : pct(share(c.profit))+' of order value', c.profit<0||c.missing.length?'hold':'']] : []).map(k => '<div class="kpi '+(k[3]||'')+'"><small>'+k[0]+'</small><b class="num">'+k[1]+'</b><small>'+k[2]+'</small></div>').join('');
 
   let h='<thead><tr><th>Expense</th><th>Amount</th><th>% of order value</th><th>Verdict</th></tr></thead><tbody>';
   ded.forEach(d => { if(Math.abs(d.v)<0.5) return;
@@ -698,9 +817,11 @@ function analyseGeneric(P, L, X, d0, d1){
   const prods=[...Pm.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}));
   drawProducts(prods);
 
+  drawBands(I.filter(i=>i.sold).map(i=>({v:i.sale, p:i.payout})));
+
   // orders by status, and charges outside orders
   $('leftTitle').textContent='Orders by status';
-  const ST=['Delivered','In transit','RTO','Customer return','Cancelled','Other'].map(s => { const x=I.filter(i=>i.status===s); return {s, n:x.length, sale:sum(x,i=>i.sale), pay:sum(x,i=>i.payout)}; }).filter(x=>x.n);
+  const ST=['Delivered','In transit','RTO','Customer return','Refund','Cancelled','Other'].map(s => { const x=I.filter(i=>i.status===s); return {s, n:x.length, sale:sum(x,i=>i.sale), pay:sum(x,i=>i.payout)}; }).filter(x=>x.n);
   $('payTable').innerHTML = '<thead><tr><th>Status</th><th>Items</th><th>Sale amount</th><th>Paid to you</th></tr></thead><tbody>'+ST.map(x=>'<tr><td>'+x.s+'</td><td class="num">'+x.n+'</td><td class="num">'+money(x.sale)+'</td><td class="num">'+money(x.pay)+'</td></tr>').join('')+'</tbody>';
   $('rightTitle').textContent='Charges outside orders';
   const XK={}; X.forEach(x => { const k=x.kind+(x.kind==='Other services'? ': '+x.label:''); XK[k]=XK[k]||{n:0,a:0}; XK[k].n++; XK[k].a+=x.amount; });
@@ -749,7 +870,7 @@ function analyseGeneric(P, L, X, d0, d1){
 
 function sum(a,f){ return a.reduce((s,r)=>s+f(r),0); }
 const AMAZON_FOOT = $('foot').textContent;
-let multi = false; // more than one platform loaded: name the platform in the result line
+let multi = false, amazonCsv = false; // amazonCsv: Amazon tab is showing the transaction CSV view // more than one platform loaded: name the platform in the result line
 
 // ---- drawing shared by every platform ----
 const LEVEL = {bad:'HIGH', warn:'MEDIUM', info:'GOOD TO KNOW', good:'ALL GOOD'};
@@ -775,6 +896,23 @@ function drawResult(who, value, payout, keep, ded){
   rb.innerHTML = '<div class="hole"><b class="num">'+pct(share(payout))+'</b><span>reached<br>your bank</span></div>';
   rb.setAttribute('aria-label', 'Donut chart: '+segs.map(x=>name(x.k)+' '+pct(share(x.v))).join(', '));
   $('legend').innerHTML = segs.map(x => '<div><i style="background:'+x.c+'"></i><span>'+esc(name(x.k))+'</span><b class="num">'+pct(share(x.v))+'</b></div>').join('');
+}
+// orders by price band (low → high) and how much of each ₹100 reached the bank
+const BANDS = [[0,200,'₹0–199','#FCD9A8'],[200,500,'₹200–499','#F2A93B'],[500,1000,'₹500–999','#C97A12'],[1000,Infinity,'₹1000+','#8A4F00']];
+function drawBands(orders){
+  const B = BANDS.map(([lo,hi,label,c]) => { const x=orders.filter(o=>o.v>=lo && o.v<hi); return {label, c, n:x.length, v:sum(x,o=>o.v), p:sum(x,o=>o.p)}; });
+  const mx = Math.max(1,...B.map(b=>b.n));
+  $('bands').innerHTML = '<div class="bands" role="img" aria-label="Column chart of orders by price band: '+B.map(b=>b.label+' '+b.n+' orders').join(', ')+'">'
+    + B.map(b=>'<div class="col"><b class="num">'+b.n+'</b><div style="height:'+(b.n/mx*100)+'%;background:'+b.c+'"></div></div>').join('')+'</div>'
+    + '<div class="blabels">'+B.map(b=>'<span>'+b.label+'<small>'+(b.n? 'keeps '+money(b.v? b.p/b.v*100:0)+' / ₹100' : 'no orders')+'</small></span>').join('')+'</div>';
+}
+// sidebar: jump to a section
+const ICONS = {home:'M3 11l9-8 9 8M5 10v10h14V10', money:'M21 12a9 9 0 1 1-9-9v9z', fix:'M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
+  week:'M3 17l6-6 4 4 8-8M14 7h7v7', price:'M4 20V10M10 20V4M16 20v-7M22 20H2', box:'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8', list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+  back:'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3', plat:'M4 20V12M10 20V6M16 20V9M22 20H2', file:'M14 3H6v18h12V7zM14 3v4h4'};
+function drawSide(items){
+  $('sideList').innerHTML = items.map(([id,label,hint,ic],i)=>'<a href="#'+id+'" aria-current="'+(i===0)+'"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+ICONS[ic]+'"></path></svg></span><span><b>'+label+'</b><small>'+hint+'</small></span></a>').join('');
+  $('sideList').querySelectorAll('a').forEach(a => a.onclick = () => $('sideList').querySelectorAll('a').forEach(x => x.setAttribute('aria-current', String(x===a))));
 }
 // weekly line chart with a dashed average line
 function drawWeeks(wk){
@@ -871,6 +1009,8 @@ function analyse(R, d0, d1){
   const prods=[...P.values()].map(p => Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net+p.adj+p.refAmt-p.cogs}));
   drawProducts(prods);
 
+  drawBands(orders.map(r=>({v:r.charges, p:r.total})));
+
   // payment type
   const pays=['Cash on delivery','Prepaid'].map(k => { const o=orders.filter(r=>r.pay===k).length, f=refunds.filter(r=>r.pay===k); return {k,o,n:f.length,amt:sum(f,r=>r.total),rate:o? f.length/o:0}; });
   const hasPay = orders.some(r=>r.pay);
@@ -935,7 +1075,7 @@ function analyse(R, d0, d1){
 }
 
 function drawProducts(prods){
-  const amz = active==='Amazon';
+  const amz = amazonCsv;
   // top 5: by profit once costs are loaded (costed products only), else by money paid
   const by = costs && prods.some(p=>p.costed)? 'profit' : 'net';
   const top = prods.filter(p => p.n>0 && (by==='net' || p.costed)).slice().sort((a,b)=>b[by]-a[by]).slice(0,5);
