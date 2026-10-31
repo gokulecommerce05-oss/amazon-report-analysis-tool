@@ -279,6 +279,10 @@ body.has-files .pickbar h2{display:none}
 /* RTO by state */
 .rtogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px;margin-top:12px}
 .h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px}
+.retp+.retp{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.rph{display:flex;align-items:center;gap:8px;font-size:18px;margin:0 0 12px}.rph i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.retk{margin-bottom:6px}.retk .kpi{border:1px solid var(--line)}.retk .kpi span{font-size:13.5px}
+.act p{margin:0}.act p+p{margin-top:8px}
 .act{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--turmeric-soft)}
 .act b{display:block;margin-bottom:4px}
 /* layout grid */
@@ -399,12 +403,22 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <div class="src"><div class="hd"><span><i style="background:#9F2089"></i>Meesho</span><span class="fmt">XLSX</span></div>
         <ol><li><span>1</span>Supplier Panel</li><li><span>2</span>Payments</li><li><span>3</span>Download</li><li><span>4</span>Payment file for your dates</li></ol>
         <div class="st" data-src="Meesho">Not added yet</div></div>
+      <div class="src"><div class="hd"><span><i style="background:#C0392B"></i>Returns reports</span><span class="fmt">CSV</span></div>
+        <ol><li><span>1</span>Flipkart: Seller Hub → Returns → Download (CSV)</li><li><span>2</span>Meesho: Supplier Panel → Returns/RTO</li><li><span>3</span>Download In transit, Delivered and Lost</li></ol>
+        <div class="st" data-src="Returns">Optional · finds RTO and claims</div></div>
       <div class="src"><div class="hd"><span><i style="background:#3A4549"></i>Profit sheet</span><span class="fmt">XLSX</span></div>
         <ol><li><span>1</span>Open your business Google Sheet</li><li><span>2</span>File → Download</li><li><span>3</span>Microsoft Excel</li><li><span>4</span>Needs SKU Mapping + Purchase Cost tabs</li></ol>
         <div class="st" data-src="Costs">Optional · add once, remembered here</div></div>
     </div>
     <div class="err" id="err"></div>
     <div class="files" id="files"></div>
+  </section>
+
+  <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
+    <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
+    <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
+    <div id="retBody"></div>
+    <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
   </section>
 
   <div id="report">
@@ -514,6 +528,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 <script>
 (function(){
 const files = new Map(); // name -> {platform, rows} (Amazon) or {platform, lines, extras} (Flipkart, Meesho)
+const rets = new Map();  // name -> {platform:'Returns', rp:'Flipkart'|'Meesho', rows} returns reports
 let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1}, active = null;
 const PLATFORMS = ['Amazon','Flipkart','Meesho'];
 const $ = id => document.getElementById(id);
@@ -702,15 +717,53 @@ function parseCosts(wb, file){
       const t = b.title>=0? String(r[b.title]||'').replace(/(\.\.\.|…)\s*$/,'').trim() : '';
       if(t && !/not added yet/i.test(t) && !out.ptitle[k]) out.ptitle[k] = t; }
     if(plat==='amazon' && b.title>=0 && String(r[b.title]).trim()) out.titles.push({t:stripTitle(r[b.title]), ms}); });
-  // Orders tab (filled by the label tool): order ID → [payment, courier, state]; no customer details are kept
+  // Orders tab (filled by the label tool): order ID → [payment, courier, state, platform, SKU]; no customer details are kept
   out.orders = {};
   const ot = sheet(wb,'Orders'), oh = ot? headerAt(ot,'order id') : -1;
-  if(oh>=0){ const k = cols(ot[oh], {id:'order id', pay:'payment', courier:'courier', state:'state'});
+  if(oh>=0){ const k = cols(ot[oh], {id:'order id', pay:'payment', courier:'courier', state:'state', plat:'platform', sku:'sku'});
     ot.slice(oh+1).forEach(r => { const id = low(String(r[k.id]||'').replace(/^'/,'')); if(!id || out.orders[id]) return;
       const pay = String(k.pay>=0? r[k.pay] : ''), st = String(k.state>=0? r[k.state] : '').trim();
       out.orders[id] = [/cod|cash/i.test(pay)? 'COD' : /prepaid|online/i.test(pay)? 'Prepaid' : '', String(k.courier>=0? r[k.courier] : '').trim(),
-        st? st.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '']; }); }
+        st? st.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : '', String(k.plat>=0? r[k.plat] : '').trim(), String(k.sku>=0? r[k.sku] : '').trim()]; }); }
   return out;
+}
+// ---- returns reports (Flipkart returns CSV, Meesho RTO / customer-return CSVs) ----
+// row: {platform, order, ret:'rto'|'cust', reason, sku, title, date, state:'open'|'done'|'lost', value, courier, pay}
+const MONTHS = {january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
+function retDate(s){ const m = String(s||'').trim().match(/^(\d{1,2}) ([A-Za-z]+),? (\d{4})/); // "31 October, 2026"
+  return m && MONTHS[m[2].toLowerCase()]!=null? new Date(+m[3], MONTHS[m[2].toLowerCase()], +m[1]) : (String(s||'').trim()? parseDate(s) : null); }
+const pretty = s => { s = String(s||'').trim(); if(!s || /^(na|null)$/i.test(s)) return '';
+  return /[a-z]/.test(s) && !/_/.test(s)? s : s.replace(/_/g,' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()); };
+function isReturnsCsv(text){ const head = text.slice(0, 3000);
+  return /"?Return ID"?,/.test(head) && /Return Type/.test(head) ? 'Flipkart' : /Type of Return/.test(head) && /Suborder Number/.test(head) ? 'Meesho' : null; }
+function parseFlipkartReturns(t){
+  const hi = t.findIndex(r => r.some(c => low(c)==='return id')); if(hi<0) throw new Error('No "Return ID" header found in this Flipkart returns file.');
+  const k = cols(t[hi], {order:'=order id', item:'=order item id', type:'=return type', reason:'=return reason', sub:'=return sub-reason', sku:'=sku', title:'=product',
+    price:'=total price', date:'=return requested date', status:'=return status', comp:'=completion status', vendor:'=vendor name'});
+  return t.slice(hi+1).filter(r => String(r[k.order]||r[k.item]||'').trim()).map(r => { const g = c => k[c]>=0? String(r[k[c]]||'').trim() : '';
+    const v = low(g('vendor')), st = low(g('status'));
+    return {platform:'Flipkart', order:g('order')||g('item'), item:g('item'), ret:/courier/.test(low(g('type')))? 'rto' : 'cust', reason:pretty(g('sub')||g('reason')), sku:g('sku'), title:g('title'),
+      date:retDate(g('date')), state: st==='lost'? 'lost' : low(g('comp'))==='open'? 'open' : 'done', value:N(g('price')),
+      courier: !v? '' : /^flipkartlogistics/.test(v)? 'Ekart' : v.replace(/-(cod|prepaid|reverse)$/,'').replace(/^\w/, c=>c.toUpperCase()),
+      pay: /-cod$/.test(v)? 'COD' : /-prepaid$/.test(v)? 'Prepaid' : ''}; });
+}
+function parseMeeshoReturns(t){
+  const hi = t.findIndex(r => r.some(c => low(c)==='suborder number')); if(hi<0) throw new Error('No "Suborder Number" header found in this Meesho returns file.');
+  const h = t[hi].map(low), k = cols(t[hi], {sub:'=suborder number', type:'=type of return', reason:'=return reason', detail:'=detailed return reason', sku:'=sku',
+    title:'=product name', date:'=return created date', courier:'=courier partner', status:'=status'});
+  const state = h.includes('lost date')? 'lost' : h.includes('delivered date')? 'done' : 'open';
+  return t.slice(hi+1).filter(r => String(r[k.sub]||'').trim()).map(r => { const g = c => k[c]>=0? String(r[k[c]]||'').trim() : '';
+    const why = pretty(g('reason')), det = pretty(g('detail'));
+    return {platform:'Meesho', order:g('sub'), ret:/rto/i.test(g('type'))? 'rto' : 'cust', reason: why? why+(det && det!==why? ' · '+det : '') : '', sku:g('sku'), title:g('title'),
+      date:parseDate(g('date')), state, value:0, courier:g('courier'), pay:''}; });
+}
+function parseFlipkartReturnsXlsx(wb){ // Seller Hub "Returns" Excel: order item IDs only
+  const t = sheet(wb,'Returns'), hi = headerAt(t,'return_id'); const k = cols(t[hi], {item:'=order_item_id', type:'=return_type', reason:'=return_reason', sub:'=return_sub_reason',
+    sku:'=sku', title:'=product_title', date:'=return_requested_date', status:'=return_status'});
+  const rows = t.slice(hi+1).filter(r => String(r[k.item]||'').trim()).map(r => ({platform:'Flipkart', order:String(r[k.item]).trim(), ret:/courier/i.test(r[k.type])? 'rto' : 'cust',
+    reason:pretty(r[k.sub]||r[k.reason]), sku:String(r[k.sku]||'').trim(), title:String(r[k.title]||'').trim(), date:xlDate(r[k.date]), state:/lost/i.test(r[k.status])? 'lost' : 'done', value:0, courier:'', pay:''}));
+  if(!rows.length) throw new Error('this Flipkart returns Excel has no rows. Use Returns → Download → the CSV report (it has order IDs, value and courier).');
+  return rows;
 }
 // Amazon transaction CSVs have no SKU, so match the (cut-off) product title against SKU Mapping titles
 function byTitle(title){
@@ -793,20 +846,24 @@ function readFile(f){
     if(doc.getElementsByTagName('parsererror').length) throw new Error('This XML file could not be read.');
     return Object.assign({platform:'Amazon'}, parseAmazonXml(doc));
   });
-  if(/\.csv$/i.test(f.name) || f.type==='text/csv') return f.text().then(txt => ({platform:'Amazon', rows:toRows(txt)}));
+  if(/\.csv$/i.test(f.name) || f.type==='text/csv') return f.text().then(txt => { const rp = isReturnsCsv(txt);
+    if(rp) return {platform:'Returns', rp, rows: rp==='Flipkart'? parseFlipkartReturns(parseCSV(txt)) : parseMeeshoReturns(parseCSV(txt))};
+    return {platform:'Amazon', rows:toRows(txt)}; });
   if(!window.XLSX) return Promise.reject(new Error('The Excel reader did not load. Check your internet connection and reload the page.'));
   return f.arrayBuffer().then(buf => {
     const wb = XLSX.read(buf, {type:'array'});
     if(wb.SheetNames.includes('Purchase Cost') && wb.SheetNames.includes('SKU Mapping')) return {platform:'Costs', costs:parseCosts(wb, f.name)};
+    if(wb.SheetNames.includes('Returns') && headerAt(sheet(wb,'Returns'),'return_id')>=0) return {platform:'Returns', rp:'Flipkart', rows:parseFlipkartReturnsXlsx(wb)};
     if(wb.SheetNames.includes('Order Payments')) return Object.assign({platform:'Meesho'}, parseMeesho(wb));
     if(wb.SheetNames.includes('Orders')) return Object.assign({platform:'Flipkart'}, parseFlipkart(wb));
-    throw new Error('This is not an Amazon settlement XML or transactions CSV, a Flipkart settlement report or a Meesho payment file.');
+    throw new Error('This is not an Amazon settlement XML or transactions CSV, a Flipkart settlement or returns report, or a Meesho payment file.');
   });
 }
 function addFiles(list){
   $('err').style.display='none';
   const jobs = [...list].map(f => readFile(f).then(d => {
       if(d.platform==='Costs'){ costs = d.costs; try{ localStorage.setItem('payout.costs', JSON.stringify(costs)); }catch(e){} return; }
+      if(d.platform==='Returns'){ rets.set(f.name, d); return; }
       if(d.settlement && [...files.values()].some(x=>x.settlement===d.settlement)) throw new Error('settlement '+d.settlement+' is already loaded.');
       files.set(f.name, d); }).catch(e => { showErr(f.name+': '+e.message); }));
   Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; active=null; render(); });
@@ -835,6 +892,12 @@ function render(){
     c.querySelector('button').onclick = () => { files.delete(name); render(); };
     chips.appendChild(c);
   });
+  rets.forEach((d,name) => {
+    const c=document.createElement('span'); c.className='chip';
+    c.innerHTML = esc(name)+' <span class="muted">'+d.rp+' returns · '+d.rows.length+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
+    c.querySelector('button').onclick = () => { rets.delete(name); render(); };
+    chips.appendChild(c);
+  });
   if(costs){
     const c=document.createElement('span'); c.className='chip';
     c.innerHTML = 'Product costs: '+esc(costs.file)+' <span class="muted">'+(costs.orders? Object.keys(costs.orders).length.toLocaleString('en-IN')+' orders · ':'')+Object.keys(costs.map).length+' SKUs mapped · '+Object.keys(costs.cost).length+' costs</span> <button aria-label="Forget product costs">×</button>';
@@ -849,15 +912,17 @@ function render(){
   $('fileCount').textContent = files.size? files.size+' file'+(files.size>1?'s':'')+' loaded' : '';
   // step 1 cards: what is loaded
   document.querySelectorAll('#sources .st').forEach(el => { const p=el.dataset.src;
-    const n = p==='Costs'? 0 : [...files.values()].filter(d=>d.platform===p).length;
+    const n = p==='Costs'? 0 : p==='Returns'? rets.size : [...files.values()].filter(d=>d.platform===p).length;
     const ok = p==='Costs'? !!costs : n>0; el.classList.toggle('ok', ok);
+    if(p==='Returns'){ el.textContent = n? '✓ Added · '+n+' file'+(n>1?'s':'') : 'Optional · finds RTO and claims'; return; }
     el.textContent = p==='Costs'? (costs? '✓ Saved · '+Object.keys(costs.cost).length+' product costs' : 'Optional · add once, remembered here') : (n? '✓ Added · '+n+' file'+(n>1?'s':'') : 'Not added yet'); });
   const st = document.querySelectorAll('#steps li');
   st[0].className = files.size? 'done' : 'on'; st[1].className = st[2].className = files.size? 'on' : '';
-  document.body.classList.toggle('has-files', files.size>0);
-  $('step1').classList.toggle('compact', files.size>0);
-  $('addH').textContent = files.size? 'Your files' : 'Step 1 · Add your payment files';
+  document.body.classList.toggle('has-files', files.size+rets.size>0);
+  $('step1').classList.toggle('compact', files.size+rets.size>0);
+  $('addH').textContent = files.size+rets.size? 'Your files' : 'Step 1 · Add your payment files';
   $('shell').classList.toggle('has', have.length>0);
+  drawReturns();
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
   multi = have.length>1;
@@ -1225,6 +1290,80 @@ function rtoAlerts(R){
   if(R.flagged.length) A.push({sev:'warn', cost:R.save, title:R.flagged.length+' state'+(R.flagged.length>1?'s':'')+' with very high RTO and returns',
     why:R.flagged.slice(0,4).map(g=>g.k+' '+pct(g.rate)+' of '+g.n).join(', ')+' (your average is '+pct(R.avg)+').', todo:'See "RTO & returns by payment, state and courier" and confirm COD orders to these states before dispatch.'});
   return A;
+}
+// ---- returns reports joined with the Orders tab: real RTO and return rates, reasons, and money to claim ----
+const RANK = {open:0, done:1, lost:2};
+const guessPlat = id => /^od\d/i.test(id)? 'Flipkart' : /_\d+$/.test(id)? 'Meesho' : 'Amazon';
+const CLAIM = /damag|defect|missing|incomplete|different|received wrong|wrong product received|torn|broken|used/i;
+function returnsReport(){
+  const O = (costs && costs.orders) || {}, hasTab = Object.keys(O).length>0, byP = {};
+  rets.forEach(d => d.rows.forEach(r => { const P = byP[r.platform] || (byP[r.platform] = new Map()), key = (r.item? 'i'+r.item : low(r.order)+'|'+low(r.sku))+'|'+r.ret, old = P.get(key);
+    if(!old || RANK[r.state] > RANK[old.state]) P.set(key, r); }));
+  return Object.keys(byP).sort().map(p => {
+    const R = [...byP[p].values()], newest = Math.max(...R.map(r => +r.date||0));
+    // one result per order: RTO wins over a customer return
+    const back = {}; R.forEach(r => { const id = low(r.order); if(!back[id] || r.ret==='rto') back[id] = r; });
+    const orders = Object.entries(O).filter(([id,o]) => (o[3]||guessPlat(id))===p)
+      .map(([id,o]) => ({pay:o[0], courier:o[1], state:o[2], sku:o[4]||'', r:back[id]}));
+    const group = key => { const m = {}; orders.forEach(o => { const k = o[key]; if(!k) return; const g = m[k] || (m[k] = {k, n:0, rto:0, ret:0});
+        g.n++; if(o.r) g[o.r.ret==='rto'? 'rto':'ret']++; });
+      return Object.values(m).map(g => Object.assign(g, {rate:(g.rto+g.ret)/g.n})); };
+    const n = orders.length, rto = orders.filter(o=>o.r && o.r.ret==='rto').length, ret = orders.filter(o=>o.r && o.r.ret==='cust').length, avg = n? (rto+ret)/n : 0;
+    const byState = group('state').sort((a,b) => (b.rto+b.ret)-(a.rto+a.ret) || b.n-a.n);
+    const flagged = byState.filter(g => g.n>=5 && g.rate >= Math.max(avg*1.5, avg+0.08));
+    // products: from the returns report, with orders sold from the Orders tab when its SKU matches
+    const sold = {}; orders.forEach(o => { if(o.sku) sold[low(o.sku)] = (sold[low(o.sku)]||0)+1; });
+    const pm = {}; R.forEach(r => { const k = low(r.sku)||'(no sku)', g = pm[k] || (pm[k] = {sku:r.sku||'(no SKU)', title:r.title, rto:0, ret:0, value:0});
+      g[r.ret==='rto'? 'rto':'ret']++; g.value += r.value; });
+    const prods = Object.values(pm).map(g => Object.assign(g, {sold:sold[low(g.sku)]||0})).sort((a,b) => (b.rto+b.ret)-(a.rto+a.ret)).slice(0,10);
+    const rs = {}; R.forEach(r => { if(!r.reason) return; const k = (r.ret==='rto'?'RTO':'Customer')+'|'+r.reason; rs[k] = (rs[k]||0)+1; });
+    const reasons = Object.entries(rs).map(([k,c]) => ({type:k.split('|')[0], why:k.split('|').slice(1).join('|'), c})).sort((a,b)=>b.c-a.c);
+    const age = r => r.date && newest? Math.round((newest - r.date)/864e5) : 0;
+    const claims = [];
+    R.forEach(r => {
+      if(r.state==='lost') claims.push({r, sev:3, what:'Lost in transit', todo:'Raise a claim: the parcel never came back'});
+      else if(r.state==='open' && age(r)>=30) claims.push({r, sev:2, what:'Not back after '+age(r)+' days', todo:'Raise a ticket: ask for the parcel or compensation'});
+      else if(r.ret==='cust' && CLAIM.test(r.reason) && !/ordered/i.test(r.reason)) claims.push({r, sev:1, what:r.reason, todo: r.state==='open'? 'Open the parcel on video when it arrives; claim if it is damaged, empty or a different item' : 'Check this parcel; if it came back damaged or different, file a claim'});
+    });
+    claims.sort((a,b) => b.sev-a.sev || b.r.value-a.r.value);
+    return {p, hasTab, R, n, rto, ret, avg, matched:R.filter(r => O[low(r.order)]).length, byPay:group('pay'), byCourier:group('courier').sort((a,b)=>b.n-a.n), byState, flagged,
+      prods, reasons, claims, value:sum(R, r=>r.value), open:R.filter(r=>r.state==='open').length,
+      rtoN:R.filter(r=>r.ret==='rto').length, custN:R.filter(r=>r.ret==='cust').length, from:Math.min(...R.map(r => +r.date||Infinity)), to:newest};
+  });
+}
+function drawReturns(){
+  const card = $('retCard'); if(!rets.size){ card.style.display='none'; return; }
+  card.style.display='block';
+  const d = x => isFinite(x) && x? new Date(x).toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+  const tbl = (first, list, avg) => list.length? '<div class="tbl"><table><thead><tr><th>'+first+'</th><th>Orders</th><th>RTO</th><th>Returns</th><th>Came back</th></tr></thead><tbody>'
+      + list.map(g => '<tr><td>'+esc(g.k)+'</td><td class="num">'+g.n+'</td><td class="num">'+g.rto+'</td><td class="num">'+g.ret+'</td><td class="num '+(g.n>=5 && g.rate>=Math.max(avg*1.5,avg+0.08)?'hot':'')+'">'+pct(g.rate)+'</td></tr>').join('')
+      + '</tbody></table></div>' : '<p class="muted">Needs the Orders tab of your business sheet.</p>';
+  $('retBody').innerHTML = returnsReport().map(X => {
+    const cod = X.byPay.find(g=>g.k==='COD'), pre = X.byPay.find(g=>g.k==='Prepaid'), acts = [];
+    if(cod && pre && cod.n>=10 && cod.rate > Math.max(pre.rate*1.5, pre.rate+0.05))
+      acts.push('<b>COD comes back '+(pre.rate? (cod.rate/pre.rate).toFixed(1)+'×' : 'far')+' more than prepaid</b> ('+pct(cod.rate)+' of '+cod.n+' COD orders vs '+pct(pre.rate)+' of '+pre.n+' prepaid). Confirm COD orders by call or WhatsApp before dispatch, and offer a small prepaid discount.');
+    if(X.flagged.length) acts.push('<b>High-return states: '+X.flagged.map(g=>esc(g.k)+' '+pct(g.rate)+' of '+g.n).join(', ')+'</b> (your average '+pct(X.avg)+'). Confirm COD orders to these states before dispatch.');
+    if(X.claims.length) acts.push('<b>'+X.claims.length+' return'+(X.claims.length>1?'s':'')+' to check or claim'+(X.value? ' ('+money(sum(X.claims, c=>c.r.value))+' order value)' : '')+'</b> — listed below.');
+    return '<div class="retp"><h3 class="rph"><i style="background:'+({Flipkart:'#2874F0',Meesho:'#9F2089',Amazon:'#E47911'}[X.p]||'#3A4549')+'"></i>'+X.p+' returns · '+d(X.from)+' – '+d(X.to)+'</h3>'
+      + '<div class="kpis retk">'
+      + '<div class="kpi"><small>Returns in the report</small><b>'+X.R.length+'</b><span class="muted">'+X.rtoN+' RTO · '+X.custN+' customer</span></div>'
+      + (X.value? '<div class="kpi"><small>Order value sent back</small><b>'+money(X.value)+'</b><span class="muted">'+X.open+' still on the way back</span></div>' : '<div class="kpi"><small>Still on the way back</small><b>'+X.open+'</b><span class="muted">not received yet</span></div>')
+      + (X.hasTab && X.n? '<div class="kpi"><small>RTO rate</small><b>'+pct(X.rto/X.n)+'</b><span class="muted">of '+X.n.toLocaleString('en-IN')+' orders in your Orders tab</span></div><div class="kpi"><small>Customer return rate</small><b>'+pct(X.ret/X.n)+'</b><span class="muted">'+X.matched+' returns matched to your orders</span></div>' : '')
+      + '</div>'
+      + (acts.length? '<div class="act">'+acts.map(a=>'<p>'+a+'</p>').join('')+'</div>' : '')
+      + (X.hasTab? '<div class="rtogrid"><div><h4 class="h3">COD vs prepaid</h4>'+tbl('Payment', X.byPay, X.avg)+'</div><div><h4 class="h3">Couriers</h4>'+tbl('Courier', X.byCourier, X.avg)+'</div></div>'
+          + '<h4 class="h3" style="margin-top:14px">States</h4>'+tbl('State', X.byState.slice(0,12), X.avg)
+        : '<p class="sub">Add your business sheet (File → Download → Microsoft Excel) to get RTO rates by COD vs prepaid, courier and state.</p>')
+      + '<div class="rtogrid"><div><h4 class="h3">Products sent back most</h4><div class="tbl"><table><thead><tr><th>Product</th>'+(X.hasTab?'<th>Sold</th>':'')+'<th>RTO</th><th>Returns</th></tr></thead><tbody>'
+      + X.prods.map(g => '<tr><td>'+esc(g.sku)+'<small class="what">'+esc(String(g.title||'').slice(0,60))+'</small></td>'+(X.hasTab?'<td class="num">'+(g.sold||'–')+'</td>':'')+'<td class="num">'+g.rto+'</td><td class="num">'+g.ret+'</td></tr>').join('')+'</tbody></table></div></div>'
+      + '<div><h4 class="h3">Why they came back</h4><div class="tbl"><table><thead><tr><th>Reason</th><th>Type</th><th>Count</th></tr></thead><tbody>'
+      + X.reasons.slice(0,10).map(g => '<tr><td>'+esc(g.why)+'</td><td>'+g.type+'</td><td class="num">'+g.c+'</td></tr>').join('')
+      + (X.reasons.length? '' : '<tr><td class="muted" colspan="3">No reasons in this report.</td></tr>')+'</tbody></table></div></div></div>'
+      + (X.claims.length? '<h4 class="h3" style="margin-top:14px">Check or claim ('+X.claims.length+')</h4><div class="tbl"><table><thead><tr><th>Order</th><th>Product</th><th>Problem</th><th>What to do</th>'+(X.value?'<th>Value</th>':'')+'</tr></thead><tbody>'
+          + X.claims.slice(0,25).map(c => '<tr><td>'+esc(c.r.order)+'<small class="what">'+d(+c.r.date)+(c.r.courier? ' · '+esc(c.r.courier):'')+'</small></td><td>'+esc(c.r.sku)+'</td><td'+(c.sev>1?' class="hot"':'')+'>'+esc(c.what)+'</td><td>'+esc(c.todo)+'</td>'+(X.value?'<td class="num">'+money(c.r.value)+'</td>':'')+'</tr>').join('')
+          + '</tbody>'+(X.claims.length>25? '<tfoot><tr><td colspan="5" class="muted">+ '+(X.claims.length-25)+' more customer returns to check when they arrive</td></tr></tfoot>' : '')+'</table></div>' : '')
+      + '</div>';
+  }).join('');
 }
 // ---- unit economics: profit(price) = price × (1 − share lost) − fixed cost per order ----
 let PX = {gst:5, target:20}, PXROWS = [], PXLAST = [];

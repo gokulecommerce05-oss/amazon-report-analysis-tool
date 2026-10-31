@@ -18,6 +18,12 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 | Amazon | Seller Central → Payments → Transaction view → date range → Download | CSV |
 | Flipkart | Seller Hub → Payments → Previous payments → download the order-level settlement report | .xlsx (sheets *Orders*, *Ads*, …) |
 | Meesho | Supplier Panel → Payments → Download → payment file for the date range | .xlsx (sheets *Order Payments*, *Ads Cost*, …) |
+| Flipkart returns (optional) | Seller Hub → Returns → Download returns report | CSV (has order IDs, value, courier) |
+| Meesho returns (optional) | Supplier Panel → Returns/RTO → download In transit, Delivered and Lost | CSV, one per tab |
+
+## Returns and RTO
+
+Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.
 
 ## Profit after product cost
 
