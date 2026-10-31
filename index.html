@@ -270,6 +270,11 @@ body.has-files .pickbar h2{display:none}
 
 /* unit economics */
 .wide{grid-column:1/-1}
+table.pl td:first-child{min-width:190px} table.pl tr.plsub td{font-weight:700;border-top:1px solid var(--line)}
+table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--ink)} table.pl tr.plpct td{color:var(--muted)}
+.plset{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px 24px;align-items:start;margin-top:14px;font-size:14px}
+.plset label{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.plset input{min-height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--surface);font:inherit;color:var(--ink)}
+#plPack{width:100px;text-align:right}.plf{display:flex;gap:8px;margin:8px 0}.plf input[type=text]{flex:1;min-width:0}.plf input[type=number]{width:120px;text-align:right}
 .pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
 .pxset input,#pxTable input{width:72px;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);font:inherit;text-align:right}
 #pxTable input{width:86px}
@@ -452,6 +457,20 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <div class="pbars" id="platBars"></div>
       <div class="tbl"><table id="compareTable"></table></div>
       <p class="tip">"Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
+    </section>
+
+    <section class="card wide" id="sec-pl" aria-labelledby="plH">
+      <h2 id="plH">Profit &amp; loss</h2>
+      <p class="sub">Month by month, by payment date: what you sold, what the platforms kept, and what is left after product cost, packing and your fixed costs.</p>
+      <div class="tbl"><table id="plTable" class="pl"></table></div>
+      <p class="sub" id="plNote" style="margin-top:10px"></p>
+      <div class="plset">
+        <label>Packing cost per order <span class="muted">box, tape, label, bubble wrap</span> <input type="number" id="plPack" min="0" step="0.5" placeholder="₹"></label>
+        <div><b>Fixed monthly costs</b> <span class="muted">rent, salary, internet, software</span>
+          <div id="plFixed"></div>
+          <button type="button" class="btn ghost" id="plAdd">+ Add a monthly cost</button></div>
+      </div>
+      <p class="tip">Saved only in this browser. Fixed costs are split by the days of each month your files cover. Product cost counts only units the buyer kept (RTO and returns go back to stock). TCS/TDS is shown as a cost here because it was not paid to you, but you get it back when you file.</p>
     </section>
 
     <div id="detail" class="dgrid">
@@ -951,6 +970,7 @@ function render(){
     .reduce((a,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => a[k]=(a[k]||0)+(x[k]||0)); return a; }, {});
   const ps = active==='All' || !active? have : [active];
   KCMP = {cur:sumFor(ps, f0, t0), prev:sumFor(ps, new Date(f0-span), new Date(f0-864e5)), days:Math.round(span/864e5)};
+  drawPL(ps, view, f0, t0);
 
   // platform comparison and tabs
   $('compareBox').style.display = active==='All'? 'block':'none';
@@ -958,8 +978,8 @@ function render(){
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['step1','My files','Add or remove files','file']]
-    : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
+    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]
+    : [['sec-home','Home','The quick summary','home'],['sec-pl','Profit & loss','Month by month','money'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
        ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
        ['sec-returns','Returns','Every order sent back','back'],['step1','My files','Add or remove files','file']]);
@@ -1469,6 +1489,78 @@ function drawRecovery(data){
     + '</tbody></table></div><div class="act"><p><b>File these claims:</b> Flipkart → SPF claim, Meesho → Returns/RTO claim, Amazon → SAFE-T claim. Claims need the unboxing video of the returned parcel, so record it every time a return arrives.</p></div>';
   $('recBody').innerHTML = h;
 }
+// ---- profit & loss: month by month, after product cost, packaging and fixed monthly costs ----
+let BIZ = {pack:0, fixed:[]};
+try{ Object.assign(BIZ, JSON.parse(localStorage.getItem('payout.biz')||'{}')); }catch(e){}
+const saveBiz = () => { try{ localStorage.setItem('payout.biz', JSON.stringify(BIZ)); }catch(e){} };
+// one platform's lines (or Amazon CSV rows) → P&L parts; deductions are negative, and they add up to what was paid
+function plParts(p, d){
+  const o = {orders:0, sale:0, discount:0, refund:0, fees:0, shipping:0, ads:0, other:0, taxes:0, payout:0, cogs:0};
+  if(p==='Amazon' && !d.lines.length){
+    const R = d.rows, ord = R.filter(r=>r.type==='Order Payment');
+    o.orders = ord.length; o.sale = sum(ord, r=>r.charges); o.discount = sum(ord, r=>r.promo); o.fees = sum(ord, r=>r.fees);
+    o.refund = sum(R.filter(r=>r.group==='Refunds'), r=>r.total); o.shipping = sum(R.filter(r=>r.group==='Easy Ship'), r=>r.total);
+    o.ads = sum(R.filter(r=>r.group==='Advertising'), r=>r.total); o.payout = sum(R, r=>r.total); o.cogs = amazonCogs(R).cogs;
+  } else {
+    const c = compute(p, d.lines, d.extras), t = c.t;
+    o.orders = c.sold.length; o.sale = t.sale; o.discount = t.discount; o.refund = t.refund; o.fees = t.fees; o.shipping = t.shipping + t.returnShip;
+    o.taxes = t.taxes; o.ads = -c.ads; o.payout = c.payout; o.cogs = c.cogs;
+  }
+  o.other = o.payout - (o.sale+o.discount+o.refund+o.fees+o.shipping+o.ads+o.taxes); // fines, subscriptions, rounding
+  return o;
+}
+function drawPL(ps, view, f0, t0){
+  const months = {}; // 'YYYY-MM' → per-platform data
+  const key = dt => dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  ps.forEach(p => { const v = view[p]; if(!v) return;
+    const put = (kind, x) => { const m = months[key(x.date)] || (months[key(x.date)] = {}); const b = m[p] || (m[p] = {rows:[], lines:[], extras:[]}); b[kind].push(x); };
+    v.rows.forEach(x => put('rows', x)); v.lines.forEach(x => put('lines', x)); v.extras.forEach(x => put('extras', x)); });
+  const keys = Object.keys(months).sort();
+  const allPlat = ps.length>1 || !multi;
+  const add = (a,b) => { Object.keys(b).forEach(k => a[k] = (a[k]||0) + b[k]); return a; };
+  const fixedM = allPlat? sum(BIZ.fixed, f => N(f.amt)) : 0;
+  const cols = keys.map(k => { const [y,m] = k.split('-').map(Number), dim = new Date(y, m, 0).getDate();
+    const a = new Date(Math.max(+new Date(y,m-1,1), +f0)), b = new Date(Math.min(+new Date(y,m-1,dim), +t0)), days = Math.max(0, Math.round((b-a)/864e5)+1);
+    const o = Object.keys(months[k]).reduce((s,p) => add(s, plParts(p, months[k][p])), {});
+    o.label = new Date(y,m-1,1).toLocaleDateString('en-IN',{month:'short', year:'numeric'}) + (days<dim? ' ('+days+' days)' : '');
+    o.pack = -o.orders*N(BIZ.pack); o.fixed = -fixedM*days/dim; return o; });
+  const tot = cols.reduce((s,o) => add(s, Object.assign({}, o, {label:0})), {}); tot.label = 'Total';
+  [...cols, tot].forEach(o => { o.net = o.sale+o.discount+o.refund; o.gross = o.payout - o.cogs + o.pack; o.profit = o.gross + o.fixed; });
+  const C = cols.length>1? [...cols, tot] : cols;
+  const line = (lab, f, cls, hint) => '<tr'+(cls?' class="'+cls+'"':'')+'><td>'+lab+(hint? '<small class="what">'+hint+'</small>':'')+'</td>'+C.map(o => { const v = f(o);
+    return '<td class="num'+(cls==='pltot' && v<0? ' hot':'')+'">'+(v==null? '–' : money(Math.round(v)||0))+'</td>'; }).join('')+'</tr>';
+  const pctRow = (lab, f) => '<tr class="plpct"><td>'+lab+'</td>'+C.map(o => '<td class="num">'+(o.net? pct(f(o)/o.net) : '–')+'</td>').join('')+'</tr>';
+  $('plTable').innerHTML = keys.length? '<thead><tr><th></th>'+C.map(o => '<th>'+o.label+'</th>').join('')+'</tr></thead><tbody>'
+    + '<tr class="plpct"><td>Orders paid</td>'+C.map(o => '<td class="num">'+o.orders.toLocaleString('en-IN')+'</td>').join('')+'</tr>'
+    + line('Order value', o => o.sale)
+    + line('Discounts you paid', o => o.discount)
+    + line('Refunds to buyers', o => o.refund)
+    + line('Net sales', o => o.net, 'plsub')
+    + line('Platform fees', o => o.fees, '', 'commission, fixed and collection fees, GST on fees')
+    + line('Shipping', o => o.shipping, '', 'forward and return shipping')
+    + line('Ads', o => o.ads)
+    + line('TCS / TDS held', o => o.taxes, '', 'you can claim this back in GST and income tax')
+    + line('Other charges', o => o.other, '', 'fines, services, adjustments')
+    + line('Paid to you', o => o.payout, 'plsub')
+    + line('Product cost', o => costs? -o.cogs : null, '', costs? 'units the buyer kept' : 'add your business sheet')
+    + line('Packing', o => o.pack, '', N(BIZ.pack)? money(N(BIZ.pack))+' × orders shipped' : 'set your packing cost per order below')
+    + line('Gross profit', o => o.gross, 'plsub')
+    + (allPlat? line('Fixed monthly costs', o => o.fixed, '', BIZ.fixed.length? BIZ.fixed.map(f=>esc(f.name||'Cost')).join(', ') : 'rent, salary, tools: add them below') : '')
+    + line(allPlat? 'Net profit' : 'Profit before fixed costs', o => allPlat? o.profit : o.gross, 'pltot')
+    + pctRow('Net margin (of net sales)', o => allPlat? o.profit : o.gross)
+    + '</tbody>' : '<tbody><tr><td class="muted">No payments in these dates.</td></tr></tbody>';
+  const T = cols.length? tot : null;
+  $('plNote').innerHTML = !T? '' : (allPlat? '' : 'Showing '+esc(ps[0])+' only; fixed monthly costs are in the All platforms view. ')
+    + (T.taxes<0? 'Add back <b>'+money(-T.taxes)+'</b> TCS/TDS when you file GST and income tax: it is your money held by the platforms. ' : '')
+    + (!costs? 'Add your business sheet to subtract product cost. ' : '');
+  // settings
+  $('plPack').value = BIZ.pack || '';
+  $('plFixed').innerHTML = BIZ.fixed.map((f,i) => '<div class="plf"><input type="text" data-i="'+i+'" data-k="name" value="'+esc(f.name||'')+'" placeholder="e.g. Rent" aria-label="Cost name"><input type="number" min="0" step="1" data-i="'+i+'" data-k="amt" value="'+(f.amt||'')+'" placeholder="₹ / month" aria-label="Amount per month"><button type="button" class="btn ghost" data-del="'+i+'" aria-label="Remove">×</button></div>').join('');
+  $('plFixed').querySelectorAll('input').forEach(inp => inp.onchange = () => { BIZ.fixed[+inp.dataset.i][inp.dataset.k] = inp.dataset.k==='amt'? N(inp.value) : inp.value.trim(); saveBiz(); setTimeout(render, 0); });
+  $('plFixed').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { BIZ.fixed.splice(+b.dataset.del, 1); saveBiz(); render(); });
+}
+$('plPack').addEventListener('change', e => { BIZ.pack = Math.max(0, N(e.target.value)); saveBiz(); setTimeout(render, 0); });
+$('plAdd').addEventListener('click', () => { BIZ.fixed.push({name:'', amt:0}); saveBiz(); render(); setTimeout(() => { const i = $('plFixed').querySelectorAll('input[data-k="name"]'); if(i.length) i[i.length-1].focus(); }, 0); });
 // ---- unit economics: profit(price) = price × (1 − share lost) − fixed cost per order ----
 let PX = {gst:5, target:20}, PXROWS = [], PXLAST = [];
 try{ Object.assign(PX, JSON.parse(localStorage.getItem('payout.pricing')||'{}')); }catch(e){}
