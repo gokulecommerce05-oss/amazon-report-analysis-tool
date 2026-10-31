@@ -462,20 +462,6 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <p class="tip">"Kept per ₹100" is what reached your bank from every ₹100 of orders. Higher is better.</p>
     </section>
 
-    <section class="card wide" id="sec-pl" aria-labelledby="plH">
-      <h2 id="plH">Profit &amp; loss</h2>
-      <p class="sub">Month by month, by payment date: what you sold, what the platforms kept, and what is left after product cost, packing and your fixed costs.</p>
-      <div class="tbl"><table id="plTable" class="pl"></table></div>
-      <p class="sub" id="plNote" style="margin-top:10px"></p>
-      <div class="plset">
-        <label>Packing cost per order <span class="muted">box, tape, label, bubble wrap</span> <input type="number" id="plPack" min="0" step="0.5" placeholder="₹"></label>
-        <div><b>Fixed monthly costs</b> <span class="muted">rent, salary, internet, software</span>
-          <div id="plFixed"></div>
-          <button type="button" class="btn ghost" id="plAdd">+ Add a monthly cost</button></div>
-      </div>
-      <p class="tip">Saved only in this browser. Fixed costs are split by the days of each month your files cover. Product cost counts only units the buyer kept (RTO and returns go back to stock). TCS/TDS is shown as a cost here because it was not paid to you, but you get it back when you file.</p>
-    </section>
-
     <div id="detail" class="dgrid">
       <section class="card line" id="sec-weeks" aria-labelledby="wkH">
         <h2 id="wkH">Payout by week</h2>
@@ -558,6 +544,21 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <div id="recBody"></div>
     <p class="tip">"Usual" shipping = the middle charge for single-unit orders of the same product to the same state (needs at least 4 such orders, so state and distance do not cause false alarms). Add a "Packed weight (g)" column to the Purchase Cost tab to compare it with the weight Flipkart measures.</p>
   </section>
+
+  <section class="card" id="sec-pl" style="display:none" aria-labelledby="plH">
+    <h2 id="plH">Profit &amp; loss</h2>
+    <p class="sub">Month by month, by payment date: what you sold, what the platforms kept, and what is left after product cost, packing and your fixed costs.</p>
+    <div class="tbl"><table id="plTable" class="pl"></table></div>
+    <p class="sub" id="plNote" style="margin-top:10px"></p>
+    <div class="plset">
+      <label>Packing cost per order <span class="muted">box, tape, label, bubble wrap</span> <input type="number" id="plPack" min="0" step="0.5" placeholder="₹"></label>
+      <div><b>Fixed monthly costs</b> <span class="muted">rent, salary, internet, software</span>
+        <div id="plFixed"></div>
+        <button type="button" class="btn ghost" id="plAdd">+ Add a monthly cost</button></div>
+    </div>
+    <p class="tip">Saved only in this browser. Fixed costs are split by the days of each month your files cover. Product cost counts only units the buyer kept (RTO and returns go back to stock). TCS/TDS is shown as a cost here because it was not paid to you, but you get it back when you file.</p>
+  </section>
+
 </main>
 </div>
 
@@ -963,6 +964,7 @@ function render(){
   $('addH').textContent = files.size+rets.size? 'Your files' : 'Step 1 · Add your payment files';
   $('shell').classList.toggle('has', have.length>0);
   drawReturns(); drawRecovery(data);
+  $('sec-pl').style.display = have.length? 'block' : 'none';
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
   multi = have.length>1;
@@ -988,11 +990,11 @@ function render(){
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['sec-pl','Profit & loss','Month by month','money'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['step1','My files','Add or remove files','file']]
-    : [['sec-home','Home','The quick summary','home'],['sec-pl','Profit & loss','Month by month','money'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
+    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]
+    : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
        ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
-       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['step1','My files','Add or remove files','file']]);
+       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]);
   if(multi){
     const S = have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
     const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0,profit:0});
