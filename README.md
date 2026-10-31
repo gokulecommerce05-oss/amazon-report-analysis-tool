@@ -16,9 +16,9 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 |---|---|---|
 | Amazon (best) | Seller Central → Payments → All statements → Download XML for each settlement | XML (settlement report, has SKUs) |
 | Amazon | Seller Central → Payments → Transaction view → date range → Download | CSV |
-| Flipkart | Seller Hub → Payments → Previous payments → download the order-level settlement report | .xlsx (sheets *Orders*, *Ads*, …) |
+| Flipkart | Seller Hub → Payments → Download Invoice / Reports → Request New Report → Payment Reports → Settled Transactions → Request Report (One Time, your dates) → wait until Generated → Download | .xlsx (sheets *Orders*, *Ads*, …) |
 | Meesho | Supplier Panel → Payments → Download → payment file for the date range | .xlsx (sheets *Order Payments*, *Ads Cost*, …) |
-| Flipkart returns (optional) | Seller Hub → Returns → Download returns report | CSV (has order IDs, value, courier) |
+| Flipkart returns (optional) | Seller Hub → Orders → Returns → All Returns → Returns approved in: Last 90 days → Request Download → Previous Downloads → Download | CSV (has order IDs, value, courier) |
 | Meesho returns (optional) | Supplier Panel → Returns/RTO → download In transit, Delivered and Lost | CSV, one per tab |
 
 ## Returns and RTO

@@ -97,7 +97,10 @@ body.has-files .top .addbtn{display:inline-flex} body.has-files .lock{margin-lef
 .src .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800}
 .src .hd i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
 .src .fmt{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
-.src ol{margin:0;padding:0;list-style:none;display:grid;gap:3px;font-size:14px}
+.src .short{margin:0;font-size:14px;line-height:1.45}
+.src details.how summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--peacock);min-height:32px;display:flex;align-items:center}
+.src details.how ol{margin-top:4px}
+.src ol{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px;line-height:1.4}
 .src ol li{display:flex;gap:8px;align-items:baseline}
 .src ol li span{font-size:12px;font-weight:800;color:var(--peacock);min-width:14px}
 .src .st{margin-top:auto;font-size:13px;font-weight:700;padding:5px 10px;border-radius:8px;background:var(--soft);color:var(--muted)}
@@ -401,19 +404,24 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     </label>
     <div class="sources" id="sources">
       <div class="src"><div class="hd"><span><i style="background:#E47911"></i>Amazon</span><span class="fmt">XML / CSV</span></div>
-        <ol><li><span>1</span>Seller Central → Payments</li><li><span>2</span>All statements → Download XML (best: has SKUs)</li><li><span>3</span>or Transaction view → Download CSV</li></ol>
+        <p class="short">Payments → All Statements → <b>Download XML</b> for each statement of the month</p>
+        <details class="how"><summary>Step-by-step</summary><ol><li><span>1</span><div>Open <b>Seller Central</b> and click <b>Payments</b> (top menu).</div></li><li><span>2</span><div>Open the <b>All Statements</b> tab: one row per payment period (about a week).</div></li><li><span>3</span><div>Click <b>Download XML</b> on every row of the month (4–5 files). If a row says Request Report, click it and come back in a few minutes.</div></li><li><span>4</span><div>No XML? Use <b>Transaction View</b> → Custom date range (e.g. Oct 1 – Oct 31) → <b>Download</b> CSV.</div></li></ol></details>
         <div class="st" data-src="Amazon">Not added yet</div></div>
       <div class="src"><div class="hd"><span><i style="background:#2874F0"></i>Flipkart</span><span class="fmt">XLSX</span></div>
-        <ol><li><span>1</span>Seller Hub</li><li><span>2</span>Payments</li><li><span>3</span>Previous payments</li><li><span>4</span>Order-level settlement report</li></ol>
+        <p class="short">Payments → Download Invoice / Reports → <b>Settled Transactions</b> report for the month</p>
+        <details class="how"><summary>Step-by-step</summary><ol><li><span>1</span><div>Open <b>Seller Hub</b> and click <b>Payments</b> in the left menu.</div></li><li><span>2</span><div>Click <b>Download Invoice / Reports</b> (top right). This opens the Reports page.</div></li><li><span>3</span><div>Click <b>Request New Report</b>, then choose <b>Payment Reports</b>.</div></li><li><span>4</span><div>Under <b>Settled Transactions</b>, click <b>Request Report</b>.</div></li><li><span>5</span><div>Keep <b>One Time Request</b> selected and set the date range, e.g. Sep 01 – Sep 30.</div></li><li><span>6</span><div>Click <b>Submit</b>. You will see “Report is requested successfully”.</div></li><li><span>7</span><div>Click the <b>Requested</b> box and filter by <b>Payment</b>. Your request shows as In Progress.</div></li><li><span>8</span><div>Wait 1–3 minutes until it says <b>Generated</b>. Click another filter and back on Payment to refresh.</div></li><li><span>9</span><div>Click <b>Download</b> on the row “Settled Transactions, Sep 1 To Sep 30”.</div></li></ol></details>
         <div class="st" data-src="Flipkart">Not added yet</div></div>
       <div class="src"><div class="hd"><span><i style="background:#9F2089"></i>Meesho</span><span class="fmt">XLSX</span></div>
-        <ol><li><span>1</span>Supplier Panel</li><li><span>2</span>Payments</li><li><span>3</span>Download</li><li><span>4</span>Payment file for your dates</li></ol>
+        <p class="short">Payments → <b>Download</b> → payment file for your dates</p>
+        <details class="how"><summary>Step-by-step</summary><ol><li><span>1</span><div>Open the <b>Supplier Panel</b> and click <b>Payments</b>.</div></li><li><span>2</span><div>Click <b>Download</b> (top right).</div></li><li><span>3</span><div>Choose the <b>payment file</b> (previous payments) and your date range, e.g. the full month.</div></li><li><span>4</span><div>Download the Excel file. The right one has a sheet called <b>Order Payments</b>.</div></li></ol></details>
         <div class="st" data-src="Meesho">Not added yet</div></div>
       <div class="src"><div class="hd"><span><i style="background:#C0392B"></i>Returns reports</span><span class="fmt">CSV</span></div>
-        <ol><li><span>1</span>Flipkart: Seller Hub → Returns → Download (CSV)</li><li><span>2</span>Meesho: Supplier Panel → Returns/RTO</li><li><span>3</span>Download In transit, Delivered and Lost</li></ol>
+        <p class="short">Flipkart: Orders → Returns → All Returns → <b>Request Download</b> · Meesho: Returns/RTO → In transit, Delivered, Lost</p>
+        <details class="how"><summary>Step-by-step</summary><ol><li><span>1</span><div><b>Flipkart:</b> in Seller Hub, click <b>Orders</b> in the left menu, then <b>Returns</b>.</div></li><li><span>2</span><div>Open the <b>All Returns</b> tab.</div></li><li><span>3</span><div>Click the <b>Returns approved in</b> filter and pick a range. <b>Last 90 days</b> is the widest it allows.</div></li><li><span>4</span><div>Click <b>Request Download</b>.</div></li><li><span>5</span><div>Click <b>Previous Downloads</b>. When it says <b>Ready to download</b> (a few seconds), click <b>Download</b>. You get a CSV of every RTO and customer return, with order IDs.</div></li><li><span>6</span><div><b>Meesho:</b> Supplier Panel → <b>Returns/RTO</b>. Open the <b>In Transit</b>, <b>Delivered</b> and <b>Lost</b> tabs and click <b>Download</b> on each (custom date range): 3 files.</div></li><li><span>7</span><div>Add all of them together with your business sheet.</div></li></ol></details>
         <div class="st" data-src="Returns">Optional · finds RTO and claims</div></div>
       <div class="src"><div class="hd"><span><i style="background:#3A4549"></i>Profit sheet</span><span class="fmt">XLSX</span></div>
-        <ol><li><span>1</span>Open your business Google Sheet</li><li><span>2</span>File → Download</li><li><span>3</span>Microsoft Excel</li><li><span>4</span>Needs SKU Mapping + Purchase Cost tabs</li></ol>
+        <p class="short">Your business Google Sheet → File → Download → <b>Microsoft Excel</b></p>
+        <details class="how"><summary>Step-by-step</summary><ol><li><span>1</span><div>Open your business <b>Google Sheet</b>.</div></li><li><span>2</span><div>Click <b>File</b> → <b>Download</b> → <b>Microsoft Excel (.xlsx)</b>.</div></li><li><span>3</span><div>It needs the <b>SKU Mapping</b> and <b>Purchase Cost</b> tabs; the <b>Orders</b> tab adds state, COD and courier.</div></li><li><span>4</span><div>Add it once: it is remembered in this browser. Add it again after you change costs.</div></li></ol></details>
         <div class="st" data-src="Costs">Optional · add once, remembered here</div></div>
     </div>
     <div class="err" id="err"></div>
