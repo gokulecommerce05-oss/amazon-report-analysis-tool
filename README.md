@@ -27,7 +27,7 @@ Add the Flipkart and Meesho returns reports together with your business sheet. T
 
 ## Ask a question
 
-Right under the summary there is an **Ask a question about your files** box (also the **Assistant** button, bottom right). Type things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
+Right under the summary there is an **Ask a question about your files** box, and a round **robot button** (bottom right) opens the chat window, where you can also ask by voice with the 🎤 button (uses your browser's speech-to-text). Type things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
 
 ## Profit & loss
 
