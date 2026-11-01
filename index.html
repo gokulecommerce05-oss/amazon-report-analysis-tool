@@ -585,18 +585,6 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         <p class="tip">Fixed cost per order = platform fees, shipping and product cost, which stay about the same if you change the price. "Lost per ₹100" = returns, discounts, TCS/TDS and the GST you owe, which grow with the price. Break-even and target prices assume those stay the same, and sales volume is unchanged when you try a new price. Profit here subtracts GST on sales, so it is lower than "Profit after product cost" elsewhere.</p>
       </section>
 
-      <section class="card wide" id="sec-rto" aria-labelledby="rtoH">
-        <h2 id="rtoH">RTO &amp; returns by payment, state and courier</h2>
-        <p class="sub" id="rtoNote"></p>
-        <div class="rtogrid">
-          <div><h3 class="h3">COD vs prepaid</h3><div class="tbl"><table id="rtoPay"></table></div></div>
-          <div><h3 class="h3">Couriers</h3><div class="tbl"><table id="rtoCourier"></table></div></div>
-        </div>
-        <h3 class="h3" style="margin-top:16px">States</h3>
-        <div class="tbl"><table id="rtoState"></table></div>
-        <div id="rtoAct"></div>
-        <p class="tip">Uses the Orders tab of your business sheet (filled by the label tool) to find each order's payment type, courier and state, matched by order ID. "Charges lost" = shipping, return shipping and platform fees on orders that came back; your own packaging and handling are extra. A state is flagged when it has at least 5 orders and comes back much more often than your average.</p>
-      </section>
 
       <section class="card" id="sec-price" aria-labelledby="bandH">
         <h2 id="bandH">Orders by price band</h2>
@@ -645,13 +633,6 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <p class="tip">Saved only in this browser. Fixed costs are split by the days of each month your files cover. Product cost counts only units the buyer kept (RTO and returns go back to stock). TCS/TDS is shown as a cost here because it was not paid to you, but you get it back when you file.</p>
   </section>
 
-  <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
-    <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
-    <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
-    <div id="retBody"></div>
-    <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
-  </section>
-
   <section class="card" id="salesCard" aria-labelledby="slH" style="display:none">
     <h2 id="slH">Flipkart sales report: what customers ordered</h2>
     <p class="sub">From the Earn More report, by order date: units ordered, cancelled, returned and finally sold, per product and per day.</p>
@@ -666,6 +647,28 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
     <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
   </section>
+
+  <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
+    <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
+    <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
+    <div id="retBody"></div>
+    <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
+  </section>
+
+  <section class="card" id="sec-rto" style="display:none" aria-labelledby="rtoH">
+    <h2 id="rtoH">RTO &amp; returns by payment, state and courier</h2>
+    <p class="sub" id="rtoNote"></p>
+    <div class="rtogrid">
+      <div><h3 class="h3">COD vs prepaid</h3><div class="tbl"><table id="rtoPay"></table></div></div>
+      <div><h3 class="h3">Couriers</h3><div class="tbl"><table id="rtoCourier"></table></div></div>
+    </div>
+    <h3 class="h3" style="margin-top:16px">States</h3>
+    <div class="tbl"><table id="rtoState"></table></div>
+    <div id="rtoAct"></div>
+    <p class="tip">Uses the Orders tab of your business sheet (filled by the label tool) to find each order's payment type, courier and state, matched by order ID. "Charges lost" = shipping, return shipping and platform fees on orders that came back; your own packaging and handling are extra. A state is flagged when it has at least 5 orders and comes back much more often than your average.</p>
+  </section>
+
+
 
 </main>
 </div>
@@ -1090,6 +1093,7 @@ function render(){
   $('addH').textContent = files.size+rets.size+sales.size? 'Your files' : 'Step 1 · Add your payment files';
   $('shell').classList.toggle('has', have.length>0);
   drawSales(); drawReturns(); drawRecovery(data);
+  placeFiles(files.size>0); if(!have.length) $('sec-rto').style.display='none';
   $('sec-pl').style.display = have.length? 'block' : 'none';
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
@@ -1113,15 +1117,15 @@ function render(){
 
   // platform comparison and tabs
   $('compareBox').style.display = active==='All'? 'block':'none';
-  $('detail').style.display = active==='All'? 'none':'grid';
+  $('detail').style.display = active==='All'? 'none':'grid'; $('sec-rto').style.display = active==='All'? 'none':'block';
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),['step1','My files','Add or remove files','file']]
+    ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),...(active==='All'? [] : [['sec-rto','COD vs prepaid','RTO by state & courier','pin']]),['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
-       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],['sec-allprod','All products','Sort, filter, search','list'],
+       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-products','My products','Best and worst','box'],['sec-allprod','All products','Sort, filter, search','list'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
-       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),['step1','My files','Add or remove files','file']]);
+       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),...(active==='All'? [] : [['sec-rto','COD vs prepaid','RTO by state & courier','pin']]),['step1','My files','Add or remove files','file']]);
   if(multi){
     const S = have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
     const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0,profit:0});
@@ -2118,6 +2122,12 @@ function retIndex(platform){
     X.R.forEach(r => { const k = low(r.order); if(!m.has(k) || r.ret==='rto') m.set(k, {reason:r.reason, claim:''}); });
     X.claims.forEach(c => { const k = low(c.r.order), e = m.get(k) || {}; e.claim = c.sev>=2 || /never arrived|damaged, used/i.test(c.what)? 'File claim' : 'Check on arrival'; m.set(k, e); }); });
   return m;
+}
+// with payment files loaded the platform tabs and the summary come first; "Your files" moves below the summary
+function placeFiles(below){
+  const st = $('step1'), rep = $('report'), ask = $('sec-ask');
+  if(below){ if(st.parentNode!==rep) rep.insertBefore(st, ask); }
+  else if(st.parentNode===rep) rep.parentNode.insertBefore(st, rep);
 }
 // ---- every returned / refunded order: filter, search, sort, frozen header + product column + totals ----
 let RTL = {kind:'generic', rows:[], hasOT:false}, RTV = {show:'all', q:'', sort:'payout', dir:1};
