@@ -21,6 +21,10 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 | Flipkart returns (optional) | Seller Hub → Orders → Returns → All Returns → Returns approved in: Last 90 days → Request Download → Previous Downloads → Download | CSV (has order IDs, value, courier) |
 | Meesho returns (optional) | Supplier Panel → ☰ → Orders → Return/RTO Orders → Return Tracking → In transit / Delivered / Lost tab → Return Created: custom dates → Export Data → Exported Files → Download | CSV, one per tab |
 
+## Flipkart sales report (Earn More)
+
+Add Flipkart's **Earn More** sales report (Excel) to see what customers ordered by order date: units, order value, cancelled, returned and final sales, per product and per day. The card shows a manager's summary (money lost to cancels and returns, hero product, products to fix first, best and weakest weekday, sales trend, brand and category split), a daily chart, and a product table with an Action for each product. With the business sheet loaded it also shows final sales after product cost.
+
 ## Returns and RTO
 
 Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.

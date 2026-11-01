@@ -283,7 +283,7 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .pxbar .seg button{border:0;background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;padding:0 12px;min-height:38px;cursor:pointer}
 .pxbar .seg button+button{border-left:1px solid var(--line)} .pxbar .seg button[aria-pressed="true"]{background:var(--peacock);color:#fff}
 .pxbar .pxfew{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
-#pxQ,#prQ,#rtQ{min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;flex:1 1 200px;max-width:320px}
+#pxQ,#prQ,#rtQ,#slQ{min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;flex:1 1 200px;max-width:320px}
 .pxwrap{max-height:min(72vh,720px);overflow:auto}
 .pxt thead th{position:sticky;top:0;z-index:2}
 .pxt th .pxsort{all:unset;cursor:pointer;display:inline-block;padding:2px 0;white-space:nowrap} .pxt th .pxsort:focus-visible{outline:2px solid var(--peacock);outline-offset:2px}
@@ -297,7 +297,12 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .pxt tfoot td{position:sticky;bottom:0;z-index:1;background:var(--soft);font-weight:700;box-shadow:inset 0 1px 0 var(--line)} .pxt tfoot td.pxname{z-index:2}
 .prt td.pxname{max-width:210px;min-width:160px} .prt th,.prt td{padding-left:8px;padding-right:8px} .ins{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 4px;font-size:14px;color:var(--ink)} .ins:empty{display:none} .ins span{position:relative;padding-left:14px} .ins span::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--peacock)}
 .cutx{color:var(--kumkum)} td.wrap{white-space:normal;min-width:150px;max-width:190px} .pxt td.num small.what{white-space:nowrap}
-.pxt td:not(.num){text-align:left} .pxt th:not(.numh){text-align:left} .pxt th.numh{text-align:right} td.act{font-size:13px;font-weight:600;white-space:normal;min-width:140px;max-width:170px;line-height:1.35} td.act.bad{color:var(--kumkum)} td.act.warn{color:var(--turmeric)} td.act.ok{color:var(--leaf)}
+.pxt td:not(.num){text-align:left} .pxt th:not(.numh){text-align:left} .pxt th.numh{text-align:right} td.tact{font-size:13px;font-weight:600;white-space:normal;min-width:140px;max-width:170px;line-height:1.35} td.tact.bad{color:var(--kumkum)} td.tact.warn{color:var(--turmeric)} td.tact.ok{color:var(--leaf)}
+.slbars{display:flex;align-items:flex-end;gap:3px;height:150px;margin:16px 0 4px;padding:0 2px;border-bottom:1px solid var(--line)}
+.slb{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}
+.slv{width:100%;background:var(--peacock);border-radius:4px 4px 0 0;position:relative;overflow:hidden;min-height:2px} .slv i{position:absolute;left:0;right:0;top:0;background:var(--kumkum);opacity:.85}
+.slb small{font-size:10.5px;color:var(--muted);position:absolute;bottom:-18px} .slb small.we{font-weight:800;color:var(--ink)}
+.slleg{display:flex;flex-wrap:wrap;gap:6px 16px;margin:24px 0 6px;font-size:13px} .slleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px} .slleg i.ok{background:var(--peacock)} .slleg i.cx{background:var(--kumkum)}
 .rtotag{color:var(--turmeric);font-weight:800} .seeall{font-weight:700;color:var(--peacock);text-decoration:none} .seeall:hover{text-decoration:underline}
 @media (max-width:760px){ .pxt td.pxname{min-width:130px;max-width:150px} .pxt td.pxname b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical} .pxwrap{max-height:70vh} }
 .pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
@@ -479,6 +484,21 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <div class="files" id="files"></div>
   </section>
 
+  <section class="card" id="salesCard" aria-labelledby="slH" style="display:none">
+    <h2 id="slH">Flipkart sales report: what customers ordered</h2>
+    <p class="sub">From the Earn More report, by order date: units ordered, cancelled, returned and finally sold, per product and per day.</p>
+    <div class="kpis retk" id="slKpis"></div>
+    <div class="ins" id="slIns"></div>
+    <div id="slChart"></div>
+    <div class="pxbar">
+      <div class="seg" role="group" aria-label="Show products" id="slSeg"></div>
+      <input type="search" id="slQ" placeholder="Search product, SKU or brand" aria-label="Search product, SKU or brand">
+      <span class="muted" id="slCount"></span>
+    </div>
+    <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
+    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
+  </section>
+
   <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
     <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
     <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
@@ -657,6 +677,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 (function(){
 const files = new Map(); // name -> {platform, rows} (Amazon) or {platform, lines, extras} (Flipkart, Meesho)
 const rets = new Map();  // name -> {platform:'Returns', rp:'Flipkart'|'Meesho', rows} returns reports
+const sales = new Map(); // name -> {platform:'Sales', rows} Flipkart Earn More sales reports
 let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1}, active = null;
 const PLATFORMS = ['Amazon','Flipkart','Meesho'];
 const $ = id => document.getElementById(id);
@@ -985,6 +1006,7 @@ function readFile(f){
   return f.arrayBuffer().then(buf => {
     const wb = XLSX.read(buf, {type:'array'});
     if(wb.SheetNames.includes('Purchase Cost') && wb.SheetNames.includes('SKU Mapping')) return {platform:'Costs', costs:parseCosts(wb, f.name)};
+    if(wb.SheetNames.some(n => { const t = sheet(wb,n); return t && headerAt(t,'gross units')>=0 && headerAt(t,'final sale units')>=0; })) return {platform:'Sales', rows:parseEarnMore(wb)};
     if(wb.SheetNames.includes('Returns') && headerAt(sheet(wb,'Returns'),'return_id')>=0) return {platform:'Returns', rp:'Flipkart', rows:parseFlipkartReturnsXlsx(wb)};
     if(wb.SheetNames.includes('Order Payments')) return Object.assign({platform:'Meesho'}, parseMeesho(wb));
     if(wb.SheetNames.includes('Orders')) return Object.assign({platform:'Flipkart'}, parseFlipkart(wb));
@@ -996,6 +1018,7 @@ function addFiles(list){
   const jobs = [...list].map(f => readFile(f).then(d => {
       if(d.platform==='Costs'){ costs = d.costs; try{ localStorage.setItem('payout.costs', JSON.stringify(costs)); }catch(e){} return; }
       if(d.platform==='Returns'){ rets.set(f.name, d); return; }
+      if(d.platform==='Sales'){ sales.set(f.name, d); return; }
       if(d.settlement && [...files.values()].some(x=>x.settlement===d.settlement)) throw new Error('settlement '+d.settlement+' is already loaded.');
       files.set(f.name, d); }).catch(e => { showErr(f.name+': '+e.message); }));
   Promise.all(jobs).then(() => { dateFrom=null; dateTo=null; active=null; render(); });
@@ -1024,6 +1047,12 @@ function render(){
     c.querySelector('button').onclick = () => { files.delete(name); render(); };
     chips.appendChild(c);
   });
+  sales.forEach((d,name) => {
+    const c=document.createElement('span'); c.className='chip';
+    c.innerHTML = esc(name)+' <span class="muted">Flipkart sales report · '+d.rows.length+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
+    c.querySelector('button').onclick = () => { sales.delete(name); render(); };
+    chips.appendChild(c);
+  });
   rets.forEach((d,name) => {
     const c=document.createElement('span'); c.className='chip';
     c.innerHTML = esc(name)+' <span class="muted">'+d.rp+' returns · '+d.rows.length+' rows</span> <button aria-label="Remove '+esc(name)+'">×</button>';
@@ -1050,11 +1079,11 @@ function render(){
     el.textContent = p==='Costs'? (costs? '✓ Saved · '+Object.keys(costs.cost).length+' product costs' : 'Optional · add once, remembered here') : (n? '✓ Added · '+n+' file'+(n>1?'s':'') : 'Not added yet'); });
   const st = document.querySelectorAll('#steps li');
   st[0].className = files.size? 'done' : 'on'; st[1].className = st[2].className = files.size? 'on' : '';
-  document.body.classList.toggle('has-files', files.size+rets.size>0);
-  $('step1').classList.toggle('compact', files.size+rets.size>0);
-  $('addH').textContent = files.size+rets.size? 'Your files' : 'Step 1 · Add your payment files';
+  document.body.classList.toggle('has-files', files.size+rets.size+sales.size>0);
+  $('step1').classList.toggle('compact', files.size+rets.size+sales.size>0);
+  $('addH').textContent = files.size+rets.size+sales.size? 'Your files' : 'Step 1 · Add your payment files';
   $('shell').classList.toggle('has', have.length>0);
-  drawReturns(); drawRecovery(data);
+  drawSales(); drawReturns(); drawRecovery(data);
   $('sec-pl').style.display = have.length? 'block' : 'none';
   if(!have.length){ $('report').style.display='none'; return; }
   $('report').style.display='flex';
@@ -1981,6 +2010,100 @@ function drawProducts(prods){
   PRLAST = prods; drawAllProducts();
 }
 
+// ---- Flipkart "Earn More" sales report: orders placed per product per day (gross, cancelled, returned, final) ----
+function parseEarnMore(wb){
+  const name = wb.SheetNames.find(n => { const t = sheet(wb,n); return t && headerAt(t,'gross units')>=0; });
+  const t = sheet(wb, name), hi = headerAt(t,'gross units');
+  const k = cols(t[hi], {pid:'=product id', sku:'=sku id', brand:'=brand', vert:'=vertical', date:'=order date', gu:'=gross units', gmv:'=gmv',
+    cu:'=cancellation units', ca:'=cancellation amount', ru:'=return units', ra:'=return amount', fu:'=final sale units', fa:'=final sale amount'});
+  if(k.gu<0 || k.fu<0) throw new Error('this sales report has no Gross Units / Final Sale Units columns.');
+  const rows = t.slice(hi+1).filter(r => String(r[k.sku]||r[k.pid]||'').trim()).map(r => { const g = c => k[c]>=0? r[k[c]] : '';
+    return {date:xlDate(g('date')), pid:String(g('pid')).trim(), sku:String(g('sku')).trim(), brand:String(g('brand')).trim(), vert:String(g('vert')).trim(),
+      gu:N(g('gu')), gmv:N(g('gmv')), cu:N(g('cu')), ca:N(g('ca')), ru:N(g('ru')), ra:N(g('ra')), fu:N(g('fu')), fa:N(g('fa'))}; }).filter(r => r.date);
+  if(!rows.length) throw new Error('this sales report has no rows.');
+  return rows;
+}
+let SLV = {show:'all', q:'', sort:'gmv', dir:-1};
+function drawSales(){
+  const card = $('salesCard'); if(!sales.size){ card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const seen = new Set(), R = [];
+  sales.forEach(d => d.rows.forEach(r => { const key = +r.date+'|'+r.pid+'|'+r.sku; if(!seen.has(key)){ seen.add(key); R.push(r); } }));
+  const S = (a, f) => sum(a, f), T = {gu:S(R,r=>r.gu), gmv:S(R,r=>r.gmv), cu:S(R,r=>r.cu), ca:S(R,r=>r.ca), ru:S(R,r=>r.ru), ra:S(R,r=>r.ra), fu:S(R,r=>r.fu), fa:S(R,r=>r.fa)};
+  const days = [...new Set(R.map(r => +r.date))].sort((a,b) => a-b), d0 = days[0], d1 = days[days.length-1], nd = days.length;
+  const dd = x => new Date(x).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  // per day
+  const byDay = days.map(t => { const x = R.filter(r => +r.date===t); return {t, gu:S(x,r=>r.gu), gmv:S(x,r=>r.gmv), cu:S(x,r=>r.cu), fa:S(x,r=>r.fa)}; });
+  const first = byDay.slice(0, 7), last = byDay.slice(-7), avg = a => a.length? S(a,x=>x.gu)/a.length : 0, growth = avg(first)? avg(last)/avg(first)-1 : 0;
+  const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], wk = WD.map((n,i) => { const x = byDay.filter(b => new Date(b.t).getDay()===i); return {n, u:x.length? avg(x) : 0, c:x.length}; }).filter(w => w.c);
+  const bestW = wk.slice().sort((a,b) => b.u-a.u)[0], worstW = wk.slice().sort((a,b) => a.u-b.u)[0];
+  // per product
+  const pm = {}; R.forEach(r => { const p = pm[r.sku] || (pm[r.sku] = {sku:r.sku, pid:r.pid, brand:r.brand, vert:r.vert, gu:0, gmv:0, cu:0, ca:0, ru:0, ra:0, fu:0, fa:0});
+    ['gu','gmv','cu','ca','ru','ra','fu','fa'].forEach(f => p[f] += r[f]); });
+  const P = Object.values(pm).map(p => { const ms = master('Flipkart', p.sku), unit = unitCost(ms);
+    return Object.assign(p, {title:productTitle('Flipkart', ms, p.sku, ''), ms, asp:p.gu? p.gmv/p.gu : 0, share:T.gmv? p.gmv/T.gmv : 0, cr:p.gu? p.cu/p.gu : 0, rr:p.gu? p.ru/p.gu : 0, lostR:p.gu? (p.cu+p.ru)/p.gu : 0,
+      kept:p.gmv? p.fa/p.gmv : 0, cogs:unit!=null? unit*p.fu : null, gm:unit!=null? p.fa - unit*p.fu : null}); });
+  const avgLost = T.gu? (T.cu+T.ru)/T.gu : 0;
+  P.forEach(p => { p.act = p.gu>=10 && p.lostR >= Math.max(0.2, avgLost*1.5)? ['bad','Too many cancels/returns: confirm COD, check listing']
+    : p.share>=0.15 && p.lostR<=avgLost? ['ok','Hero: keep stock, push ads'] : p.gu>=10 && p.cr>=0.15? ['warn','High cancels: confirm COD before dispatch']
+    : p.gu>=10 && p.rr>=0.08? ['warn','High returns: check photos & quality'] : p.gu<3? ['','Few orders: improve listing or ads'] : ['','OK'];
+    p.actRank = ({bad:0, warn:1, '':2, ok:3})[p.act[0]]; });
+  // KPIs
+  const kpi = (lab, big, small, cls) => '<div class="kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+big+'</b><span class="muted">'+small+'</span></div>';
+  $('slKpis').innerHTML = kpi('Units ordered', T.gu.toLocaleString('en-IN'), (T.gu/nd).toFixed(1)+' a day')
+    + kpi('Order value (GMV)', money(T.gmv), money(T.gmv/nd)+' a day')
+    + kpi('Cancelled', pct(T.gu? T.cu/T.gu : 0), T.cu+' units · '+money(T.ca), T.gu && T.cu/T.gu>0.08? 'hold' : '')
+    + kpi('Returned', pct(T.gu? T.ru/T.gu : 0), T.ru+' units · '+money(T.ra), T.gu && T.ru/T.gu>0.08? 'hold' : '')
+    + kpi('Final sales', money(T.fa), pct(T.gmv? T.fa/T.gmv : 0)+' of order value kept', 'good')
+    + kpi('Trend', (growth>=0?'+':'')+pct(growth), 'last 7 days vs first 7 days', growth<0? 'hold' : 'good');
+  // manager's summary
+  const hero = P.slice().sort((a,b) => b.gmv-a.gmv)[0], bad = P.filter(p => p.act[0]==='bad').sort((a,b) => (b.ca+b.ra)-(a.ca+a.ra));
+  const brands = {}; P.forEach(p => { if(p.brand) brands[p.brand] = (brands[p.brand]||0) + p.gmv; });
+  const vert = {}; P.forEach(p => { if(p.vert) vert[p.vert] = (vert[p.vert]||0) + p.gmv; });
+  const nm = p => esc(short(p.title || p.sku, 34))+(p.title? ' ('+esc(p.sku)+')' : '');
+  const ins = [];
+  ins.push('<b>'+dd(d0)+' – '+dd(d1)+'</b>: '+T.gu+' units, '+money(T.gmv)+' ordered; <b class="cutx">'+money(T.ca+T.ra)+'</b> lost to cancels and returns ('+pct(T.gu? (T.cu+T.ru)/T.gu : 0)+' of units).');
+  if(hero) ins.push('Hero: '+nm(hero)+' = <b>'+pct(hero.share)+'</b> of order value, '+pct(hero.lostR)+' lost.');
+  if(bad.length) ins.push('<b class="cutx">Fix first:</b> '+bad.slice(0,3).map(p => nm(p)+' ('+pct(p.lostR)+' cancelled/returned)').join(', ')+'.');
+  if(bestW && worstW && bestW.n!==worstW.n) ins.push('Best day: <b>'+bestW.n+'</b> ('+bestW.u.toFixed(1)+' units). Weakest: <b>'+worstW.n+'</b> ('+worstW.u.toFixed(1)+'): run offers or ads before it.');
+  ins.push('Sales trend: '+(growth>=0? '<b>up '+pct(growth)+'</b>' : '<b class="cutx">down '+pct(-growth)+'</b>')+' (last 7 days '+avg(last).toFixed(1)+' vs first 7 days '+avg(first).toFixed(1)+' units a day).');
+  const bk = Object.entries(brands).sort((a,b) => b[1]-a[1]); if(bk.length>1) ins.push('Brands: '+bk.map(([b,v]) => esc(b)+' '+pct(v/T.gmv)).join(' · ')+'.');
+  const vk = Object.entries(vert).sort((a,b) => b[1]-a[1]); if(vk.length>1) ins.push('Categories: '+vk.map(([b,v]) => esc(b)+' '+pct(v/T.gmv)).join(' · ')+'.');
+  const fewP = P.filter(p => p.gu<3).length; if(fewP) ins.push(fewP+' product'+(fewP>1?'s':'')+' sold under 3 units: improve their listing, price or ads, or stop stocking them.');
+  $('slIns').innerHTML = ins.map(t => '<span>'+t+'</span>').join('');
+  // daily chart: order value per day, cancelled part on top
+  const mx = Math.max(1, ...byDay.map(b => b.gmv));
+  $('slChart').innerHTML = '<div class="slbars" role="img" aria-label="Order value per day">'+byDay.map(b => { const dt = new Date(b.t), we = dt.getDay()===0||dt.getDay()===6;
+    return '<div class="slb" title="'+dd(b.t)+' ('+WD[dt.getDay()]+'): '+b.gu+' units, '+money(b.gmv)+(b.cu? ', '+b.cu+' cancelled' : '')+'"><div class="slv" style="height:'+(b.gmv/mx*100)+'%"><i style="height:'+(b.gu? b.cu/b.gu*100 : 0)+'%"></i></div><small'+(we?' class="we"':'')+'>'+dt.getDate()+'</small></div>'; }).join('')+'</div>'
+    + '<div class="slleg"><span><i class="ok"></i>Order value</span><span><i class="cx"></i>Share cancelled</span><span class="muted">Weekends in bold · hover a bar for details</span></div>';
+  // product table
+  const cnt = {all:P.length, bad:P.filter(p => p.act[0]==='bad'||p.act[0]==='warn').length, hero:P.filter(p => p.act[0]==='ok').length, few:P.filter(p => p.gu<3).length};
+  const test = {all:()=>true, bad:p => p.act[0]==='bad'||p.act[0]==='warn', hero:p => p.act[0]==='ok', few:p => p.gu<3};
+  $('slSeg').innerHTML = [['all','All'],['bad','Need attention'],['hero','Heroes'],['few','Few orders']].map(([k,t]) => '<button type="button" data-show="'+k+'" aria-pressed="'+(SLV.show===k)+'">'+t+' ('+cnt[k]+')</button>').join('');
+  const q = low(SLV.q), list = P.filter(test[SLV.show]).filter(p => !q || low(p.sku+' '+p.title+' '+p.brand+' '+(p.ms||'')).includes(q));
+  $('slCount').textContent = list.length===P.length? '' : 'Showing '+list.length+' of '+P.length;
+  const k = SLV.sort, d = SLV.dir; list.sort((a,b) => k==='name'? d*String(a.title||a.sku).localeCompare(b.title||b.sku) : d*((a[k]??-1e12)-(b[k]??-1e12)));
+  const hasCost = costs && P.some(p => p.cogs!=null);
+  const cols = [['name','Product'],['actRank','Action'],['gu','Units'],['gmv','Order value'],['asp','Avg price'],['cr','Cancelled'],['rr','Returned'],['fu','Final units'],['fa','Final sales'],['kept','Kept']]
+    .concat(hasCost? [['gm','After product cost']] : []);
+  const td = (v, cls, sub) => '<td class="num '+(cls||'')+'">'+v+(sub? '<small class="what">'+sub+'</small>' : '')+'</td>';
+  const tot = {gu:S(list,p=>p.gu), gmv:S(list,p=>p.gmv), cu:S(list,p=>p.cu), ca:S(list,p=>p.ca), ru:S(list,p=>p.ru), ra:S(list,p=>p.ra), fu:S(list,p=>p.fu), fa:S(list,p=>p.fa), gm:S(list,p=>p.gm||0)};
+  $('slTable').innerHTML = '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname': c[0]==='actRank'? ' actcol' : ' numh')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
+    + (list.length? list.map(p => '<tr><td class="pxname" title="'+esc(p.title||p.sku)+'"><b>'+esc(p.title||p.sku)+'</b><small class="what">'+esc((p.title? 'SKU '+p.sku+' · ' : '')+[p.brand,p.vert].filter(Boolean).join(' · '))+'</small></td>'
+        + '<td class="tact '+p.act[0]+'">'+p.act[1]+'</td>' + td(p.gu) + td(money(p.gmv), '', (p.share*100).toFixed(1)+'%') + td(money(p.asp))
+        + td(p.cu? pct(p.cr) : '–', p.gu>=5 && p.cr>=0.15? 'hot' : '', p.cu? p.cu+' · '+money(p.ca) : '') + td(p.ru? pct(p.rr) : '–', p.gu>=5 && p.rr>=0.08? 'hot' : '', p.ru? p.ru+' · '+money(p.ra) : '')
+        + td(p.fu) + td(money(p.fa)) + td(pct(p.kept), p.gu>=5 && p.kept<0.8? 'hot' : '')
+        + (hasCost? (p.gm!=null? td(money(p.gm), p.gm<0? 'hot' : '', 'cost '+money(p.cogs)) : '<td class="num muted">no cost</td>') : '')+'</tr>').join('')
+      : '<tr><td colspan="'+cols.length+'" class="muted">No products match.</td></tr>')
+    + '</tbody><tfoot><tr><td class="pxname"><b>Total'+(list.length<P.length? ' (shown)' : '')+'</b></td><td></td>'+td(tot.gu)+td(money(tot.gmv))+td(money(tot.gu? tot.gmv/tot.gu : 0))
+    + td(pct(tot.gu? tot.cu/tot.gu : 0), '', money(tot.ca))+td(pct(tot.gu? tot.ru/tot.gu : 0), '', money(tot.ra))+td(tot.fu)+td(money(tot.fa))+td(pct(tot.gmv? tot.fa/tot.gmv : 0))+(hasCost? td(money(tot.gm)) : '')+'</tr></tfoot>';
+  $('slTable').querySelectorAll('th.sort button').forEach(b => b.onclick = () => { const nk = b.parentNode.dataset.k;
+    SLV.dir = SLV.sort===nk? -SLV.dir : (nk==='name'||nk==='actRank'? 1 : -1); SLV.sort = nk; drawSales(); });
+  SALESCTX = {T, P, nd, d0, d1, growth, bestW, worstW, hero, bad};
+}
+let SALESCTX = null;
+$('slSeg').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; SLV.show = b.dataset.show; drawSales(); });
+$('slQ').addEventListener('input', e => { SLV.q = e.target.value; drawSales(); });
 // order → reason and claim status from the returns reports (and your own received check)
 function retIndex(platform){
   const m = new Map(); if(!rets.size) return m;
@@ -2030,7 +2153,7 @@ function drawRetTable(data){
     if(c[0]==='order') return '<td class="num">'+esc(v||'')+'</td>';
     if(c[0]==='type') return '<td class="wrap">'+(v==='RTO'? '<b class="rtotag">RTO</b>' : esc(v))+(r.reason? '<small class="what">'+esc(short(r.reason, 40))+'</small>' : '')+'</td>';
     if(c[0]==='state') return '<td>'+esc(v||'—')+(r.courier? '<small class="what">'+esc(r.courier)+'</small>' : '')+'</td>';
-    if(c[0]==='claim') return '<td class="act '+(v==='File claim'? 'bad' : v? 'warn' : '')+'">'+esc(v||'')+'</td>';
+    if(c[0]==='claim') return '<td class="tact '+(v==='File claim'? 'bad' : v? 'warn' : '')+'">'+esc(v||'')+'</td>';
     return '<td>'+esc(v||'—')+'</td>'; };
   const sumOf = key => sum(list, r => r[key]||0);
   $('refTable').innerHTML = !rows.length? '<tbody><tr><td>'+(A? 'No refunds in this period.' : 'No returns or RTO in this period.')+'</td></tr></tbody>'
@@ -2082,7 +2205,7 @@ function drawAllProducts(){
   let h='<thead><tr>'+cols.map(c=>'<th class="sort'+(c[0]==='name'?' pxname':'')+(c[0]==='actRank'?' actcol': c[0]==='name'? '' : ' numh')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>';
   prods.forEach(p=>{ const nm = p.title || p.name, split = p.rtoN!=null && p.ref? p.rtoN+' RTO · '+p.retN+' ret.' : '';
     h+='<tr class="'+(costs && p.costed && p.profit<0?'loss':'')+'"><td class="pxname" title="'+esc(nm)+'"><b>'+esc(nm)+'</b><small class="what">'+esc(p.title? p.skuText||'' : p.ms||'')+'</small></td>'
-      + '<td class="act '+p.act[0]+'">'+p.act[1]+'</td>'
+      + '<td class="tact '+p.act[0]+'">'+p.act[1]+'</td>'
       + td(p.n, '', p.qty && p.qty!==p.n? p.qty+' units' : '') + td(money(p.asp)) + td(money(p.sales), '', (p.share*100).toFixed(1)+'%') + td(money(p.feesAll)) + td(money(p.net))
       + td(pct(p.kept), p.n>=10&&p.kept<0.78?'hot':'') + td(p.ref? p.ref+' · '+pct(p.refRate) : '–', p.n>=4&&p.refRate>=0.2?'hot':'', split)
       + (costs? (p.costed? td(money(p.cogs)) + td(money(p.profit), p.profit<0?'hot':'') + td(money(Math.round(p.ppo)||0), p.ppo<-0.5?'hot':'') + td(pct(p.margin), p.margin<0?'hot': p.margin<m?'warn':'ok') : '<td class="num muted" colspan="4">no purchase cost</td>') : '')
@@ -2160,7 +2283,7 @@ function quickAnswer(k){
   return '';
 }
 // ---- typed questions: find what the question is about in the loaded data, all offline ----
-const INTENTS = [['losing',/los(s|e|ing)|negative|minus|nashtam|not profitable/i],['best',/best|top|most profit|highest|winner|selling well/i],
+const INTENTS = [['sales',/cancel|gmv|sales report|trend|best day|weak(est)? day|which day|growth|grow/i],['losing',/los(s|e|ing)|negative|minus|nashtam|not profitable/i],['best',/best|top|most profit|highest|winner|selling well/i],
   ['recover',/recover|claim|unpaid|not paid|missing pay|overcharg|weight|owed/i],['cod',/\bcod\b|prepaid|cash on delivery/i],
   ['returns',/rto|return|refund|came back|sent back/i],['ads',/\bads?\b|advertis|campaign|promot/i],['tax',/tcs|tds|\bgst\b|\btax/i],
   ['fees',/fee|charge|commission|shipping|where.*money|expense|deduct|cut/i],['orders',/orders?\b|sales|sold|how many|revenue|turnover/i],
@@ -2212,6 +2335,14 @@ function answerQ(q){
     const x = S.find(s => s.p===plat); if(!x) return 'No '+plat+' payment file is loaded.';
     return '**'+plat+'** ('+(PLDATA && PLDATA.cols.length? PLDATA.cols.map(o=>o.label).join(' + ') : 'these dates')+'):\n- Orders paid: '+x.orders+'\n- Order value: '+rs(x.value)+'\n- Paid to you: **'+rs(x.payout)+'** ('+(x.value? (x.payout/x.value*100).toFixed(1) : 0)+'% kept)'
       +'\n- Returns & RTO: '+x.returns+(x.orders? ' ('+(x.returns/x.orders*100).toFixed(1)+'% of orders)' : '')+'\n- Ads: '+rs(x.ads)+(costs? '\n- Profit after product cost: **'+rs(x.profit)+'**' : '');
+  }
+  if(intent==='sales'){
+    if(!SALESCTX) return 'Add the Flipkart Earn More sales report to see cancellations, daily trend and best days.';
+    const X = SALESCTX, T = X.T;
+    return '**Flipkart orders, '+new Date(X.d0).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+new Date(X.d1).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'**\n- Ordered: '+T.gu+' units, '+rs(T.gmv)
+      +'\n- Cancelled: **'+T.cu+' units ('+(T.gu? (T.cu/T.gu*100).toFixed(1) : 0)+'%), '+rs(T.ca)+'**\n- Returned: '+T.ru+' units, '+rs(T.ra)+'\n- Final sales: **'+rs(T.fa)+'**'
+      +'\n- Trend: '+(X.growth>=0? 'up ' : 'down ')+(Math.abs(X.growth)*100).toFixed(0)+'% (last 7 days vs first 7)'+(X.bestW? '\n- Best day '+X.bestW.n+', weakest '+X.worstW.n : '')
+      +(X.bad.length? '\n\nFix first: '+X.bad.slice(0,3).map(p => (p.title||p.sku)+' ('+(p.lostR*100).toFixed(0)+'% lost)').join(', ') : '');
   }
   if(intent==='orders'){
     const T = S.reduce((a,x) => ({o:a.o+x.orders, v:a.v+x.value, p:a.p+x.payout}), {o:0,v:0,p:0});
