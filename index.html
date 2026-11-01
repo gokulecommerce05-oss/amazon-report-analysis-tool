@@ -278,12 +278,12 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .plset{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px 24px;align-items:start;margin-top:14px;font-size:14px}
 .plset label{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.plset input{min-height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--surface);font:inherit;color:var(--ink)}
 #plPack{width:100px;text-align:right}.plf{display:flex;gap:8px;margin:8px 0}.plf input[type=text]{flex:1;min-width:0}.plf input[type=number]{width:120px;text-align:right}
-.pxbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:14px;font-size:14px}
+.pxbar[hidden]{display:none} .pxbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:14px;font-size:14px}
 .pxbar .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .pxbar .seg button{border:0;background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;padding:0 12px;min-height:38px;cursor:pointer}
 .pxbar .seg button+button{border-left:1px solid var(--line)} .pxbar .seg button[aria-pressed="true"]{background:var(--peacock);color:#fff}
 .pxbar .pxfew{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
-#pxQ{min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;flex:1 1 200px;max-width:320px}
+#pxQ,#prQ,#rtQ{min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;flex:1 1 200px;max-width:320px}
 .pxwrap{max-height:min(72vh,720px);overflow:auto}
 .pxt thead th{position:sticky;top:0;z-index:2}
 .pxt th .pxsort{all:unset;cursor:pointer;display:inline-block;padding:2px 0;white-space:nowrap} .pxt th .pxsort:focus-visible{outline:2px solid var(--peacock);outline-offset:2px}
@@ -294,6 +294,8 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .pxt th,.pxt td{padding-left:10px;padding-right:10px} .pxt thead th{white-space:normal;line-height:1.3;min-width:62px} .pxt thead th.pxname{min-width:170px} .pxt td.pxtry{width:96px} .pxt td.pxtry input{width:80px} .pxt th .pxsort{white-space:normal;line-height:1.3}
 .pxt thead th{box-shadow:inset 0 -1px 0 var(--line);vertical-align:bottom} .pxt .pxname{box-shadow:inset -1px 0 0 var(--line)} .pxt thead th.pxname{box-shadow:inset -1px -1px 0 var(--line)}
 .pxt tbody tr:nth-child(even) td.pxname{background:var(--bg)}
+.pxt tfoot td{position:sticky;bottom:0;z-index:1;background:var(--soft);font-weight:700;box-shadow:inset 0 1px 0 var(--line)} .pxt tfoot td.pxname{z-index:2}
+.prt td.pxname{max-width:210px;min-width:160px} .prt th,.prt td{padding-left:8px;padding-right:8px} .rtotag{color:var(--turmeric);font-weight:800} .seeall{font-weight:700;color:var(--peacock);text-decoration:none} .seeall:hover{text-decoration:underline}
 @media (max-width:760px){ .pxt td.pxname{min-width:130px;max-width:150px} .pxt td.pxname b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical} .pxwrap{max-height:70vh} }
 .pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
 .pxset input,#pxTable input{width:72px;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);font:inherit;text-align:right}
@@ -537,7 +539,18 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         <h2 id="prH">Top products</h2>
         <p class="sub" id="topNote"></p>
         <div class="tbl"><table id="topProd"></table></div>
-        <details class="more"><summary>See all products (sortable)</summary><div class="tbl"><table id="prodTable"></table></div></details>
+        <p style="margin:12px 0 0"><a href="#sec-allprod" class="seeall">See all products →</a></p>
+      </section>
+
+      <section class="card wide" id="sec-allprod" aria-labelledby="apH">
+        <h2 id="apH">All products</h2>
+        <p class="sub">Every product in these dates. Click a column name to sort; the header, product names and totals stay in place while you scroll.</p>
+        <div class="pxbar" id="prBar">
+          <div class="seg" role="group" aria-label="Show products"><button type="button" data-show="all">All</button><button type="button" data-show="loss">Losing money</button><button type="button" data-show="ret">High returns</button><button type="button" data-show="nocost">No purchase cost</button></div>
+          <input type="search" id="prQ" placeholder="Search product or SKU" aria-label="Search product or SKU">
+          <span class="muted" id="prCount"></span>
+        </div>
+        <div class="tbl pxwrap"><table id="prodTable" class="pxt prt"></table></div>
       </section>
 
       <section class="card" id="sec-fix" aria-labelledby="fixH">
@@ -588,9 +601,15 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <section class="card" id="sec-tables"><h2 id="leftTitle">Refunds by payment type</h2><div class="tbl"><table id="payTable"></table></div></section>
       <section class="card"><h2 id="rightTitle">Free orders</h2><div class="tbl"><table id="freeTable"></table></div></section>
 
-      <section class="card" id="sec-returns" aria-labelledby="refTitle">
+      <section class="card wide" id="sec-returns" aria-labelledby="refTitle">
         <h2 id="refTitle">Refunds</h2>
-        <details class="more"><summary>Show every order</summary><div class="tbl"><table id="refTable"></table></div></details>
+        <p class="sub" id="refSub">Every order that came back in these dates. Click a column name to sort; the header, product names and totals stay in place while you scroll.</p>
+        <div class="pxbar" id="rtBar">
+          <div class="seg" role="group" aria-label="Show orders" id="rtSeg"></div>
+          <input type="search" id="rtQ" placeholder="Search order ID, product or SKU" aria-label="Search order ID, product or SKU">
+          <span class="muted" id="rtCount"></span>
+        </div>
+        <div class="tbl pxwrap"><table id="refTable" class="pxt prt"></table></div>
       </section>
     </div>
 
@@ -1060,7 +1079,7 @@ function render(){
   drawSide(active==='All'
     ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
-       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],
+       ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],['sec-allprod','All products','Sort, filter, search','list'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
        ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]);
   if(multi){
@@ -1226,10 +1245,10 @@ function analyseGeneric(P, L, X, d0, d1){
 
   // returns list
   $('refTitle').textContent='Returns and RTO';
-  const back = I.filter(i=>i.rto||i.ret).sort((a,b)=>(a.refund+a.returnShip)-(b.refund+b.returnShip));
-  $('refTable').innerHTML = back.length
-    ? '<thead><tr><th>Product</th><th>Paid on</th><th>Order ID</th><th>Type</th><th>Sale taken back</th><th>Return shipping</th><th>Net for this item</th></tr></thead><tbody>'+back.map(i=>{ const t=productTitle(P, i.ms, i.sku, i.prod); return '<tr><td title="'+esc(t||i.sku)+'">'+(t? esc(short(t,46))+'<br><small class="muted">SKU '+esc(i.sku)+'</small>' : esc(i.sku||i.prod))+'</td><td>'+i.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(i.order)+'</td><td>'+(i.rto?'RTO': i.status==='Refund'?'Refund':'Customer return')+'</td><td class="num">'+money(i.refund)+'</td><td class="num">'+money(i.returnShip)+'</td><td class="num">'+money(i.payout)+'</td></tr>'; }).join('')+'</tbody>'
-    : '<tbody><tr><td>No returns or RTO in this period.</td></tr></tbody>';
+  const OT = (costs && costs.orders) || {}, hasOT = Object.keys(OT).length>0;
+  drawRetTable({kind:'generic', hasOT, rows: I.filter(i=>i.rto||i.ret).map(i => { const t = productTitle(P, i.ms, i.sku, i.prod), o = OT[low(String(i.order||''))];
+    return {name:t || i.sku || i.prod || '', sub:t? 'SKU '+i.sku : '', date:i.date, order:i.order, type:i.rto? 'RTO' : i.status==='Refund'? 'Refund' : 'Customer return',
+      refund:i.refund, returnShip:i.returnShip, payout:i.payout, pay:o? o[0] : '', state:o? o[2] : ''}; })});
   $('foot').textContent = FOOT[P] + (costs? COST_NOTE : '');
 
   const RT = rtoAnalysis(I.map(i => ({order:i.order, sold:i.sold, rto:i.rto, ret:i.ret, lost:(i.rto||i.ret)? -(i.shipping+i.returnShip+i.fees) : 0})));
@@ -1882,9 +1901,10 @@ function analyse(R, d0, d1){
 
   // refunds list
   const paidByOrder=new Map(); orders.forEach(r=>paidByOrder.set(r.order,(paidByOrder.get(r.order)||0)+r.total));
-  $('refTable').innerHTML = refunds.length
-    ? '<thead><tr><th>Product</th><th>Date</th><th>Order ID</th><th>Payment</th><th>Taken back</th><th>Original payment</th></tr></thead><tbody>'+refunds.sort((a,b)=>a.total-b.total).map(r=>'<tr><td>'+esc(short(r.prod,46))+'</td><td>'+r.date.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</td><td class="num">'+esc(r.order)+'</td><td>'+esc(r.pay||'—')+'</td><td class="num">'+money(r.total)+'</td><td class="num">'+(paidByOrder.has(r.order)? money(paidByOrder.get(r.order)):'<span class="muted">earlier period</span>')+'</td></tr>').join('')+'</tbody>'
-    : '<tbody><tr><td>No refunds in this period.</td></tr></tbody>';
+  const OTa = (costs && costs.orders) || {};
+  drawRetTable({kind:'amazon', hasOT:Object.keys(OTa).length>0, rows: refunds.map(r => { const o = OTa[low(String(r.order||''))];
+    return {name:r.prod||'', sub:'', date:r.date, order:r.order, type:'Refund', pay:r.pay==='Cash on delivery'? 'COD' : r.pay? 'Prepaid' : (o? o[0] : ''),
+      taken:r.total, orig:paidByOrder.has(r.order)? paidByOrder.get(r.order) : null, state:o? o[2] : ''}; })});
 
   const byOrder = {};
   orders.forEach(r => { const o = byOrder[r.order] || (byOrder[r.order] = {order:r.order, sold:true, rto:false, ret:false, lost:0, pay:r.pay==='Cash on delivery'? 'COD' : r.pay? 'Prepaid' : ''}); });
@@ -1952,21 +1972,74 @@ function drawProducts(prods){
     ? '<thead><tr><th>Product</th><th>Orders</th><th>Sales</th><th>'+(by==='profit'?'Profit':'Net to you')+'</th><th>Returns</th></tr></thead><tbody>'
       + top.map(p => '<tr><td title="'+esc(p.name)+'">'+prodCell(p)+'<span class="bar'+(p[by]<0?' loss':'')+'" style="width:'+(Math.abs(p[by])/mx*100)+'%"></span></td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num '+(p[by]<0?'hot':'')+'">'+money(p[by])+'</td><td class="num">'+(p.ref? pct(p.refRate):'')+'</td></tr>').join('')+'</tbody>'
     : '<tbody><tr><td class="muted">No paid orders in this period.</td></tr></tbody>';
+  PRLAST = prods; drawAllProducts();
+}
+
+// ---- every returned / refunded order: filter, search, sort, frozen header + product column + totals ----
+let RTL = {kind:'generic', rows:[], hasOT:false}, RTV = {show:'all', q:'', sort:'payout', dir:1};
+function drawRetTable(data){
+  if(data){ data.hasOT = data.rows.some(r => r.state); if(data.kind!==RTL.kind){ RTV.show = 'all'; RTV.sort = data.kind==='amazon'? 'taken' : 'payout'; RTV.dir = 1; } RTL = data; }
+  const A = RTL.kind==='amazon', rows = RTL.rows;
+  $('refSub').textContent = rows.length? (A? 'Every refund in these dates. ' : 'Every order that came back in these dates. ')+'Click a column name to sort; the header, product names and totals stay in place while you scroll.' : '';
+  $('rtBar').hidden = !rows.length;
+  const segs = A? [['all','All'],['COD','COD'],['Prepaid','Prepaid']] : [['all','All'],['RTO','RTO'],['Customer return','Customer returns']];
+  const test = k => r => k==='all' || (A? r.pay===k : r.type===k || (k==='Customer return' && r.type==='Refund'));
+  $('rtSeg').innerHTML = segs.map(([k,t]) => '<button type="button" data-show="'+k+'" aria-pressed="'+(RTV.show===k)+'">'+t+' ('+rows.filter(test(k)).length+')</button>').join('');
+  const q = low(RTV.q);
+  const list = rows.filter(test(RTV.show)).filter(r => !q || low(r.name+' '+r.sub+' '+r.order+' '+r.state).includes(q));
+  $('rtCount').textContent = list.length===rows.length? '' : 'Showing '+list.length+' of '+rows.length;
+  const day = d => d? d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+  const cols = [['name','Product','text'],['date', A? 'Date' : 'Paid on','date'],['order','Order ID','text'],
+    ...(A? [] : [['type','Type','text']]), ...((A || RTL.hasOT)? [['pay','Payment','text']] : []), ...(RTL.hasOT? [['state','State','text']] : []),
+    ...(A? [['taken','Taken back','money'],['orig','Original payment','money']] : [['refund','Sale taken back','money'],['returnShip','Return shipping','money'],['payout','Net for this item','money']])];
+  const k = RTV.sort, d = RTV.dir;
+  list.sort((a,b) => { const x = a[k], y = b[k]; if(x==null && y==null) return 0; if(x==null) return 1; if(y==null) return -1;
+    return (typeof x==='string'? x.localeCompare(y) : x-y)*d; });
+  const cell = (c, r) => { const v = r[c[0]];
+    if(c[0]==='name') return '<td class="pxname" title="'+esc(r.name)+'"><b>'+esc(r.name||'—')+'</b>'+(r.sub? '<small class="what">'+esc(r.sub)+'</small>' : '')+'</td>';
+    if(c[2]==='money') return '<td class="num'+(c[0]==='payout' && v<0? ' hot' : '')+'">'+(v==null? '<span class="muted">earlier period</span>' : money(v))+'</td>';
+    if(c[2]==='date') return '<td>'+day(v)+'</td>';
+    if(c[0]==='order') return '<td class="num">'+esc(v||'')+'</td>';
+    if(c[0]==='type') return '<td>'+(v==='RTO'? '<b class="rtotag">RTO</b>' : esc(v))+'</td>';
+    return '<td>'+esc(v||'—')+'</td>'; };
+  const sumOf = key => sum(list, r => r[key]||0);
+  $('refTable').innerHTML = !rows.length? '<tbody><tr><td>'+(A? 'No refunds in this period.' : 'No returns or RTO in this period.')+'</td></tr></tbody>'
+    : '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname':'')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
+      + (list.length? list.map(r => '<tr>'+cols.map(c => cell(c, r)).join('')+'</tr>').join('') : '<tr><td colspan="'+cols.length+'" class="muted">No orders match.</td></tr>')
+      + '</tbody><tfoot><tr>'+cols.map((c,i) => i===0? '<td class="pxname"><b>Total · '+list.length+' order'+(list.length===1?'':'s')+'</b></td>' : c[2]==='money'? '<td class="num">'+money(sumOf(c[0]))+'</td>' : '<td></td>').join('')+'</tr></tfoot>';
+  $('refTable').querySelectorAll('th.sort button').forEach(b => b.onclick = () => { const nk = b.parentNode.dataset.k;
+    RTV.dir = RTV.sort===nk? -RTV.dir : (['name','order','type','pay','state'].includes(nk)? 1 : nk==='date'? -1 : 1); RTV.sort = nk; drawRetTable(); });
+}
+$('rtSeg').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; RTV.show = b.dataset.show; drawRetTable(); });
+$('rtQ').addEventListener('input', e => { RTV.q = e.target.value; drawRetTable(); });
+let PRLAST = [], PRV = {show:'all', q:''};
+function drawAllProducts(){
+  const amz = amazonCsv, all = PRLAST;
   const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
     .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']])
     .concat(costs? [['cogs','Product cost'],['profit','Profit']] : []);
+  const test = {all:()=>true, loss:p => costs && p.costed && p.profit<0, ret:p => p.n>=4 && p.refRate>=0.2, nocost:p => costs && !p.costed && p.n>0};
+  if(!costs && (PRV.show==='loss'||PRV.show==='nocost')) PRV.show = 'all';
+  $('prBar').querySelectorAll('[data-show]').forEach(b => { const k = b.dataset.show; b.hidden = !costs && (k==='loss'||k==='nocost');
+    b.setAttribute('aria-pressed', String(PRV.show===k)); b.textContent = ({all:'All', loss:'Losing money', ret:'High returns', nocost:'No purchase cost'})[k]+' ('+all.filter(test[k]).length+')'; });
+  const q = low(PRV.q);
+  const prods = all.filter(test[PRV.show]).filter(p => !q || low((p.title||'')+' '+p.name+' '+(p.skuText||'')+' '+(p.ms||'')).includes(q));
+  $('prCount').textContent = prods.length===all.length? '' : 'Showing '+prods.length+' of '+all.length;
   const k=prodSort.key, d=prodSort.dir;
-  prods.sort((a,b)=> k==='name'? d*a.name.localeCompare(b.name) : d*(a[k]-b[k]));
-  const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0,cogs:0,profit:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]));
-  let h='<thead><tr>'+cols.map(c=>'<th class="sort" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'">'+c[1]+(c[0]===k?(d<0?' ↓':' ↑'):'')+'</th>').join('')+'</tr></thead><tbody>';
-  prods.forEach(p=>{
-    h+='<tr><td title="'+esc(p.name)+'">'+prodCell(p)+'</td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td>'
+  prods.sort((a,b)=> k==='name'? d*a.name.localeCompare(b.name) : d*((a[k]||0)-(b[k]||0)));
+  const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0,cogs:0,profit:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]||0));
+  let h='<thead><tr>'+cols.map(c=>'<th class="sort'+(c[0]==='name'?' pxname':'')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>';
+  prods.forEach(p=>{ const nm = p.title || p.name;
+    h+='<tr class="'+(costs && p.costed && p.profit<0?'loss':'')+'"><td class="pxname" title="'+esc(nm)+'"><b>'+esc(nm)+'</b><small class="what">'+esc(p.title? p.skuText||'' : p.ms||'')+'</small></td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td>'
       +(costs? (p.costed? '<td class="num">'+money(p.cogs)+'</td><td class="num '+(p.profit<0?'hot':'')+'">'+money(p.profit)+'</td>' : '<td class="num muted" colspan="2">no cost</td>') : '')+'</tr>';
   });
-  h+='</tbody><tfoot><tr><td>Total</td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td>'+(amz? '<td class="num">'+(tot.free||'')+'</td>':'')+'<td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td>'+(costs? '<td class="num">'+money(tot.cogs)+'</td><td class="num">'+money(tot.profit)+'</td>':'')+'</tr></tfoot>';
+  if(!prods.length) h+='<tr><td colspan="'+cols.length+'" class="muted">No products match.</td></tr>';
+  h+='</tbody><tfoot><tr><td class="pxname"><b>Total'+(prods.length<all.length? ' (shown)' : '')+'</b></td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td>'+(amz? '<td class="num">'+(tot.free||'')+'</td>':'')+'<td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td>'+(costs? '<td class="num">'+money(tot.cogs)+'</td><td class="num">'+money(tot.profit)+'</td>':'')+'</tr></tfoot>';
   const t=$('prodTable'); t.innerHTML=h;
-  t.querySelectorAll('th.sort').forEach(th=>{ th.tabIndex=0; const go=()=>{ const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawProducts(prods); }; th.onclick=go; th.onkeydown=e=>{ if(e.key==='Enter'){ go(); } }; });
+  t.querySelectorAll('th.sort').forEach(th=>{ th.querySelector('button').onclick = () => { const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawAllProducts(); }; });
 }
+$('prBar').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; PRV.show = b.dataset.show; drawAllProducts(); });
+$('prQ').addEventListener('input', e => { PRV.q = e.target.value; drawAllProducts(); });
 document.querySelectorAll('p.tip').forEach(t => {
   const h = t.closest('section').querySelector('h2'), d = document.createElement('details');
   d.className = 'info'; d.innerHTML = '<summary aria-label="How to read this">i</summary><div></div>'; d.lastChild.textContent = t.textContent;
