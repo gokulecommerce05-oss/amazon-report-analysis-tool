@@ -25,12 +25,9 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 
 Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.
 
-## AI assistant
+## Ask a question
 
-Click **Ask AI** (bottom right).
-
-- **Quick questions** (profit, losing products, best products, where the money goes, COD vs prepaid, money to recover) are answered inside the browser and send nothing anywhere.
-- **Your own questions** are answered by Anthropic's Claude (`claude-opus-5-5`) using your own Anthropic API key: click ⚙, paste the key from console.anthropic.com → API Keys, and Save. The key is stored only in that browser (*Forget key* removes it). Each question sends a summary of the loaded report (platform totals, monthly P&L, product prices and margins, return rates by payment, courier and state, money to recover) to Anthropic; it contains no customer names, addresses or order IDs. A question usually costs about ₹1–4 on your Anthropic bill.
+Right under the summary there is an **Ask a question about your files** box, and a round **robot button** (bottom right) opens the chat window, where you can also ask by voice with the 🎤 button (uses your browser's speech-to-text). Type things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
 
 ## Profit & loss
 
