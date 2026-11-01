@@ -484,27 +484,9 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     <div class="files" id="files"></div>
   </section>
 
-  <section class="card" id="salesCard" aria-labelledby="slH" style="display:none">
-    <h2 id="slH">Flipkart sales report: what customers ordered</h2>
-    <p class="sub">From the Earn More report, by order date: units ordered, cancelled, returned and finally sold, per product and per day.</p>
-    <div class="kpis retk" id="slKpis"></div>
-    <div class="ins" id="slIns"></div>
-    <div id="slChart"></div>
-    <div class="pxbar">
-      <div class="seg" role="group" aria-label="Show products" id="slSeg"></div>
-      <input type="search" id="slQ" placeholder="Search product, SKU or brand" aria-label="Search product, SKU or brand">
-      <span class="muted" id="slCount"></span>
-    </div>
-    <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
-    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
-  </section>
+  
 
-  <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
-    <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
-    <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
-    <div id="retBody"></div>
-    <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
-  </section>
+  
 
   <div id="report">
     <section class="card pickbar" aria-labelledby="pickH">
@@ -661,6 +643,28 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         <button type="button" class="btn ghost" id="plAdd">+ Add a monthly cost</button></div>
     </div>
     <p class="tip">Saved only in this browser. Fixed costs are split by the days of each month your files cover. Product cost counts only units the buyer kept (RTO and returns go back to stock). TCS/TDS is shown as a cost here because it was not paid to you, but you get it back when you file.</p>
+  </section>
+
+  <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
+    <h2 id="retH">Returns &amp; RTO from your returns reports</h2>
+    <p class="sub">Every return in the files you added, matched to your Orders tab for COD, courier and state. Orders shipped in the last 7–10 days may still come back, so recent rates look lower.</p>
+    <div id="retBody"></div>
+    <p class="tip">RTO = the courier brought the parcel back without delivering it. Customer return = delivered, then sent back. "Check or claim" lists parcels lost in transit, returns still not back after 30 days, and customer returns for damaged, missing or wrong items: open those on video when they arrive and file a claim if the item is damaged, empty or different.</p>
+  </section>
+
+  <section class="card" id="salesCard" aria-labelledby="slH" style="display:none">
+    <h2 id="slH">Flipkart sales report: what customers ordered</h2>
+    <p class="sub">From the Earn More report, by order date: units ordered, cancelled, returned and finally sold, per product and per day.</p>
+    <div class="kpis retk" id="slKpis"></div>
+    <div class="ins" id="slIns"></div>
+    <div id="slChart"></div>
+    <div class="pxbar">
+      <div class="seg" role="group" aria-label="Show products" id="slSeg"></div>
+      <input type="search" id="slQ" placeholder="Search product, SKU or brand" aria-label="Search product, SKU or brand">
+      <span class="muted" id="slCount"></span>
+    </div>
+    <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
+    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
   </section>
 
 </main>
@@ -1113,11 +1117,11 @@ function render(){
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]
+    ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),['step1','My files','Add or remove files','file']]
     : [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
        ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-rto','RTO by state','COD, states, couriers','pin'],['sec-products','My products','Best and worst','box'],['sec-allprod','All products','Sort, filter, search','list'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
-       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],['step1','My files','Add or remove files','file']]);
+       ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),['step1','My files','Add or remove files','file']]);
   if(multi){
     const S = have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
     const T = S.reduce((t,x) => { ['orders','value','payout','returns','ads','profit'].forEach(k => t[k]+=x[k]); return t; }, {orders:0,value:0,payout:0,returns:0,ads:0,profit:0});
