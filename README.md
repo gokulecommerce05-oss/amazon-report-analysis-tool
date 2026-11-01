@@ -25,9 +25,9 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 
 Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.
 
-## Assistant
+## Ask a question
 
-Click **Assistant** (bottom right) and tap a question or type one: profit, losing products, best products, where the money goes, COD vs prepaid returns, or money to recover. Answers come from the files you added, inside the browser. It is free and sends nothing anywhere.
+Right under the summary there is an **Ask a question about your files** box (also the **Assistant** button, bottom right). Type things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
 
 ## Profit & loss
 
