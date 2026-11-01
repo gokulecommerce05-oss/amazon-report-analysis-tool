@@ -278,6 +278,23 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .plset{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px 24px;align-items:start;margin-top:14px;font-size:14px}
 .plset label{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}.plset input{min-height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--surface);font:inherit;color:var(--ink)}
 #plPack{width:100px;text-align:right}.plf{display:flex;gap:8px;margin:8px 0}.plf input[type=text]{flex:1;min-width:0}.plf input[type=number]{width:120px;text-align:right}
+.pxbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:14px;font-size:14px}
+.pxbar .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pxbar .seg button{border:0;background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;font-weight:600;padding:0 12px;min-height:38px;cursor:pointer}
+.pxbar .seg button+button{border-left:1px solid var(--line)} .pxbar .seg button[aria-pressed="true"]{background:var(--peacock);color:#fff}
+.pxbar .pxfew{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+#pxQ{min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;flex:1 1 200px;max-width:320px}
+.pxwrap{max-height:min(72vh,720px);overflow:auto}
+.pxt thead th{position:sticky;top:0;z-index:2}
+.pxt th .pxsort{all:unset;cursor:pointer;display:inline-block;padding:2px 0;white-space:nowrap} .pxt th .pxsort:focus-visible{outline:2px solid var(--peacock);outline-offset:2px}
+.pxt th[aria-sort="ascending"],.pxt th[aria-sort="descending"]{color:var(--ink)}
+.pxt td.pxname{max-width:220px;min-width:170px} .pxt td.pxname b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pxt td.pxname small.what{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pxt .pxname{position:sticky;left:0;z-index:1;background:var(--surface)} .pxt thead th.pxname{z-index:3}
+.pxt th,.pxt td{padding-left:10px;padding-right:10px} .pxt thead th{white-space:normal;line-height:1.3;min-width:62px} .pxt thead th.pxname{min-width:170px} .pxt td.pxtry{width:96px} .pxt td.pxtry input{width:80px} .pxt th .pxsort{white-space:normal;line-height:1.3}
+.pxt thead th{box-shadow:inset 0 -1px 0 var(--line);vertical-align:bottom} .pxt .pxname{box-shadow:inset -1px 0 0 var(--line)} .pxt thead th.pxname{box-shadow:inset -1px -1px 0 var(--line)}
+.pxt tbody tr:nth-child(even) td.pxname{background:var(--bg)}
+@media (max-width:760px){ .pxt td.pxname{min-width:130px;max-width:150px} .pxt td.pxname b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical} .pxwrap{max-height:70vh} }
 .pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
 .pxset input,#pxTable input{width:72px;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);font:inherit;text-align:right}
 #pxTable input{width:86px}
@@ -496,13 +513,19 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 
       <section class="card wide" id="sec-pricing" aria-labelledby="pxH">
         <h2 id="pxH">Unit economics &amp; pricing</h2>
-        <p class="sub">Profit per order for each product, the price where it breaks even, and the price that reaches your target margin. Losing products first.</p>
+        <p class="sub">Profit per order for each product, the price where it breaks even, and the price that reaches your target margin. Click a column name to sort; type a price in "Try price" to see the new profit. The header row and product column stay frozen while you scroll.</p>
         <div class="pxset">
           <label>GST on your sales <input type="number" id="pxGst" min="0" max="28" step="1"> %</label>
           <label>Target margin <input type="number" id="pxTarget" min="0" max="80" step="1"> %</label>
           <span class="muted" id="pxNote"></span>
         </div>
-        <div class="tbl"><table id="pxTable"></table></div>
+        <div class="pxbar" id="pxBar">
+          <div class="seg" role="group" aria-label="Show products"><button type="button" data-show="all">All</button><button type="button" data-show="loss">Losing money</button><button type="button" data-show="below">Below target</button></div>
+          <label class="pxfew"><input type="checkbox" id="pxFew"> Hide products with under 3 orders</label>
+          <input type="search" id="pxQ" placeholder="Search product or SKU" aria-label="Search product or SKU">
+          <span class="muted" id="pxCount"></span>
+        </div>
+        <div class="tbl pxwrap"><table id="pxTable" class="pxt"></table></div>
         <p class="tip">Fixed cost per order = platform fees, shipping and product cost, which stay about the same if you change the price. "Lost per ₹100" = returns, discounts, TCS/TDS and the GST you owe, which grow with the price. Break-even and target prices assume those stay the same, and sales volume is unchanged when you try a new price. Profit here subtracts GST on sales, so it is lower than "Profit after product cost" elsewhere.</p>
       </section>
 
@@ -1618,24 +1641,50 @@ function priceModel(p){
   const profitAt = price => price*(1-lost) - fixed, m = PX.target/100;
   return {asp, lost, fixed, profitAt, profit:profitAt(asp), be: 1-lost>0? fixed/(1-lost) : NaN, tgt: 1-lost-m>0? fixed/(1-lost-m) : NaN};
 }
+let PXV = {sort:'profit', dir:1, show:'all', q:'', few:false}; // table view: sort column, filter, search
+try{ Object.assign(PXV, JSON.parse(localStorage.getItem('payout.pxview')||'{}'), {q:''}); }catch(e){}
+const PXCOLS = [['name','Product'],['n','Orders'],['asp','Avg price'],['fixed','Fixed cost / order'],['lost','Lost per ₹100'],['profit','Profit / order'],['margin','Margin'],['be','Break-even price'],['tgt','Target price'],['try','Try price'],['np','New profit / order'],['chg','Change for period']];
 function drawPricing(prods){
   if(prods) PXLAST = prods;
   $('pxGst').value = PX.gst; $('pxTarget').value = PX.target;
-  PXROWS = PXLAST.filter(p => p.n>0 && p.sales>0).map(p => Object.assign({p}, priceModel(p))).sort((a,b) => a.profit-b.profit);
-  const nocost = PXROWS.filter(x => !x.p.costed).length;
+  PXROWS = PXLAST.filter(p => p.n>0 && p.sales>0).map(p => Object.assign({p}, priceModel(p)));
+  PXROWS.forEach((x,i) => { x.i = i; x.margin = x.profit/x.asp; x.name = x.p.title || x.p.name || ''; });
+  const nocost = PXROWS.filter(x => !x.p.costed).length, m = PX.target/100;
   $('pxNote').textContent = nocost? nocost+' product'+(nocost>1?'s have':' has')+' no purchase cost, so their profit is too high (marked *).' : '';
-  const m = PX.target/100, cell = (v, cls) => '<td class="num '+(cls||'')+'">'+v+'</td>';
-  $('pxTable').innerHTML = PXROWS.length
-    ? '<thead><tr><th>Product</th><th>Orders</th><th>Avg price</th><th>Fixed cost / order</th><th>Lost per ₹100</th><th>Profit / order</th><th>Margin</th><th>Break-even price</th><th>Price for '+PX.target+'%</th><th>Try price</th><th>New profit / order</th><th>Change for period</th></tr></thead><tbody>'
-      + PXROWS.map((x,i) => '<tr class="'+(x.profit<0?'loss':'')+'"><td title="'+esc(x.p.name)+'">'+prodCell(x.p)+(x.p.costed?'':' *')+'</td>'
+  // filter, search, sort
+  const q = low(PXV.q);
+  let rows = PXROWS.filter(x => (PXV.show==='loss'? x.profit<0 : PXV.show==='below'? x.margin<m : true) && (!PXV.few || x.p.n>=3)
+    && (!q || low(x.name+' '+(x.p.skuText||'')+' '+(x.p.ms||'')).includes(q)));
+  const key = x => PXV.sort==='name'? low(x.name) : (PXV.sort==='try'||PXV.sort==='np'||PXV.sort==='chg')? x.profit : (x.p.n<3 && (PXV.sort==='be'||PXV.sort==='tgt'))? Infinity : PXV.sort==='n'? x.p.n : (isFinite(x[PXV.sort])? x[PXV.sort] : Infinity);
+  rows.sort((a,b) => { const A = key(a), B = key(b); return (A<B? -1 : A>B? 1 : 0)*PXV.dir; });
+  const cnt = {all:PXROWS.length, loss:PXROWS.filter(x=>x.profit<0).length, below:PXROWS.filter(x=>x.margin<m).length};
+  $('pxBar').querySelectorAll('[data-show]').forEach(b => { const k = b.dataset.show; b.setAttribute('aria-pressed', String(PXV.show===k));
+    b.textContent = ({all:'All', loss:'Losing money', below:'Below '+PX.target+'%'})[k]+' ('+cnt[k]+')'; });
+  $('pxFew').checked = PXV.few;
+  $('pxCount').textContent = rows.length===PXROWS.length? '' : 'Showing '+rows.length+' of '+PXROWS.length;
+  const th = ([k,lab]) => { const on = PXV.sort===k, arrow = on? (PXV.dir>0? ' ▲' : ' ▼') : '';
+    if(k==='try'||k==='np'||k==='chg') return '<th>'+lab+'</th>';
+    return '<th'+(k==='name'?' class="pxname"':'')+' aria-sort="'+(on? (PXV.dir>0?'ascending':'descending') : 'none')+'"><button type="button" class="pxsort" data-k="'+k+'">'+(k==='tgt'? 'Price for '+PX.target+'%' : lab)+arrow+'</button></th>'; };
+  const cell = (v, cls, sub) => '<td class="num '+(cls||'')+'">'+v+(sub? '<small class="what">'+sub+'</small>' : '')+'</td>';
+  $('pxTable').innerHTML = !PXROWS.length? '<tbody><tr><td class="muted">No paid orders in this period.</td></tr></tbody>'
+    : '<thead><tr>'+PXCOLS.map(th).join('')+'</tr></thead><tbody>'
+      + (rows.length? rows.map(x => '<tr class="'+(x.profit<0?'loss':'')+'"><td class="pxname" title="'+esc(x.name)+'"><b>'+esc(x.name)+(x.p.costed?'':' *')+'</b><small class="what">'+esc(x.p.skuText || x.p.ms || '')+'</small></td>'
         + cell(x.p.n) + cell(money(x.asp)) + cell(money(x.fixed)) + cell(money(x.lost*100))
-        + cell(money(x.profit), x.profit<0?'hot':'') + cell(pct(x.profit/x.asp), x.profit<0?'hot': x.profit/x.asp<m?'warn':'ok')
+        + cell(money(x.profit), x.profit<0?'hot':'')
+        + cell(pct(x.margin), x.profit<0?'hot': x.margin<m?'warn':'ok')
         + (x.p.n<3? '<td class="num muted" colspan="2">too few orders</td>'
           : cell(isFinite(x.be)? money(Math.ceil(x.be)) : '—', x.asp<x.be?'hot':'') + cell(isFinite(x.tgt)? money(Math.ceil(x.tgt)) : 'not reachable', x.asp<x.tgt?'warn':''))
-        + '<td class="num"><label class="sr" for="px'+i+'" style="position:absolute;left:-9999px">Try price for '+esc(x.p.name)+'</label><input type="number" min="1" step="1" id="px'+i+'" data-i="'+i+'" value="'+Math.round(x.asp)+'"></td>'
-        + '<td class="num" id="pxn'+i+'">'+money(x.profit)+'</td><td class="num" id="pxd'+i+'">—</td></tr>').join('') + '</tbody>'
-    : '<tbody><tr><td class="muted">No paid orders in this period.</td></tr></tbody>';
+        + '<td class="num pxtry"><label class="sr" for="px'+x.i+'" style="position:absolute;left:-9999px">Try price for '+esc(x.name)+'</label><input type="number" min="1" step="1" id="px'+x.i+'" data-i="'+x.i+'" value="'+Math.round(x.asp)+'">'
+        + '</td><td class="num" id="pxn'+x.i+'">'+money(x.profit)+'</td><td class="num" id="pxd'+x.i+'">—</td></tr>').join('')
+        : '<tr><td colspan="12" class="muted">No products match.</td></tr>')
+      + '</tbody>';
+  $('pxTable').querySelectorAll('.pxsort').forEach(b => b.onclick = () => { const k = b.dataset.k;
+    PXV.dir = PXV.sort===k? -PXV.dir : (k==='name'||k==='be'||k==='tgt'? 1 : (k==='n'||k==='asp'? -1 : 1)); PXV.sort = k; savePxv(); drawPricing(); });
 }
+const savePxv = () => { try{ localStorage.setItem('payout.pxview', JSON.stringify(Object.assign({}, PXV, {q:''}))); }catch(e){} };
+$('pxBar').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; PXV.show = b.dataset.show; savePxv(); drawPricing(); });
+$('pxFew').addEventListener('change', e => { PXV.few = e.target.checked; savePxv(); drawPricing(); });
+$('pxQ').addEventListener('input', e => { PXV.q = e.target.value; drawPricing(); });
 $('pxTable').addEventListener('input', e => {
   const i = e.target.dataset.i; if(i===undefined) return; const x = PXROWS[+i], price = N(e.target.value);
   const np = x.profitAt(price), d = (np - x.profit)*x.p.n;
