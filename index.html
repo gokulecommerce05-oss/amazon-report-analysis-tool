@@ -514,6 +514,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <label>From <input type="date" id="from"></label>
       <label>To <input type="date" id="to"></label>
       <button class="btn ghost" id="resetDates" type="button">All dates</button>
+      <button class="btn" id="ownerBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6"></path></svg>Owner's report</button>
       <button class="btn ghost" id="exportBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>Download PDF</button>
     </section>
 
@@ -678,6 +679,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 const files = new Map(); // name -> {platform, rows} (Amazon) or {platform, lines, extras} (Flipkart, Meesho)
 const rets = new Map();  // name -> {platform:'Returns', rp:'Flipkart'|'Meesho', rows} returns reports
 const sales = new Map(); // name -> {platform:'Sales', rows} Flipkart Earn More sales reports
+const OR = {alerts:[], wk:null, rt:null}; // latest alerts, weekly payouts and RTO analysis, for the owner's report
 let dateFrom = null, dateTo = null, prodSort = {key:'sales', dir:-1}, active = null;
 const PLATFORMS = ['Amazon','Flipkart','Meesho'];
 const $ = id => document.getElementById(id);
@@ -1328,7 +1330,7 @@ let multi = false, amazonCsv = false; // amazonCsv: Amazon tab is showing the tr
 const LEVEL = {bad:'HIGH', warn:'MEDIUM', info:'GOOD TO KNOW', good:'ALL GOOD'};
 function drawAlerts(A){
   const rank={bad:0,warn:1,info:2,good:3};
-  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost);
+  A.sort((a,b)=> rank[a.sev]-rank[b.sev] || b.cost-a.cost); OR.alerts = A.slice();
   $('alerts').innerHTML = A.map(a=>'<li class="'+a.sev+'"><span class="lvl">'+LEVEL[a.sev]+'</span><h3>'+esc(a.title)+'</h3><span class="cost num">'+(a.cost>0? money(a.cost):'')+'</span><p class="why">'+esc(a.why)+'</p><p class="do"><b>Do:</b> '+esc(a.todo)+'</p></li>').join('');
 }
 // result sentence + "where the money went" bars: what you keep first, then every cut, biggest first
@@ -1432,6 +1434,7 @@ function rtoAnalysis(items){
     showRto: rows.some(r=>r.rto)};
 }
 function drawRto(R){
+  OR.rt = R;
   const head = R.showRto? '<th>Orders</th><th>RTO</th><th>Returns</th><th>Came back</th><th>Charges lost</th>' : '<th>Orders</th><th>Refunds</th><th>Refund rate</th><th>Charges lost</th>';
   const row = g => '<tr><td>'+esc(g.k)+'</td><td class="num">'+g.n+'</td>'+(R.showRto? '<td class="num">'+g.rto+'</td><td class="num">'+g.ret+'</td>' : '<td class="num">'+(g.rto+g.ret)+'</td>')
     + '<td class="num '+(g.n>=5 && g.rate>=Math.max(R.avg*1.5,R.avg+0.08)?'hot':'')+'">'+pct(g.rate)+'</td><td class="num">'+money(g.lost)+'</td></tr>';
@@ -1815,7 +1818,7 @@ function drawSide(items){
 }
 // weekly line chart with a dashed average line
 function drawWeeks(wk){
-  const keys=[...wk.keys()].sort(), vals=keys.map(k=>wk.get(k));
+  const keys=[...wk.keys()].sort(), vals=keys.map(k=>wk.get(k)); OR.wk = {keys, vals};
   if(!keys.length){ $('weeks').innerHTML='<p class="muted">No payments in this period.</p>'; return; }
   const W=1000, H=200, pad=16, lo=Math.min(0,...vals), hi=Math.max(1,...vals), n=keys.length;
   const x = i => n>1? pad+i*(W-2*pad)/(n-1) : W/2, y = v => H-pad-(v-lo)/((hi-lo)||1)*(H-2*pad);
@@ -2401,6 +2404,107 @@ $('aiNew').onclick = () => { $('aiLog').innerHTML = ''; aiAdd('bot', 'New chat. 
 $('aiFab').addEventListener('click', () => { const t = document.querySelector('.aitip'); if(t) t.remove(); try{ localStorage.setItem('payout.aitip','1'); }catch(e){} });
 try{ if(localStorage.getItem('payout.aitip')){ const t = document.querySelector('.aitip'); if(t) t.remove(); } }catch(e){}
 aiAdd('bot', 'Hey there! 👋 Ask me anything about your files: profit, a product name, losing products, fees, COD returns, a state, or money to recover. Tap a question below, type, or use the mic.');
+// ---- owner's report: one printable page per platform (or all channels), built from what is loaded ----
+function ownerReport(){
+  if(!AICTX) return;
+  const P = AICTX.active, all = P==='All' || !P, S = aiSummaries(), T = PLDATA && PLDATA.tot;
+  let f0 = AICTX.f0, t0 = AICTX.t0;
+  if(!all && AICTX.view[P]){ const v = AICTX.view[P], ds = v.rows.concat(v.lines).map(r => +r.date).filter(Boolean); if(ds.length){ f0 = Math.min(...ds); t0 = Math.max(...ds); } }
+  const dd = d => new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const m = v => money(Math.round(v)||0), pc = (a,b) => b? (a/b*100).toFixed(1)+'%' : '–', E = esc;
+  const kpi = (l,b,s,c) => '<div class="kpi"><small>'+l+'</small><b class="'+(c||'')+'">'+b+'</b><span>'+s+'</span></div>';
+  let h = '';
+  if(all){
+    const tot = S.reduce((a,x) => ({v:a.v+x.value, p:a.p+x.payout, pr:a.pr+x.profit, o:a.o+x.orders}), {v:0,p:0,pr:0,o:0});
+    h += '<section class="card verdict"><h2>All channels</h2><p>'+tot.o.toLocaleString('en-IN')+' orders worth <b>'+m(tot.v)+'</b>; the platforms paid you <b>'+m(tot.p)+'</b>'
+      + (costs? ' and you kept <b>'+m(tot.pr)+' profit after product cost ('+pc(tot.pr,tot.v)+')</b>' : '')+'.</p>'
+      + (costs && S.length>1? '<p>'+S.slice().sort((a,b) => b.profit/b.value - a.profit/a.value).map((x,i) => '<b>'+x.p+'</b> '+pc(x.profit,x.value)+(i===0? ' (best)' : '')).join(' · ')+'</p>' : '')+'</section>'
+      + '<section class="card"><h2>Channels</h2><div class="tbl"><table><tr><th>Channel</th><th class="n">Orders</th><th class="n">Order value</th><th class="n">Paid to you</th><th class="n">Kept</th><th class="n">Returns</th><th class="n">Ads</th>'+(costs?'<th class="n">Profit</th><th class="n">Margin</th>':'')+'</tr>'
+      + S.map(x => '<tr><td><b>'+x.p+'</b></td><td class="n">'+x.orders+'</td><td class="n">'+m(x.value)+'</td><td class="n">'+m(x.payout)+'</td><td class="n">'+pc(x.payout,x.value)+'</td><td class="n">'+pc(x.returns,x.orders)+'</td><td class="n">'+m(x.ads)+'</td>'+(costs? '<td class="n '+(x.profit<0?'bad':'good')+'">'+m(x.profit)+'</td><td class="n">'+pc(x.profit,x.value)+'</td>' : '')+'</tr>').join('')
+      + '</table></div><p class="note">Open one platform tab and press Owner\'s report again for its full report with actions.</p></section>';
+  } else {
+    const x = S.find(s => s.p===P) || {orders:0,value:0,payout:0,returns:0,ads:0,profit:0};
+    const marg = x.value? x.profit/x.value : 0, wkv = OR.wk? OR.wk.vals : [], g = wkv.length>=3 && wkv[1]? wkv[wkv.length-1]/wkv[1]-1 : null;
+    const leaks = T? [['returns and refunds', -T.refund], ['shipping', -T.shipping], ['platform fees', -T.fees], ['ads', -T.ads]].sort((a,b) => b[1]-a[1]) : [];
+    const grade = !costs? '' : marg>=0.2? '<b class="good">a healthy channel</b>' : marg>=0.1? '<b class="warn">making thin profit</b>' : '<b class="bad">barely profitable</b>';
+    h += '<section class="card verdict"><h2>The verdict</h2><p>You sold <b>'+m(x.value)+'</b> on '+E(P)+' ('+x.orders+' orders). '+E(P)+' paid you <b>'+m(x.payout)+'</b>'
+      + (costs? ', and after purchase cost you kept <b>'+m(x.profit)+' profit ('+pc(x.profit,x.value)+')</b>: '+grade+'.' : '. Add your business sheet to see profit.')+'</p>'
+      + (g!=null? '<p>Weekly payouts went '+(g>=0? '<b class="good">up '+Math.round(g*100)+'%</b>' : '<b class="bad">down '+Math.round(-g*100)+'%</b>')+' over the period ('+m(wkv[1])+' → '+m(wkv[wkv.length-1])+' a week).</p>' : '')
+      + (leaks.length? '<p>Biggest costs after the product: <b>'+leaks.slice(0,2).map(l => l[0]+' '+m(l[1])+' ('+pc(l[1],x.value)+')').join('</b> and <b>')+'</b>.'
+        + (costs && T && T.net? ' Purchase cost is <b>'+pc(T.cogs,T.net)+' of net sales</b>'+(T.cogs/T.net>0.6? ', too high: prices are close to cost.' : '.') : '')+'</p>' : '')+'</section>';
+    // numbers
+    const rt = OR.rt, cod = rt && rt.byPay.find(q => q.k==='COD'), pre = rt && rt.byPay.find(q => q.k==='Prepaid');
+    h += '<section class="card"><h2>In numbers</h2><div class="kpis">'+kpi('Orders paid', x.orders, '')+kpi('Order value', m(x.value), '')+kpi('Paid to you', m(x.payout), pc(x.payout,x.value)+' of order value')
+      + (costs? kpi('Profit after product cost', m(x.profit), pc(x.profit,x.value)+' · before packing', marg<0.1?'bad':'good') : '')
+      + kpi('Returns & RTO', pc(x.returns,x.orders), x.returns+' orders', x.returns/Math.max(1,x.orders)>0.15?'bad':'')
+      + (cod && pre && cod.n>=10 && pre.n>=10? kpi('COD came back', pc(cod.rto+cod.ret, cod.n), 'vs '+pc(pre.rto+pre.ret, pre.n)+' prepaid', 'bad') : '')
+      + kpi('Ads', m(x.ads), pc(x.ads,x.value)+' of order value') + (T && T.taxes<0? kpi('Tax to claim back', m(-T.taxes), 'TCS + TDS', 'good') : '')+'</div></section>';
+    // where the money went
+    if(T){ const rows = [['Purchase cost', T.cogs, 'units the buyer kept'], ['Refunds (RTO + returns)', -T.refund, 'most goods come back'], ['Shipping', -T.shipping, ''], ['Platform fees', -T.fees, ''], ['Ads', -T.ads, ''], ['TCS / TDS held', -T.taxes, 'claim it back'], ['Discounts, other', -(T.discount+T.other), '']].filter(r => Math.abs(r[1])>=1);
+      const mx = Math.max(1, ...rows.map(r => Math.abs(r[1])), Math.abs(T.payout-T.cogs));
+      h += '<section class="card"><h2>Where the '+m(T.sale)+' went</h2><div class="wf">'+rows.map(r => '<div class="row"><span>'+r[0]+(r[2]? '<small>'+r[2]+'</small>' : '')+'</span><div class="bar" style="width:'+(Math.abs(r[1])/mx*100)+'%;background:'+(r[0].startsWith('Purchase')?'var(--amber)': r[0].startsWith('TCS')?'var(--muted)':'var(--red)')+'"></div><span class="num bad">'+m(-Math.abs(r[1]))+'</span></div>').join('')
+        + (costs? '<div class="row"><span><b>Profit</b></span><div class="bar" style="width:'+(Math.max(0,T.payout-T.cogs)/mx*100)+'%;background:var(--green)"></div><span class="num '+(T.payout-T.cogs<0?'bad':'good')+'">'+m(T.payout-T.cogs)+'</span></div>' : '')+'</div></section>'; }
+    // actions
+    const acts = [], pts = (PXPLAT===P? PXROWS : []).filter(r => r.p.n>=3 && r.p.costed && isFinite(r.tgt) && r.profit/r.asp < PX.target/100)
+      .map(r => Object.assign({gain:(r.profitAt(r.tgt)-r.profit)*r.p.n}, r)).sort((a,b) => b.gain-a.gain).slice(0,6);
+    if(pts.length) acts.push(['Raise prices on '+pts.length+' product'+(pts.length>1?'s':'')+' below your '+PX.target+'% target', '≈ +'+m(sum(pts, r => r.gain))+' at the same orders',
+      '<div class="tbl"><table><tr><th>Product</th><th class="n">Orders</th><th class="n">Price now</th><th class="n">Profit / order</th><th class="n">Break-even</th><th class="n">Price for '+PX.target+'%</th><th class="n">Gain</th></tr>'
+      + pts.map(r => '<tr><td>'+E(short(r.name||r.p.name,48))+'</td><td class="n">'+r.p.n+'</td><td class="n">'+m(r.asp)+'</td><td class="n '+(r.profit<0?'bad':'')+'">'+m(r.profit)+'</td><td class="n">'+(isFinite(r.be)? m(Math.ceil(r.be)) : '–')+'</td><td class="n">'+m(Math.ceil(r.tgt))+'</td><td class="n good">+'+m(r.gain)+'</td></tr>').join('')
+      + '</table></div><p class="note">Raise in steps of ₹20–30 a week and watch orders. If orders drop, sell a 2-pack instead.</p>']);
+    if(cod && pre && cod.n>=10 && cod.rate > pre.rate*1.5) acts.push(['Stop the COD return leak', '', '<p>'+pc(cod.rto+cod.ret,cod.n)+' of COD orders came back against '+pc(pre.rto+pre.ret,pre.n)+' of prepaid. Confirm every COD order by WhatsApp before dispatch and offer a small prepaid discount.'
+      + (rt.flagged.length? ' Confirm or go prepaid-only for: <b>'+rt.flagged.slice(0,5).map(s => E(s.k)+' ('+pc(s.rto+s.ret,s.n)+')').join(', ')+'</b>.' : '')+'</p>']);
+    const R = recovery(AICTX.data), cl = R.claims.filter(c => c.p===P), miss = R.missing.filter(q => q.p===P), sh = R.ship.filter(q => q.p===P);
+    if(cl.length || miss.length || sh.length) acts.push(['Recover money you are owed', (cl.length? cl.length+' claims' : '')+(miss.length? ' · '+miss.length+' unpaid orders' : '')+(sh.length? ' · '+m(sum(sh,q=>q.extra))+' extra shipping' : ''),
+      (cl.length? '<div class="tbl"><table><tr><th>Order</th><th>Problem</th><th class="n">Value</th></tr>'+cl.slice(0,20).map(c => '<tr><td>'+E(c.r.order)+'</td><td>'+E(short(c.what,60))+'</td><td class="n">'+(c.r.value? m(c.r.value) : '–')+'</td></tr>').join('')+'</table></div>' : '')
+      + (miss.length? '<p>'+miss.length+' shipped orders were never paid ('+m(sum(miss,q=>q.amt||0))+'): raise a ticket for each.</p>' : '')
+      + (sh.length? '<p>'+sh.length+' orders were charged more shipping than usual for the same product and state: ask for a weight-slab review.</p>' : '')
+      + '<p class="note">Claims need the unboxing video of the returned parcel.</p>']);
+    const sold = PRLAST.filter(p => p.n>=3), losing = sold.filter(p => p.costed && p.profit<0), best = sold.filter(p => p.costed && p.profit>0).sort((a,b) => (b.ppo||0)-(a.ppo||0)).slice(0,3);
+    if(x.ads>0 && costs) acts.push(['Make ads pay', m(x.ads)+' spent'+(x.ads>x.profit? ', more than your profit' : ''),
+      '<ul>'+(losing.length? '<li><b>Pause ads</b> on products that lose money: '+losing.slice(0,4).map(p => E(short(p.title||p.name,32))).join(', ')+'.</li>' : '')
+      + (best.length? '<li><b>Put the budget</b> on the best profit per order: '+best.map(p => E(short(p.title||p.name,32))+' ('+m(p.ppo)+')').join(', ')+'.</li>' : '')+'<li>Download the ads campaign report to see which ads actually sold.</li></ul>']);
+    const retHigh = sold.filter(p => p.refRate>=0.25 && p.n>=5).sort((a,b) => b.ref-a.ref).slice(0,4);
+    if(retHigh.length) acts.push(['Fix the products that keep coming back', '', '<p>'+retHigh.map(p => '<b>'+E(short(p.title||p.name,40))+'</b> '+pc(p.ref,p.n)).join(' · ')+'. Check photos and size against the real product, show size with a hand or coin, and pack fragile items better.</p>']);
+    if(T && T.taxes<0) acts.push(['Claim back TCS / TDS', m(-T.taxes), '<p>Ask your accountant to claim TCS in GSTR-3B and TDS in the income-tax return. It is your money.</p>']);
+    const nc = PRLAST.filter(p => costs && !p.costed && p.n>0), dataFix = [];
+    if(!costs) dataFix.push('Add your business sheet (SKU Mapping + Purchase Cost) to see profit.');
+    if(nc.length) dataFix.push('Add purchase cost for: '+nc.slice(0,6).map(p => E(short(p.title||p.name,30))).join(', ')+'.');
+    if(costs && costs.problems.length) dataFix.push(costs.problems.slice(0,3).map(E).join(' '));
+    if(!N(BIZ.pack)) dataFix.push('Enter your packing cost per order (Profit &amp; loss card): profit here does not include packing yet.');
+    if(dataFix.length) acts.push(['Complete the data', '', '<ul>'+dataFix.map(t => '<li>'+t+'</li>').join('')+'</ul>']);
+    h += '<section class="card"><h2>What to do</h2><ol class="acts">'+acts.map(a => '<li><b>'+a[0]+'</b>'+(a[1]? '<span class="gain">'+a[1]+'</span>' : '')+a[2]+'</li>').join('')+'</ol></section>';
+    // scorecard
+    const top = PRLAST.filter(p => p.n>0).slice().sort((a,b) => b.sales-a.sales).slice(0,14);
+    if(top.length) h += '<section class="card"><h2>Product scorecard</h2><div class="tbl"><table><tr><th>Product</th><th class="n">Orders</th><th class="n">Avg price</th><th class="n">Came back</th>'+(costs?'<th class="n">Profit / order</th><th class="n">Margin</th>':'')+'<th>Action</th></tr>'
+      + top.map(p => '<tr><td>'+E(short(p.title||p.name,48))+'<small>'+E(short(p.skuText||'',40))+'</small></td><td class="n">'+p.n+'</td><td class="n">'+m(p.asp||0)+'</td><td class="n '+(p.refRate>=0.25&&p.n>=5?'bad':'')+'">'+(p.ref? pc(p.ref,p.n) : '–')+'</td>'
+        + (costs? (p.costed? '<td class="n '+(p.ppo<0?'bad':'')+'">'+m(p.ppo||0)+'</td><td class="n">'+pc(p.profit,p.sales)+'</td>' : '<td class="n" colspan="2">no cost</td>') : '')
+        + '<td><span class="tag t-'+(p.act? ({bad:'bad',warn:'warn',ok:'ok'})[p.act[0]]||'ok' : 'ok')+'">'+E(p.act? p.act[1] : '')+'</span></td></tr>').join('')+'</table></div></section>';
+    const prob = OR.alerts.filter(a => a.sev==='bad').slice(0,5);
+    if(prob.length) h += '<section class="card"><h2>Problems found</h2><ul class="probs">'+prob.map(a => '<li><b>'+E(a.title)+'</b>'+(a.cost>0? ' <span class="bad">'+m(a.cost)+'</span>' : '')+'<br><span class="note">'+E(a.why)+' <b>Do:</b> '+E(a.todo)+'</span></li>').join('')+'</ul></section>';
+  }
+  const title = (all? 'All channels' : P)+' · owner\'s report';
+  const css = ':root{--bg:#F3F5F4;--card:#fff;--ink:#12201C;--muted:#4D615B;--line:#DDE3E1;--soft:#EEF2F1;--green:#0B6B57;--green-s:#E2F4EE;--amber:#B86E00;--amber-s:#FFF1E0;--red:#9B1C1C;--red-s:#FBE7E5}'
+    + '@media (prefers-color-scheme:dark){:root{--bg:#111A1C;--card:#182326;--ink:#E7EEEC;--muted:#A3B1AF;--line:#2B393C;--soft:#1F2C2F;--green:#6CCBAE;--green-s:#173A32;--amber:#E8B449;--amber-s:#3A2F14;--red:#F0857C;--red-s:#3D1F1C}}'
+    + '*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}main{max-width:980px;margin:0 auto;padding:24px 16px 48px}'
+    + 'h1{font-size:26px;margin:0 0 4px}h2{font-size:19px;margin:0 0 12px}.sub,.note{color:var(--muted)}.note{font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0}'
+    + '.verdict{border:2px solid var(--amber);background:var(--amber-s)}.verdict p{margin:6px 0}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.kpi{background:var(--soft);border-radius:12px;padding:12px 14px}'
+    + '.kpi small{display:block;color:var(--muted);font-weight:600;font-size:13px}.kpi b{display:block;font-size:22px;margin:2px 0}.kpi span{color:var(--muted);font-size:13px}.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}'
+    + '.wf{display:grid;gap:8px}.wf .row{display:grid;grid-template-columns:minmax(120px,190px) 1fr 92px;gap:10px;align-items:center;font-size:14px}.wf .bar{height:16px;border-radius:4px;min-width:2px}.wf .num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}.wf small{display:block;color:var(--muted);font-size:12px}'
+    + 'ol.acts{margin:0;padding:0;list-style:none;counter-reset:a}ol.acts>li{counter-increment:a;position:relative;padding:14px 14px 14px 52px;border:1px solid var(--line);border-radius:12px;margin:10px 0}'
+    + 'ol.acts>li::before{content:counter(a);position:absolute;left:14px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}'
+    + '.gain{display:inline-block;background:var(--green-s);color:var(--green);font-weight:800;border-radius:999px;padding:1px 10px;font-size:13px;margin-left:6px}.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}'
+    + 'table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--soft);font-size:12px;text-transform:uppercase;color:var(--muted);white-space:nowrap}'
+    + 'td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}td small{display:block;color:var(--muted);font-size:12px}tr:last-child td{border-bottom:0}.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 8px}'
+    + '.t-bad{background:var(--red-s);color:var(--red)}.t-warn{background:var(--amber-s);color:var(--amber)}.t-ok{background:var(--green-s);color:var(--green)}.probs{padding-left:18px}.probs li{margin:8px 0}'
+    + '.bar-top{display:flex;gap:8px;justify-content:flex-end}.bar-top button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}@media print{.bar-top{display:none}body{background:#fff}.card{break-inside:avoid}}';
+  const doc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+E(title)+'</title><style>'+css+'</style></head><body><main>'
+    + '<div class="bar-top"><button onclick="window.print()">Print / save PDF</button></div><h1>2G VIBE · '+E(title)+'</h1><p class="sub">'+dd(f0)+' – '+dd(t0)+' (payment dates) · made in your browser from the files you added · '+new Date().toLocaleDateString('en-IN')+'</p>'+h
+    + '<p class="note">Profit = paid to you − purchase cost of units the buyer kept'+(N(BIZ.pack)? ' − packing' : '')+'. Gains assume the same number of orders.</p></main></body></html>';
+  const url = URL.createObjectURL(new Blob([doc], {type:'text/html'})), w = window.open(url, '_blank');
+  if(!w){ const a = document.createElement('a'); a.href = url; a.download = '2G-Vibe-'+(all?'All':P)+'-owner-report.html'; document.body.appendChild(a); a.click(); a.remove(); }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+$('ownerBtn').onclick = ownerReport;
 })();
 </script>
 </body>

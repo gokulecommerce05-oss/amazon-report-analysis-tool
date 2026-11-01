@@ -47,6 +47,17 @@ With payment files and your business sheet loaded, the **Money to recover** card
 - **Returns marked delivered to you**: in the returns card, set each return the platform says was delivered back to *Received OK*, *Damaged / wrong / empty* or *Never arrived* (saved in that browser). The last two go straight to the claim list.
 - **Returns to claim**: lost parcels, returns not back after 30 days and damaged/missing/wrong-item returns from the returns reports (SPF on Flipkart, SAFE-T on Amazon, Meesho claims).
 
+## Owner's report
+
+Press **Owner's report** (next to Download PDF) to open a one-page report for the platform tab you are on, built in your browser from the files you added:
+
+- **Verdict**: sold, paid to you, profit and margin, weekly trend, biggest costs, purchase cost as a share of net sales.
+- **In numbers** and **where the money went**.
+- **What to do**, with ₹ impact: products to reprice (break-even and target price, gain at the same orders), COD and state RTO, claims / unpaid orders / extra shipping, where to put or pause ads, products that keep coming back, TCS/TDS to claim, and data still missing.
+- **Product scorecard** with an action per product, and the top problems found.
+
+On the *All platforms* tab it compares the channels. Use **Print / save PDF** on the report to keep or share it. The report is never uploaded.
+
 ## Profit after product cost
 
 Download your business Google Sheet (**File → Download → Microsoft Excel**) and drop it on the page once. The tool reads the **SKU Mapping** tab (platform SKU → Master SKU) and the **Purchase Cost** tab (cost per Master SKU), and from then on shows profit per platform and per product, groups the same product across platforms, and flags products that lose money, sold SKUs with no cost, and SKUs mapped to two Master SKUs. The costs are saved only in that browser (never on GitHub); click × on the "Product costs" chip to forget them.
