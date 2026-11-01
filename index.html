@@ -295,7 +295,10 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .pxt thead th{box-shadow:inset 0 -1px 0 var(--line);vertical-align:bottom} .pxt .pxname{box-shadow:inset -1px 0 0 var(--line)} .pxt thead th.pxname{box-shadow:inset -1px -1px 0 var(--line)}
 .pxt tbody tr:nth-child(even) td.pxname{background:var(--bg)}
 .pxt tfoot td{position:sticky;bottom:0;z-index:1;background:var(--soft);font-weight:700;box-shadow:inset 0 1px 0 var(--line)} .pxt tfoot td.pxname{z-index:2}
-.prt td.pxname{max-width:210px;min-width:160px} .prt th,.prt td{padding-left:8px;padding-right:8px} .rtotag{color:var(--turmeric);font-weight:800} .seeall{font-weight:700;color:var(--peacock);text-decoration:none} .seeall:hover{text-decoration:underline}
+.prt td.pxname{max-width:210px;min-width:160px} .prt th,.prt td{padding-left:8px;padding-right:8px} .ins{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 4px;font-size:14px;color:var(--ink)} .ins:empty{display:none} .ins span{position:relative;padding-left:14px} .ins span::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--peacock)}
+.cutx{color:var(--kumkum)} td.wrap{white-space:normal;min-width:150px;max-width:190px} .pxt td.num small.what{white-space:nowrap}
+.pxt td:not(.num){text-align:left} .pxt th:not(.numh){text-align:left} .pxt th.numh{text-align:right} td.act{font-size:13px;font-weight:600;white-space:normal;min-width:140px;max-width:170px;line-height:1.35} td.act.bad{color:var(--kumkum)} td.act.warn{color:var(--turmeric)} td.act.ok{color:var(--leaf)}
+.rtotag{color:var(--turmeric);font-weight:800} .seeall{font-weight:700;color:var(--peacock);text-decoration:none} .seeall:hover{text-decoration:underline}
 @media (max-width:760px){ .pxt td.pxname{min-width:130px;max-width:150px} .pxt td.pxname b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical} .pxwrap{max-height:70vh} }
 .pxset{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;font-size:14px}
 .pxset input,#pxTable input{width:72px;min-height:36px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:var(--surface);font:inherit;text-align:right}
@@ -544,6 +547,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 
       <section class="card wide" id="sec-allprod" aria-labelledby="apH">
         <h2 id="apH">All products</h2>
+        <div class="ins" id="apIns"></div>
         <p class="sub">Every product in these dates. Click a column name to sort; the header, product names and totals stay in place while you scroll.</p>
         <div class="pxbar" id="prBar">
           <div class="seg" role="group" aria-label="Show products"><button type="button" data-show="all">All</button><button type="button" data-show="loss">Losing money</button><button type="button" data-show="ret">High returns</button><button type="button" data-show="nocost">No purchase cost</button></div>
@@ -603,6 +607,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 
       <section class="card wide" id="sec-returns" aria-labelledby="refTitle">
         <h2 id="refTitle">Refunds</h2>
+        <div class="ins" id="rtIns"></div>
         <p class="sub" id="refSub">Every order that came back in these dates. Click a column name to sort; the header, product names and totals stay in place while you scroll.</p>
         <div class="pxbar" id="rtBar">
           <div class="seg" role="group" aria-label="Show orders" id="rtSeg"></div>
@@ -1218,11 +1223,11 @@ function analyseGeneric(P, L, X, d0, d1){
   // products
   const Pm=new Map();
   I.forEach(i => { const key = i.ms || i.sku || i.prod || 'Charges for orders paid in an earlier settlement';
-    if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,sales:0,promo:0,fees:0,net:0,ref:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
-    const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold) p.n++; p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
+    if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,qty:0,sales:0,promo:0,fees:0,net:0,ref:0,rtoN:0,retN:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
+    const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold){ p.n++; p.qty+=i.qty||0; } p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
     p.cogs+=i.cogs; if(i.cogs) p.costed=true; if(i.noCost) p.nocost++;
     if(i.sold){ p.xs=(p.xs||0)+i.sale; p.xp=(p.xp||0)+i.payout; p.xv=(p.xv||0)+i.taxes+i.discount+i.refund; p.xr=(p.xr||0)+i.refund; p.xc=(p.xc||0)+i.cogs; } // pricing: this period's orders only
-    if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; } });
+    if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; if(i.rto) p.rtoN++; else p.retN++; } });
   const prods=[...Pm.values()].map(p => { const sk=[...p.skus];
     p.skuText = (p.ms? p.ms+' · ':'')+(sk.length? 'SKU '+sk.join(', ') : '');
     p.name = p.title? p.title+' ('+(sk.slice(0,2).join(', ')||p.ms)+(sk.length>2?'…':'')+')' : (sk.join(', ')||p.key);
@@ -1246,9 +1251,10 @@ function analyseGeneric(P, L, X, d0, d1){
   // returns list
   $('refTitle').textContent='Returns and RTO';
   const OT = (costs && costs.orders) || {}, hasOT = Object.keys(OT).length>0;
-  drawRetTable({kind:'generic', hasOT, rows: I.filter(i=>i.rto||i.ret).map(i => { const t = productTitle(P, i.ms, i.sku, i.prod), o = OT[low(String(i.order||''))];
+  const RX = retIndex(P);
+  drawRetTable({kind:'generic', hasOT, rows: I.filter(i=>i.rto||i.ret).map(i => { const t = productTitle(P, i.ms, i.sku, i.prod), o = OT[low(String(i.order||''))], x = RX.get(low(String(i.order||''))) || {};
     return {name:t || i.sku || i.prod || '', sub:t? 'SKU '+i.sku : '', date:i.date, order:i.order, type:i.rto? 'RTO' : i.status==='Refund'? 'Refund' : 'Customer return',
-      refund:i.refund, returnShip:i.returnShip, payout:i.payout, pay:o? o[0] : '', state:o? o[2] : ''}; })});
+      refund:i.refund, returnShip:i.returnShip, payout:i.payout, pay:o? o[0] : '', state:o? o[2] : '', courier:o? o[1] : '', reason:x.reason||'', claim:x.claim||''}; })});
   $('foot').textContent = FOOT[P] + (costs? COST_NOTE : '');
 
   const RT = rtoAnalysis(I.map(i => ({order:i.order, sold:i.sold, rto:i.rto, ret:i.ret, lost:(i.rto||i.ret)? -(i.shipping+i.returnShip+i.fees) : 0})));
@@ -1904,7 +1910,7 @@ function analyse(R, d0, d1){
   const OTa = (costs && costs.orders) || {};
   drawRetTable({kind:'amazon', hasOT:Object.keys(OTa).length>0, rows: refunds.map(r => { const o = OTa[low(String(r.order||''))];
     return {name:r.prod||'', sub:'', date:r.date, order:r.order, type:'Refund', pay:r.pay==='Cash on delivery'? 'COD' : r.pay? 'Prepaid' : (o? o[0] : ''),
-      taken:r.total, orig:paidByOrder.has(r.order)? paidByOrder.get(r.order) : null, state:o? o[2] : ''}; })});
+      taken:r.total, orig:paidByOrder.has(r.order)? paidByOrder.get(r.order) : null, state:o? o[2] : '', courier:o? o[1] : '', reason:'', claim:''}; })});
 
   const byOrder = {};
   orders.forEach(r => { const o = byOrder[r.order] || (byOrder[r.order] = {order:r.order, sold:true, rto:false, ret:false, lost:0, pay:r.pay==='Cash on delivery'? 'COD' : r.pay? 'Prepaid' : ''}); });
@@ -1975,6 +1981,14 @@ function drawProducts(prods){
   PRLAST = prods; drawAllProducts();
 }
 
+// order → reason and claim status from the returns reports (and your own received check)
+function retIndex(platform){
+  const m = new Map(); if(!rets.size) return m;
+  returnsReport().filter(X => X.p===platform).forEach(X => {
+    X.R.forEach(r => { const k = low(r.order); if(!m.has(k) || r.ret==='rto') m.set(k, {reason:r.reason, claim:''}); });
+    X.claims.forEach(c => { const k = low(c.r.order), e = m.get(k) || {}; e.claim = c.sev>=2 || /never arrived|damaged, used/i.test(c.what)? 'File claim' : 'Check on arrival'; m.set(k, e); }); });
+  return m;
+}
 // ---- every returned / refunded order: filter, search, sort, frozen header + product column + totals ----
 let RTL = {kind:'generic', rows:[], hasOT:false}, RTV = {show:'all', q:'', sort:'payout', dir:1};
 function drawRetTable(data){
@@ -1989,54 +2003,97 @@ function drawRetTable(data){
   const list = rows.filter(test(RTV.show)).filter(r => !q || low(r.name+' '+r.sub+' '+r.order+' '+r.state).includes(q));
   $('rtCount').textContent = list.length===rows.length? '' : 'Showing '+list.length+' of '+rows.length;
   const day = d => d? d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}) : '';
+  const pack = N(BIZ.pack), hasClaim = rows.some(r => r.claim);
+  rows.forEach(r => { r.loss = (A? r.taken : r.payout) - pack; });
   const cols = [['name','Product','text'],['date', A? 'Date' : 'Paid on','date'],['order','Order ID','text'],
-    ...(A? [] : [['type','Type','text']]), ...((A || RTL.hasOT)? [['pay','Payment','text']] : []), ...(RTL.hasOT? [['state','State','text']] : []),
-    ...(A? [['taken','Taken back','money'],['orig','Original payment','money']] : [['refund','Sale taken back','money'],['returnShip','Return shipping','money'],['payout','Net for this item','money']])];
+    ...(A? [] : [['type','Type & reason','text']]), ...(hasClaim? [['claim','Claim','text']] : []), ...((A || RTL.hasOT)? [['pay','Payment','text']] : []), ...(RTL.hasOT? [['state','State & courier','text']] : []),
+    ...(A? [['taken','Taken back','money'],['orig','Original payment','money']] : [['refund','Sale taken back','money'],['returnShip','Return shipping','money'],['payout','Net for this item','money']]),
+    ...(pack? [['loss','Loss incl. packing','money']] : [])];
+  // manager's summary of what came back
+  const ins = [], cnt = (f) => { const c = {}; rows.forEach(r => { const v = f(r); if(v) c[v] = (c[v]||0)+1; }); return Object.entries(c).sort((a,b) => b[1]-a[1])[0]; };
+  if(rows.length){
+    ins.push('Returns cost you <b class="cutx">'+money(sum(rows, r => A? r.taken : r.payout))+'</b>'+(pack? ' (+ '+money(pack*rows.length)+' packing)' : '')+' on '+rows.length+' orders.');
+    const tp = cnt(r => r.name); if(tp) ins.push('Most returned: '+esc(short(tp[0], 34))+' ('+tp[1]+').');
+    const ts = cnt(r => r.state); if(ts) ins.push('Most from: '+esc(ts[0])+' ('+ts[1]+').');
+    const rto = rows.filter(r => r.type==='RTO'), codR = rto.filter(r => r.pay==='COD').length; if(rto.length && rto.some(r => r.pay)) ins.push(pct(codR/rto.length)+' of RTO were COD.');
+    const tr = cnt(r => r.reason); if(tr) ins.push('Top reason: '+esc(short(tr[0], 40))+' ('+tr[1]+').');
+    const cl = rows.filter(r => r.claim==='File claim').length; if(cl) ins.push('<b class="cutx">'+cl+' to claim</b> (see Money to recover).');
+  }
+  $('rtIns').innerHTML = ins.map(t => '<span>'+t+'</span>').join('');
   const k = RTV.sort, d = RTV.dir;
   list.sort((a,b) => { const x = a[k], y = b[k]; if(x==null && y==null) return 0; if(x==null) return 1; if(y==null) return -1;
     return (typeof x==='string'? x.localeCompare(y) : x-y)*d; });
   const cell = (c, r) => { const v = r[c[0]];
     if(c[0]==='name') return '<td class="pxname" title="'+esc(r.name)+'"><b>'+esc(r.name||'—')+'</b>'+(r.sub? '<small class="what">'+esc(r.sub)+'</small>' : '')+'</td>';
-    if(c[2]==='money') return '<td class="num'+(c[0]==='payout' && v<0? ' hot' : '')+'">'+(v==null? '<span class="muted">earlier period</span>' : money(v))+'</td>';
+    if(c[2]==='money') return '<td class="num'+((c[0]==='payout'||c[0]==='loss') && v<0? ' hot' : '')+'">'+(v==null? '<span class="muted">earlier period</span>' : money(v))+'</td>';
     if(c[2]==='date') return '<td>'+day(v)+'</td>';
     if(c[0]==='order') return '<td class="num">'+esc(v||'')+'</td>';
-    if(c[0]==='type') return '<td>'+(v==='RTO'? '<b class="rtotag">RTO</b>' : esc(v))+'</td>';
+    if(c[0]==='type') return '<td class="wrap">'+(v==='RTO'? '<b class="rtotag">RTO</b>' : esc(v))+(r.reason? '<small class="what">'+esc(short(r.reason, 40))+'</small>' : '')+'</td>';
+    if(c[0]==='state') return '<td>'+esc(v||'—')+(r.courier? '<small class="what">'+esc(r.courier)+'</small>' : '')+'</td>';
+    if(c[0]==='claim') return '<td class="act '+(v==='File claim'? 'bad' : v? 'warn' : '')+'">'+esc(v||'')+'</td>';
     return '<td>'+esc(v||'—')+'</td>'; };
   const sumOf = key => sum(list, r => r[key]||0);
   $('refTable').innerHTML = !rows.length? '<tbody><tr><td>'+(A? 'No refunds in this period.' : 'No returns or RTO in this period.')+'</td></tr></tbody>'
-    : '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname':'')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
+    : '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname': c[2]==='money'||c[0]==='order'? ' numh' : '')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
       + (list.length? list.map(r => '<tr>'+cols.map(c => cell(c, r)).join('')+'</tr>').join('') : '<tr><td colspan="'+cols.length+'" class="muted">No orders match.</td></tr>')
       + '</tbody><tfoot><tr>'+cols.map((c,i) => i===0? '<td class="pxname"><b>Total · '+list.length+' order'+(list.length===1?'':'s')+'</b></td>' : c[2]==='money'? '<td class="num">'+money(sumOf(c[0]))+'</td>' : '<td></td>').join('')+'</tr></tfoot>';
   $('refTable').querySelectorAll('th.sort button').forEach(b => b.onclick = () => { const nk = b.parentNode.dataset.k;
-    RTV.dir = RTV.sort===nk? -RTV.dir : (['name','order','type','pay','state'].includes(nk)? 1 : nk==='date'? -1 : 1); RTV.sort = nk; drawRetTable(); });
+    RTV.dir = RTV.sort===nk? -RTV.dir : (['name','order','type','pay','state','claim'].includes(nk)? 1 : nk==='date'? -1 : 1); RTV.sort = nk; drawRetTable(); });
 }
 $('rtSeg').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; RTV.show = b.dataset.show; drawRetTable(); });
 $('rtQ').addEventListener('input', e => { RTV.q = e.target.value; drawRetTable(); });
 let PRLAST = [], PRV = {show:'all', q:''};
+function prodAction(p, m){
+  if(costs && p.costed && p.profit<0) return ['bad','Losing money: raise price or stop'];
+  if(p.n>=4 && p.refRate>=0.25) return ['warn','Fix returns: check photos, size, packing'];
+  if(costs && !p.costed && p.n>0) return ['warn','Add purchase cost'];
+  if(costs && p.costed && p.n>=3 && p.margin<m) return ['warn','Below '+PX.target+'% margin: raise price'];
+  if(costs && p.costed && p.n>=10 && p.margin>=m) return ['ok','Star: keep stock, push ads'];
+  if(!costs && p.n>=10 && p.kept<0.6) return ['warn','Keeps little: check fees and price'];
+  return ['', p.n<3? 'Too few orders to judge' : 'OK'];
+}
 function drawAllProducts(){
-  const amz = amazonCsv, all = PRLAST;
-  const cols=[['name','Product'],['n','Paid orders'],['sales','Sales'],['promo',amz?'Coupons':'Discounts'],['fees',amz?'Fees':'Fees & shipping'],['net','Net to you'],['perOrder','Per order'],['kept','Kept']]
-    .concat(amz? [['free','Free'],['ref','Refunds'],['refRate','Refund rate']] : [['ref','Returns & RTO'],['refRate','Return rate']])
-    .concat(costs? [['cogs','Product cost'],['profit','Profit']] : []);
+  const amz = amazonCsv, all = PRLAST, m = PX.target/100;
+  const totSales = sum(all, p => p.sales) || 1, totProfit = sum(all.filter(p => p.costed), p => Math.max(0, p.profit)) || 1;
+  all.forEach(p => { p.asp = p.n? p.sales/p.n : 0; p.feesAll = (p.promo||0)+(p.fees||0); p.share = p.sales/totSales;
+    p.ppo = p.n? p.profit/p.n : 0; p.margin = p.sales? p.profit/p.sales : 0; p.act = prodAction(p, m); p.actRank = ({bad:0, warn:1, ok:3})[p.act[0]] ?? 2; });
+  const cols=[['name','Product'],['actRank','Action'],['n','Orders'],['asp','Avg price'],['sales','Sales'],['feesAll',amz?'Fees & coupons':'Fees, shipping & discounts'],['net','Net to you'],['kept','Kept'],['refRate',amz?'Refunds':'Returns']]
+    .concat(costs? [['cogs','Product cost'],['profit','Profit'],['ppo','Profit / order'],['margin','Margin']] : []);
   const test = {all:()=>true, loss:p => costs && p.costed && p.profit<0, ret:p => p.n>=4 && p.refRate>=0.2, nocost:p => costs && !p.costed && p.n>0};
   if(!costs && (PRV.show==='loss'||PRV.show==='nocost')) PRV.show = 'all';
   $('prBar').querySelectorAll('[data-show]').forEach(b => { const k = b.dataset.show; b.hidden = !costs && (k==='loss'||k==='nocost');
     b.setAttribute('aria-pressed', String(PRV.show===k)); b.textContent = ({all:'All', loss:'Losing money', ret:'High returns', nocost:'No purchase cost'})[k]+' ('+all.filter(test[k]).length+')'; });
+  // manager's summary
+  const sold = all.filter(p => p.n>0), ins = [];
+  if(costs){ const top3 = sold.filter(p => p.costed).sort((a,b) => b.profit-a.profit).slice(0,3), t3 = sum(top3, p => Math.max(0,p.profit));
+    if(top3.length) ins.push('Top '+top3.length+' products bring <b>'+pct(t3/totProfit)+'</b> of your profit ('+top3.map(p => esc(short(p.title||p.name, 28))).join(', ')+').');
+    const lose = sold.filter(p => p.costed && p.profit<0); if(lose.length) ins.push('<b class="cutx">'+lose.length+' product'+(lose.length>1?'s':'')+' lose '+money(-sum(lose, p => p.profit))+'</b> in total.');
+    const nc = sold.filter(p => !p.costed); if(nc.length) ins.push(nc.length+' product'+(nc.length>1?'s have':' has')+' no purchase cost, so their profit is too high.'); }
+  const retAmt = sum(all, p => p.refAmt||0); if(retAmt) ins.push('Returns took back <b>'+money(-retAmt)+'</b> from your payouts.');
+  const top1 = sold.slice().sort((a,b) => b.sales-a.sales)[0]; if(top1) ins.push('Best seller: '+esc(short(top1.title||top1.name, 32))+' ('+pct(top1.share)+' of sales).');
+  $('apIns').innerHTML = ins.length? ins.map(t => '<span>'+t+'</span>').join('') : '';
   const q = low(PRV.q);
   const prods = all.filter(test[PRV.show]).filter(p => !q || low((p.title||'')+' '+p.name+' '+(p.skuText||'')+' '+(p.ms||'')).includes(q));
   $('prCount').textContent = prods.length===all.length? '' : 'Showing '+prods.length+' of '+all.length;
   const k=prodSort.key, d=prodSort.dir;
   prods.sort((a,b)=> k==='name'? d*a.name.localeCompare(b.name) : d*((a[k]||0)-(b[k]||0)));
-  const tot = {n:0,sales:0,promo:0,fees:0,net:0,free:0,ref:0,cogs:0,profit:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]||0));
-  let h='<thead><tr>'+cols.map(c=>'<th class="sort'+(c[0]==='name'?' pxname':'')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>';
-  prods.forEach(p=>{ const nm = p.title || p.name;
-    h+='<tr class="'+(costs && p.costed && p.profit<0?'loss':'')+'"><td class="pxname" title="'+esc(nm)+'"><b>'+esc(nm)+'</b><small class="what">'+esc(p.title? p.skuText||'' : p.ms||'')+'</small></td><td class="num">'+p.n+'</td><td class="num">'+money(p.sales)+'</td><td class="num">'+money(p.promo)+'</td><td class="num">'+money(p.fees)+'</td><td class="num">'+money(p.net)+'</td><td class="num">'+money(p.perOrder)+'</td><td class="num '+(p.n>=10&&p.kept<0.78?'hot':'')+'">'+pct(p.kept)+'</td>'+(amz? '<td class="num '+(p.free?'hot':'')+'">'+(p.free||'')+'</td>':'')+'<td class="num">'+(p.ref||'')+'</td><td class="num '+(p.n>=4&&p.refRate>=0.2?'hot':'')+'">'+(p.ref? pct(p.refRate):'')+'</td>'
-      +(costs? (p.costed? '<td class="num">'+money(p.cogs)+'</td><td class="num '+(p.profit<0?'hot':'')+'">'+money(p.profit)+'</td>' : '<td class="num muted" colspan="2">no cost</td>') : '')+'</tr>';
+  const tot = {n:0,sales:0,feesAll:0,net:0,ref:0,cogs:0,profit:0,refAmt:0}; prods.forEach(p=>Object.keys(tot).forEach(x=>tot[x]+=p[x]||0));
+  const td = (v, cls, sub) => '<td class="num '+(cls||'')+'">'+v+(sub? '<small class="what">'+sub+'</small>' : '')+'</td>';
+  let h='<thead><tr>'+cols.map(c=>'<th class="sort'+(c[0]==='name'?' pxname':'')+(c[0]==='actRank'?' actcol': c[0]==='name'? '' : ' numh')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>';
+  prods.forEach(p=>{ const nm = p.title || p.name, split = p.rtoN!=null && p.ref? p.rtoN+' RTO · '+p.retN+' ret.' : '';
+    h+='<tr class="'+(costs && p.costed && p.profit<0?'loss':'')+'"><td class="pxname" title="'+esc(nm)+'"><b>'+esc(nm)+'</b><small class="what">'+esc(p.title? p.skuText||'' : p.ms||'')+'</small></td>'
+      + '<td class="act '+p.act[0]+'">'+p.act[1]+'</td>'
+      + td(p.n, '', p.qty && p.qty!==p.n? p.qty+' units' : '') + td(money(p.asp)) + td(money(p.sales), '', (p.share*100).toFixed(1)+'%') + td(money(p.feesAll)) + td(money(p.net))
+      + td(pct(p.kept), p.n>=10&&p.kept<0.78?'hot':'') + td(p.ref? p.ref+' · '+pct(p.refRate) : '–', p.n>=4&&p.refRate>=0.2?'hot':'', split)
+      + (costs? (p.costed? td(money(p.cogs)) + td(money(p.profit), p.profit<0?'hot':'') + td(money(Math.round(p.ppo)||0), p.ppo<-0.5?'hot':'') + td(pct(p.margin), p.margin<0?'hot': p.margin<m?'warn':'ok') : '<td class="num muted" colspan="4">no purchase cost</td>') : '')
+      + '</tr>';
   });
   if(!prods.length) h+='<tr><td colspan="'+cols.length+'" class="muted">No products match.</td></tr>';
-  h+='</tbody><tfoot><tr><td class="pxname"><b>Total'+(prods.length<all.length? ' (shown)' : '')+'</b></td><td class="num">'+tot.n+'</td><td class="num">'+money(tot.sales)+'</td><td class="num">'+money(tot.promo)+'</td><td class="num">'+money(tot.fees)+'</td><td class="num">'+money(tot.net)+'</td><td class="num">'+money(tot.n? tot.net/tot.n:0)+'</td><td class="num">'+pct(tot.sales? tot.net/tot.sales:0)+'</td>'+(amz? '<td class="num">'+(tot.free||'')+'</td>':'')+'<td class="num">'+tot.ref+'</td><td class="num">'+pct(tot.n? tot.ref/tot.n:0)+'</td>'+(costs? '<td class="num">'+money(tot.cogs)+'</td><td class="num">'+money(tot.profit)+'</td>':'')+'</tr></tfoot>';
+  h+='</tbody><tfoot><tr><td class="pxname"><b>Total'+(prods.length<all.length? ' (shown)' : '')+'</b></td><td></td>'+td(tot.n)+td(money(tot.n? tot.sales/tot.n:0))+td(money(tot.sales))+td(money(tot.feesAll))+td(money(tot.net))
+    +td(pct(tot.sales? tot.net/tot.sales:0))+td(tot.ref+' · '+pct(tot.n? tot.ref/tot.n:0))
+    +(costs? td(money(tot.cogs))+td(money(tot.profit))+td(money(tot.n? tot.profit/tot.n:0))+td(pct(tot.sales? tot.profit/tot.sales:0)) : '')+'</tr></tfoot>';
   const t=$('prodTable'); t.innerHTML=h;
-  t.querySelectorAll('th.sort').forEach(th=>{ th.querySelector('button').onclick = () => { const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'?1:-1)}; drawAllProducts(); }; });
+  t.querySelectorAll('th.sort').forEach(th=>{ th.querySelector('button').onclick = () => { const nk=th.dataset.k; prodSort = {key:nk, dir: prodSort.key===nk? -prodSort.dir : (nk==='name'||nk==='actRank'?1:-1)}; drawAllProducts(); }; });
 }
 $('prBar').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if(!b) return; PRV.show = b.dataset.show; drawAllProducts(); });
 $('prQ').addEventListener('input', e => { PRV.q = e.target.value; drawAllProducts(); });
