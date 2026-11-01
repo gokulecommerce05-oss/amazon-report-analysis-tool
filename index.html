@@ -314,9 +314,6 @@ table.recv select{min-height:36px;border:1px solid var(--line);border-radius:8px
 .aipanel[hidden]{display:none}
 .aihead{display:flex;align-items:center;gap:6px;padding:12px 12px 10px 16px;border-bottom:1px solid var(--line)} .aihead small{display:block;font-size:12px}
 .aihead .sp{flex:1} .aiico{border:0;background:none;color:var(--ink);font-size:18px;width:36px;height:36px;border-radius:8px;cursor:pointer} .aiico:hover{background:var(--soft)}
-.aiset{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--soft);display:grid;gap:8px;font-size:13.5px}
-.aiset input{min-height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--surface);color:var(--ink);font:inherit}
-.aiset[hidden]{display:none} .aiset .row{display:flex;gap:8px} .aiset p{margin:0;font-size:12.5px;line-height:1.45}
 .ailog{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:14.5px;line-height:1.5}
 .aimsg{max-width:88%;padding:9px 12px;border-radius:12px;word-wrap:break-word} .aimsg.user{align-self:flex-end;background:var(--peacock);color:#fff;border-bottom-right-radius:4px}
 .aimsg.bot{align-self:flex-start;background:var(--soft);border-bottom-left-radius:4px} .aimsg.err{background:var(--kumkum-soft);color:var(--kumkum)}
@@ -603,16 +600,10 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
 </main>
 </div>
 
-<button type="button" id="aiFab" class="aifab" aria-expanded="false" aria-controls="aiPanel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"></path></svg>Ask AI</button>
+<button type="button" id="aiFab" class="aifab" aria-expanded="false" aria-controls="aiPanel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"></path></svg>Assistant</button>
 <section id="aiPanel" class="aipanel" hidden aria-label="AI assistant">
-  <div class="aihead"><div><b>AI assistant</b><small class="muted" id="aiKeyState"></small></div>
-    <span class="sp"></span><button type="button" class="aiico" id="aiNew" title="New chat" aria-label="New chat">↺</button><button type="button" class="aiico" id="aiGear" title="Settings" aria-label="AI settings">⚙</button><button type="button" class="aiico" id="aiClose" aria-label="Close">×</button></div>
-  <div class="aiset" id="aiSet" hidden>
-    <label for="aiKey"><b>Anthropic API key</b></label>
-    <input type="password" id="aiKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
-    <div class="row"><button type="button" class="btn" id="aiSave">Save</button><button type="button" class="btn ghost" id="aiForget">Forget key</button></div>
-    <p class="muted">Get a key at console.anthropic.com → API Keys. It is saved only in this browser. When you type your own question, a summary of your report (totals, months, products, fees, returns by state and courier; no customer names or addresses) is sent to Anthropic's Claude to answer it, about ₹1–4 per question on your Anthropic bill. The quick-question buttons never send anything.</p>
-  </div>
+  <div class="aihead"><div><b>Assistant</b><small class="muted">Free · answers from your files · nothing leaves this browser</small></div>
+    <span class="sp"></span><button type="button" class="aiico" id="aiNew" title="New chat" aria-label="New chat">↺</button><button type="button" class="aiico" id="aiClose" aria-label="Close">×</button></div>
   <div class="ailog" id="aiLog" aria-live="polite"></div>
   <div class="aiquick" id="aiQuick"></div>
   <form class="aiform" id="aiForm"><input type="text" id="aiQ" placeholder="Ask about sales, profit, returns…" aria-label="Your question" autocomplete="off"><button type="submit" class="btn" id="aiSend">Send</button></form>
@@ -1967,55 +1958,12 @@ window.addEventListener('afterprint', () => document.querySelectorAll('#report d
 render(); // shows saved product costs straight away
 // ---- AI chat: quick answers offline, free-form questions through Claude with the user's own API key ----
 let AICTX = null, PLDATA = null, PXPLAT = '';
-const AI_MODEL = 'claude-opus-5-5';
-const AI_SDK = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.135.0/+esm';
-const AI = {history:[], busy:false, key:''};
-try{ AI.key = localStorage.getItem('payout.aikey') || ''; }catch(e){}
 const rs = v => money(Math.round(v)||0);
 function aiSummaries(){
   if(!AICTX) return [];
   const {have, view} = AICTX;
   return have.map(p => Object.assign({p}, p==='Amazon' && !view[p].lines.length? amazonSummary(view[p].rows) : genericSummary(compute(p, view[p].lines, view[p].extras))));
 }
-// a compact, numbers-only snapshot of what is loaded: no customer names, no addresses
-function aiContext(){
-  const L = [], d = x => x? new Date(x).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
-  L.push('Today: '+new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'. Currency: Indian rupees (₹).');
-  if(AICTX){
-    L.push('Payment files cover '+d(AICTX.f0)+' to '+d(AICTX.t0)+'. Amounts follow the payment date. Platforms loaded: '+AICTX.have.join(', ')+'. Product costs loaded: '+(costs? 'yes' : 'no')+'.');
-    L.push('\n## Per platform (orders paid · order value · paid to you · returns/RTO · ads · profit after product cost)');
-    aiSummaries().forEach(x => L.push('- '+x.p+': '+x.orders+' orders · '+rs(x.value)+' · '+rs(x.payout)+' ('+(x.value? (x.payout/x.value*100).toFixed(1) : 0)+'% kept) · '+x.returns+' returns · ads '+rs(x.ads)+(costs? ' · profit '+rs(x.profit) : '')));
-  } else L.push('No payment files loaded yet.');
-  if(PLDATA && PLDATA.cols.length){
-    L.push('\n## Profit & loss by payment month'+(PLDATA.all? ' (all platforms)' : ' ('+PLDATA.ps.join(', ')+' only)')+'. Packing per order: '+rs(N(BIZ.pack))+'. Fixed monthly costs: '+(BIZ.fixed.length? BIZ.fixed.map(f=>(f.name||'Cost')+' '+rs(N(f.amt))).join(', ') : 'none entered')+'.');
-    [...PLDATA.cols, PLDATA.tot].forEach(o => L.push('- '+o.label+': orders '+o.orders+', order value '+rs(o.sale)+', discounts '+rs(o.discount)+', refunds '+rs(o.refund)+', net sales '+rs(o.net)
-      +', platform fees '+rs(o.fees)+', shipping '+rs(o.shipping)+', ads '+rs(o.ads)+', TCS/TDS held '+rs(o.taxes)+', other '+rs(o.other)+', paid to you '+rs(o.payout)
-      +', product cost '+rs(-o.cogs)+', packing '+rs(o.pack)+', gross profit '+rs(o.gross)+', fixed costs '+rs(o.fixed)+', net profit '+rs(o.profit)+(o.net? ' ('+(o.profit/o.net*100).toFixed(1)+'% of net sales)' : '')));
-  }
-  if(PXROWS.length){
-    L.push('\n## Products'+(PXPLAT? ' on '+PXPLAT : '')+' (orders · avg price · fixed cost per order · lost per ₹100 · profit per order · margin · break-even price · price for '+PX.target+'% margin). GST on sales '+PX.gst+'%.');
-    PXROWS.slice().sort((a,b) => b.p.n-a.p.n).slice(0,40).forEach(x => L.push('- '+(x.name||x.p.name)+(x.p.skuText? ' ['+x.p.skuText+']' : '')+(x.p.costed? '' : ' (no purchase cost)')+': '+x.p.n+' · '+rs(x.asp)+' · '+rs(x.fixed)+' · '+rs(x.lost*100)+' · '+rs(x.profit)+' · '+(x.profit/x.asp*100).toFixed(1)+'% · '
-      +(x.p.n<3? 'too few orders' : (isFinite(x.be)? rs(Math.ceil(x.be)) : 'n/a')+' · '+(isFinite(x.tgt)? rs(Math.ceil(x.tgt)) : 'not reachable'))));
-  }
-  if(rets.size) returnsReport().forEach(X => {
-    L.push('\n## '+X.p+' returns report: '+X.R.length+' returns ('+X.rtoN+' RTO, '+X.custN+' customer)'+(X.value? ', order value '+rs(X.value) : '')+', '+X.open+' still on the way back.'
-      +(X.hasTab && X.n? ' Of '+X.n+' orders in the Orders tab: RTO '+(X.rto/X.n*100).toFixed(1)+'%, customer returns '+(X.ret/X.n*100).toFixed(1)+'%.' : ''));
-    if(X.hasTab){ L.push('By payment: '+X.byPay.map(g => g.k+' '+g.n+' orders, '+(g.rate*100).toFixed(1)+'% came back').join('; '));
-      L.push('By courier: '+X.byCourier.map(g => g.k+' '+g.n+' orders, '+(g.rate*100).toFixed(1)+'%').join('; '));
-      L.push('States (most returns first): '+X.byState.slice(0,10).map(g => g.k+' '+(g.rto+g.ret)+'/'+g.n).join('; ')); }
-    L.push('Products sent back most: '+X.prods.slice(0,8).map(g => g.sku+' (RTO '+g.rto+', returns '+g.ret+')').join('; '));
-    L.push('Top reasons: '+X.reasons.slice(0,8).map(g => g.why+' ['+g.type+'] '+g.c).join('; '));
-    L.push('To check or claim: '+X.claims.length+'.');
-  });
-  if(AICTX){ const R = recovery(AICTX.data);
-    L.push('\n## Money to recover: '+R.missing.length+' shipped orders never paid'+(R.hasDates? '' : ' (needs the Orders tab)')+'; '+R.ship.length+' orders charged '+rs(sum(R.ship, g=>g.extra))+' more shipping than usual'
-      +(R.shipSku.length? ' (most: '+R.shipSku.slice(0,4).map(s => s.sku+' '+rs(s.extra)).join(', ')+')' : '')+'; '+R.claims.length+' returns to claim; '+R.weight.length+' products Flipkart weighed heavier than expected.'); }
-  return L.join('\n');
-}
-const AI_SYSTEM = 'You are the business assistant inside "2G VIBE Payout Analyser", a tool an Indian e-commerce seller (Amazon, Flipkart, Meesho) uses to understand payouts, profit, returns and RTO. '
-  + 'Answer the seller\'s questions using only the data snapshot below. If the snapshot does not contain what is needed, say which file or setting to add (payment files, the business Google Sheet with Purchase Cost and Orders tabs, returns reports, packing cost) instead of guessing. '
-  + 'Write in simple English for a busy shop owner: short answers, real numbers in ₹ from the snapshot, and end with one or two concrete actions when useful. Use short bullet lists, no tables. '
-  + 'Amounts are already rounded. "Paid to you" is what reached the bank; TCS/TDS is tax held back that can be claimed in GST and income tax returns.';
 // ---- offline quick answers ----
 const QUICK = [
   ['profit','How much profit did I make?'],['losing','Which products lose money?'],['best','My best products'],
@@ -2060,6 +2008,14 @@ function quickAnswer(k){
   }
   return '';
 }
+// typed question → the closest quick answer (simple keyword match, all offline)
+const MATCH = [['losing',/los(s|e|ing)|negative|minus|nashtam|naṣṭam/i],['best',/best|top|most profit|highest|winner/i],['cod',/cod|prepaid|rto|return|state|courier/i],
+  ['recover',/recover|claim|unpaid|not paid|missing|overcharg|weight|refund due/i],['fees',/fee|charge|commission|shipping|where.*money|expense|cost breakdown|ads?\b/i],['profit',/profit|earn|income|margin|net|how much|kitna|laabh|labh/i]];
+function aiAsk(q){
+  q = q.trim(); if(!q) return; aiAdd('user', q); $('aiQ').value = '';
+  const m = MATCH.find(([,re]) => re.test(q));
+  aiAdd('bot', m? quickAnswer(m[0]) : 'I can answer these from your files: profit, losing products, best products, where the money goes, COD vs prepaid returns, and money to recover. Tap one below, or ask with one of those words.');
+}
 // ---- chat UI ----
 function mdLite(t){ // escape first, then bold, bullet lists and line breaks only
   const h = esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
@@ -2067,50 +2023,14 @@ function mdLite(t){ // escape first, then bold, bullet lists and line breaks onl
     .replace(/(<li>.*<\/li>\n?)+/g, m => '<ul>'+m.replace(/\n/g,'')+'</ul>').replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
 }
 function aiAdd(role, text){ const m = document.createElement('div'); m.className = 'aimsg '+role; m.innerHTML = role==='user'? esc(text) : mdLite(text); $('aiLog').appendChild(m); $('aiLog').scrollTop = 1e9; return m; }
-function aiOpen(open){ $('aiPanel').hidden = !open; $('aiFab').setAttribute('aria-expanded', String(open)); if(open){ $('aiQ').focus(); aiKeyUi(); } }
-function aiKeyUi(){ $('aiKeyState').textContent = AI.key? 'AI on · key saved in this browser' : 'Quick answers only · add an API key for any question'; $('aiKey').value = AI.key? '••••••••' : ''; }
-async function aiAsk(q){
-  q = q.trim(); if(!q || AI.busy) return;
-  aiAdd('user', q); $('aiQ').value = '';
-  if(!AI.key){ aiAdd('bot', 'To answer any question I need your Anthropic API key (⚙ above). Meanwhile, tap a quick question below.'); return; }
-  AI.busy = true; $('aiSend').disabled = true;
-  const out = aiAdd('bot', '…'); let text = '';
-  AI.history.push({role:'user', content:q});
-  try{
-    const {default: Anthropic} = await import(AI_SDK);
-    const client = new Anthropic({apiKey: AI.key, dangerouslyAllowBrowser: true});
-    const stream = client.beta.messages.stream({
-      model: AI_MODEL, max_tokens: 16000,
-      thinking: {type: 'adaptive'}, output_config: {effort: 'low'},
-      betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
-      system: [{type:'text', text: AI_SYSTEM+'\n\n# Data snapshot\n'+aiContext(), cache_control: {type:'ephemeral'}}],
-      messages: AI.history.slice(-12),
-    });
-    stream.on('text', delta => { text += delta; out.innerHTML = mdLite(text); $('aiLog').scrollTop = 1e9; });
-    const msg = await stream.finalMessage();
-    if(msg.stop_reason==='refusal'){ text = 'I can\'t answer that one. Try asking about your sales, fees, profit or returns.'; out.innerHTML = mdLite(text); AI.history.pop(); }
-    else { if(msg.stop_reason==='max_tokens') text += '\n\n(answer cut short)'; out.innerHTML = mdLite(text || '(no answer)'); AI.history.push({role:'assistant', content:text || '(no answer)'}); }
-  }catch(e){
-    AI.history.pop();
-    const s = e && e.status;
-    out.innerHTML = mdLite(s===401? 'Your API key was not accepted. Check it in ⚙ (it starts with sk-ant-).'
-      : s===429? 'Too many questions in a short time, or your API credit ran out. Wait a minute, or check billing at console.anthropic.com.'
-      : s===400? 'The AI service rejected the request: '+(e.message||'')
-      : s>=500? 'The AI service is busy. Try again in a minute.'
-      : 'Could not reach the AI service. Check your internet connection. ('+(e && e.message || e)+')');
-    out.classList.add('err');
-  } finally { AI.busy = false; $('aiSend').disabled = false; $('aiLog').scrollTop = 1e9; }
-}
+function aiOpen(open){ $('aiPanel').hidden = !open; $('aiFab').setAttribute('aria-expanded', String(open)); if(open) $('aiQ').focus(); }
 $('aiFab').onclick = () => aiOpen($('aiPanel').hidden);
 $('aiClose').onclick = () => aiOpen(false);
 $('aiForm').onsubmit = e => { e.preventDefault(); aiAsk($('aiQ').value); };
 $('aiQuick').innerHTML = QUICK.map(([k,t]) => '<button type="button" data-q="'+k+'">'+t+'</button>').join('');
 $('aiQuick').onclick = e => { const b = e.target.closest('[data-q]'); if(!b) return; aiAdd('user', b.textContent); aiAdd('bot', quickAnswer(b.dataset.q)); };
-$('aiGear').onclick = () => { $('aiSet').hidden = !$('aiSet').hidden; };
-$('aiSave').onclick = () => { const v = $('aiKey').value.trim(); if(v && !/^•+$/.test(v)){ AI.key = v; try{ localStorage.setItem('payout.aikey', v); }catch(e){} } $('aiSet').hidden = true; aiKeyUi(); };
-$('aiForget').onclick = () => { AI.key = ''; try{ localStorage.removeItem('payout.aikey'); }catch(e){} aiKeyUi(); };
-$('aiNew').onclick = () => { AI.history = []; $('aiLog').innerHTML = ''; aiAdd('bot', 'New chat. Ask about your sales, profit, fees, returns or prices.'); };
-aiAdd('bot', 'Hi! Ask me about your sales, profit, fees, returns or prices. Tap a quick question, or type your own.');
+$('aiNew').onclick = () => { $('aiLog').innerHTML = ''; aiAdd('bot', 'New chat. Ask about your sales, profit, fees, returns or prices.'); };
+aiAdd('bot', 'Hi! Ask me about your profit, losing or best products, fees, COD returns or money to recover. Tap a question below or type one.');
 })();
 </script>
 </body>
