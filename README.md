@@ -25,6 +25,13 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 
 Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.
 
+## AI assistant
+
+Click **Ask AI** (bottom right).
+
+- **Quick questions** (profit, losing products, best products, where the money goes, COD vs prepaid, money to recover) are answered inside the browser and send nothing anywhere.
+- **Your own questions** are answered by Anthropic's Claude (`claude-opus-5-5`) using your own Anthropic API key: click ⚙, paste the key from console.anthropic.com → API Keys, and Save. The key is stored only in that browser (*Forget key* removes it). Each question sends a summary of the loaded report (platform totals, monthly P&L, product prices and margins, return rates by payment, courier and state, money to recover) to Anthropic; it contains no customer names, addresses or order IDs. A question usually costs about ₹1–4 on your Anthropic bill.
+
 ## Profit & loss
 
 The **Profit & loss** card shows each month (by payment date) and the total: order value, discounts, refunds, net sales, platform fees, shipping, ads, TCS/TDS held, other charges, paid to you, product cost, packing, gross profit, fixed monthly costs and net profit with margin. Enter your packing cost per order and fixed monthly costs (rent, salary, tools) on the card; they are saved only in that browser. Fixed costs are split by the days each month's files cover, and appear in the All platforms view.
