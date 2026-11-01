@@ -23,7 +23,7 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 
 ## Flipkart sales report (Earn More)
 
-Add Flipkart's **Earn More** sales report (Excel) to see what customers ordered by order date: units, order value, cancelled, returned and final sales, per product and per day. The card shows a manager's summary (money lost to cancels and returns, hero product, products to fix first, best and weakest weekday, sales trend, brand and category split), a daily chart, and a product table with an Action for each product. With the business sheet loaded it also shows final sales after product cost.
+Add Flipkart's **Earn More** sales report (Excel) to see what customers ordered by order date: units, order value, cancelled, returned and final sales, per product and per day. The card shows a manager's summary (money lost to cancels and returns, hero product, products to fix first, best and weakest weekday, sales trend, brand and category split), a daily chart, and a product table with an Action for each product. With a Flipkart payment file and the business sheet loaded, it also shows what Flipkart really pays per delivered unit, purchase cost per unit, profit per unit, estimated profit and margin per product (before ads and packing), and the profit lost to cancellations.
 
 ## Returns and RTO
 
