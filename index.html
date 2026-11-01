@@ -635,7 +635,7 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
     </div>
     <small class="muted slnote" id="slNote"></small>
     <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
-    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Each row is one product (Master SKU), with all its Flipkart listings together. With a Flipkart payment file loaded, Orders paid → Margin come from that file: Sales, Fees, shipping &amp; discounts, Net to you (what reached your bank), Kept (net out of every ₹100 of sales), Returns (RTO = courier brought it back undelivered; ret. = delivered, then sent back), Product cost (pieces the buyer kept × purchase cost), Profit = Net to you − Product cost, Profit / order and Margin (profit out of every ₹100 of sales). Est. profit = final units × (you get − purchase cost), before ads and packing. "Lost to cancels" = cancelled units × profit per unit. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
+    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Each row is one product (Master SKU), with all its Flipkart listings together. With a Flipkart payment file loaded, Orders paid → Margin come from that file: Sales, Fees, shipping &amp; discounts, Net to you (what reached your bank), Kept (net out of every ₹100 of sales), Returns (RTO = courier brought it back undelivered; ret. = delivered, then sent back), Product cost (pieces the buyer kept × purchase cost), Profit = Net to you − Product cost, Profit / order and Margin (profit out of every ₹100 of sales). The Earn More report does not count RTO (the courier brought the parcel back) as a return: its "Customer returns" are only buyers who sent the item back, and RTO parcels stay in Final sales. So Est. profit after RTO = final units less the product's RTO share in the payment file, × (you get − purchase cost), before ads, packing and RTO shipping. "Lost to cancels" = cancelled units, less the same RTO share, × profit per unit. The payment file's Profit is the real money. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
   </section>
 
   <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
@@ -2057,14 +2057,16 @@ function drawSales(data){
   // the same products in the Flipkart payment file: orders paid, fees, net to you, returns, product cost and profit
   const PR = {}; if(FK && FK.lines && FK.lines.length) productRows('Flipkart', compute('Flipkart', FK.lines, FK.extras||[]).I).forEach(x => { PR[low(x.key)] = x; });
   const prSales = sum(Object.values(PR), x => x.sales) || 1, hasPR = Object.keys(PR).length>0;
+  // the Earn More report counts RTO parcels (courier brought them back) as final sales: take the RTO share from the payment file
+  const rtoAll = (() => { const X = Object.values(PR), n = sum(X, x => x.n); return n? sum(X, x => x.rtoN)/n : 0; })();
   const P = Object.values(pm).map(p => { const sk = [...p.skuSet], unit = unitCost(p.ms), pu = sk.reduce((u, k) => { const x = payU[low(k)]; if(x){ u.q += x.q; u.pay += x.pay; } return u; }, {q:0, pay:0});
-    const spu = pu.q? pu.pay/pu.q : null, est = spu!=null? spu*p.fu : null, prof = est!=null && unit!=null? est - unit*p.fu : null, ppu = prof!=null && p.fu? prof/p.fu : null;
-    const x = PR[low(p.key)];
+    const x = PR[low(p.key)], rto = x && x.n>=5? x.rtoN/x.n : rtoAll, du = p.fu*(1-rto);
+    const spu = pu.q? pu.pay/pu.q : null, est = spu!=null? spu*du : null, prof = est!=null && unit!=null? est - unit*du : null, ppu = prof!=null && du? prof/du : null;
     if(x){ Object.assign(x, {asp:x.n? x.sales/x.n : 0, feesAll:(x.promo||0)+(x.fees||0), share:x.sales/prSales, ppo:x.n? x.profit/x.n : 0, margin:x.sales? x.profit/x.sales : 0}); }
     const has = x && x.n>0;
     return Object.assign(p, {sku:sk.join(', '), title:productTitle('Flipkart', p.ms, sk[0], ''), asp:p.gu? p.gmv/p.gu : 0, share:T.gmv? p.gmv/T.gmv : 0, cr:p.gu? p.cu/p.gu : 0, rr:p.gu? p.ru/p.gu : 0, lostR:p.gu? (p.cu+p.ru)/p.gu : 0,
       kept:p.gmv? p.fa/p.gmv : 0, cogs:unit!=null? unit*p.fu : null, gm:unit!=null? p.fa - unit*p.fu : null,
-      unit, spu, real:spu!=null && p.fu && p.fa? spu/(p.fa/p.fu) : null, est, prof, ppu, mg:prof!=null && p.fa? prof/p.fa : null, lostc:ppu!=null? p.cu*Math.max(0,ppu) : null,
+      unit, spu, real:spu!=null && p.fu && p.fa? spu/(p.fa/p.fu) : null, est, prof, ppu, rto, du, mg:prof!=null && p.fa && rto<1? prof/(p.fa*(1-rto)) : null, lostc:ppu!=null? p.cu*(1-rto)*Math.max(0,ppu) : null,
       x:has? x : null, pn:has? x.n : null, pasp:has? x.asp : null, psales:has? x.sales : null, pfees:has? x.feesAll : null, pnet:has? x.net : null, pkept:has? x.kept : null, prr:has? x.refRate : null,
       pcogs:has && x.costed? x.cogs : null, pprofit:has && x.costed? x.profit : null, pppo:has && x.costed? x.ppo : null, pmargin:has && x.costed? x.margin : null}); });
   const hasPay = P.some(p => p.prof!=null), tgtM = PX.target/100;
@@ -2082,11 +2084,11 @@ function drawSales(data){
   $('slKpis').innerHTML = kpi('Units ordered', T.gu.toLocaleString('en-IN'), (T.gu/nd).toFixed(1)+' a day')
     + kpi('Order value (GMV)', money(T.gmv), money(T.gmv/nd)+' a day')
     + kpi('Cancelled', pct(T.gu? T.cu/T.gu : 0), T.cu+' units · '+money(T.ca), T.gu && T.cu/T.gu>0.08? 'hold' : '')
-    + kpi('Returned', pct(T.gu? T.ru/T.gu : 0), T.ru+' units · '+money(T.ra), T.gu && T.ru/T.gu>0.08? 'hold' : '')
+    + kpi('Customer returns', pct(T.gu? T.ru/T.gu : 0), T.ru+' units · '+money(T.ra)+(hasPR? ' · RTO not counted here' : ''), T.gu && T.ru/T.gu>0.08? 'hold' : '')
     + kpi('Final sales', money(T.fa), pct(T.gmv? T.fa/T.gmv : 0)+' of order value kept', 'good')
     + kpi('Trend', (growth>=0?'+':'')+pct(growth), 'last 7 days vs first 7 days', growth<0? 'hold' : 'good')
     + (hasPay? (() => { const W = P.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa), lc = S(W,p=>p.lostc||0);
-        return kpi('Est. profit', money(pr), pct(fa? pr/fa : 0)+' of final sales · before ads & packing', pr<0? 'hold' : 'good') + kpi('Profit lost to cancels', money(lc), 'if cancelled orders had been delivered', lc>0? 'hold' : ''); })() : '');
+        return kpi('Est. profit after RTO', money(pr), 'less '+pct(rtoAll)+' RTO · before ads & packing', pr<0? 'hold' : 'good') + kpi('Profit lost to cancels', money(lc), 'if cancelled orders had been delivered', lc>0? 'hold' : ''); })() : '');
   // manager's summary
   const hero = P.slice().sort((a,b) => b.gmv-a.gmv)[0], bad = P.filter(p => p.act[0]==='bad').sort((a,b) => (b.ca+b.ra)-(a.ca+a.ra));
   const brands = {}; P.forEach(p => { if(p.brand) brands[p.brand] = (brands[p.brand]||0) + p.gmv; });
@@ -2102,9 +2104,10 @@ function drawSales(data){
   const vk = Object.entries(vert).sort((a,b) => b[1]-a[1]); if(vk.length>1) ins.push('Categories: '+vk.map(([b,v]) => esc(b)+' '+pct(v/T.gmv)).join(' · ')+'.');
   if(hasPR){ const X = P.map(p => p.x).filter(Boolean), n = S(X,x=>x.n), sl = S(X,x=>x.sales), nt = S(X,x=>x.net), rf = S(X,x=>x.ref), C = X.filter(x => x.costed), pr = S(C,x=>x.profit), cs = S(C,x=>x.sales);
     ins.push('<b>Payment file (real money):</b> '+n+' orders paid, '+money(sl)+' sales, <b>'+money(nt)+'</b> reached you ('+pct(sl? nt/sl : 0)+')'+(costs && C.length? '; after product cost <b>'+money(pr)+'</b> profit ('+pct(cs? pr/cs : 0)+')' : '')+'. '
-      + rf+' came back ('+pct(n? rf/n : 0)+' of orders paid) against '+pct(T.gu? T.ru/T.gu : 0)+' returned in the Earn More report'+(hasPay? ', so trust this profit over the estimate' : '')+'.'); }
+      + rf+' came back ('+pct(n? rf/n : 0)+' of orders paid) against '+pct(T.gu? T.ru/T.gu : 0)+' customer returns in the Earn More report (it does not count RTO, the courier bringing the parcel back)'+(hasPay? ', so trust this profit over the estimate' : '')+'.'); }
   if(hasPay){ const W = P.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa), est = S(W,p=>p.est), lc = S(W,p=>p.lostc||0);
-    ins.push('For every <b>₹100</b> of final sales, Flipkart pays you about <b>'+money(fa? est/fa*100 : 0)+'</b>; after purchase cost you keep <b>'+money(pr)+'</b> ('+pct(fa? pr/fa : 0)+'), before ads and packing.');
+    const du = S(W,p=>p.du), fu = S(W,p=>p.fu), sd = S(W,p=>p.fa*(1-p.rto));
+    ins.push('Of '+fu+' final units, about <b>'+Math.round(fu-du)+'</b> come back as RTO ('+pct(rtoAll)+' in the payment file). On the '+Math.round(du)+' kept, Flipkart pays about <b>'+money(sd? est/sd*100 : 0)+'</b> for every ₹100 of sales; after purchase cost you keep about <b>'+money(pr)+'</b> ('+pct(sd? pr/sd : 0)+'), before ads, packing and RTO shipping.');
     const topP = W.slice().sort((a,b) => b.prof-a.prof).slice(0,3); if(topP.length) ins.push('Most profit: '+topP.map(p => nm(p)+' '+money(p.prof)+' ('+money(p.ppu)+'/unit)').join(', ')+'.');
     const thin = W.filter(p => p.fu>=5 && p.mg<tgtM).sort((a,b) => a.mg-b.mg); if(thin.length) ins.push('<b class="cutx">Thin or negative margin:</b> '+thin.slice(0,3).map(p => nm(p)+' '+pct(p.mg)+' ('+money(p.ppu)+'/unit)').join(', ')+': raise prices.');
     if(lc>=1) ins.push('Cancellations cost you about <b class="cutx">'+money(lc)+'</b> of profit: confirm COD orders before dispatch.'); }
@@ -2123,11 +2126,11 @@ function drawSales(data){
   $('slCount').textContent = list.length===P.length? '' : 'Showing '+list.length+' of '+P.length;
   const k = SLV.sort, d = SLV.dir; list.sort((a,b) => k==='name'? d*String(a.title||a.sku).localeCompare(b.title||b.sku) : d*((a[k]??-1e12)-(b[k]??-1e12)));
   const hasCost = costs && P.some(p => p.cogs!=null), hasPC = hasPR && !!costs;
-  const cols = hasPR? [['name','Product'],['actRank','Action'],['gu','Units ordered'],['gmv','Order value'],['cr','Cancelled'],['rr','Returned'],['fa','Final sales'],
+  const cols = hasPR? [['name','Product'],['actRank','Action'],['gu','Units ordered'],['gmv','Order value'],['cr','Cancelled'],['rr','Customer returns'],['fa','Final sales'],
       ['pn','Orders paid','grp'],['pasp','Avg price'],['psales','Sales'],['pfees','Fees, shipping & discounts'],['pnet','Net to you'],['pkept','Kept'],['prr','Returns']]
       .concat(hasPC? [['pcogs','Product cost'],['pprofit','Profit'],['pppo','Profit / order'],['pmargin','Margin']] : [])
-      .concat(hasPay? [['prof','Est. profit if all final units paid','grp'],['lostc','Lost to cancels']] : [])
-    : [['name','Product'],['actRank','Action'],['gu','Units'],['gmv','Order value'],['asp','Avg price'],['cr','Cancelled'],['rr','Returned'],['fu','Final units'],['fa','Final sales'],['kept','Kept']].concat(hasCost? [['gm','After product cost']] : []);
+      .concat(hasPay? [['prof','Est. profit after RTO','grp'],['lostc','Lost to cancels']] : [])
+    : [['name','Product'],['actRank','Action'],['gu','Units'],['gmv','Order value'],['asp','Avg price'],['cr','Cancelled'],['rr','Customer returns'],['fu','Final units'],['fa','Final sales'],['kept','Kept']].concat(hasCost? [['gm','After product cost']] : []);
   const nPay = 7 + (hasPC? 4 : 0);
   const td = (v, cls, sub) => '<td class="num '+(cls||'')+'">'+v+(sub? '<small class="what">'+sub+'</small>' : '')+'</td>';
   const tot = {gu:S(list,p=>p.gu), gmv:S(list,p=>p.gmv), cu:S(list,p=>p.cu), ca:S(list,p=>p.ca), ru:S(list,p=>p.ru), ra:S(list,p=>p.ra), fu:S(list,p=>p.fu), fa:S(list,p=>p.fa), gm:S(list,p=>p.gm||0)};
@@ -2142,20 +2145,20 @@ function drawSales(data){
     return td(t.n, 'grp', t.qty!==t.n? t.qty+' units' : '') + td(money(t.n? t.sales/t.n : 0)) + td(money(t.sales)) + td(money(t.feesAll)) + td(money(t.net)) + td(pct(t.sales? t.net/t.sales : 0))
       + td(t.ref+' · '+pct(t.n? t.ref/t.n : 0), '', t.rtoN+' RTO · '+t.retN+' ret.')
       + (hasPC? td(money(cg)) + td(money(pr)) + td(money(cn? pr/cn : 0)) + td(pct(cs? pr/cs : 0)) : ''); };
-  $('slNote').textContent = hasPR? 'Units ordered → Final sales: Earn More report (orders placed this period). Orders paid → Margin: Flipkart payment file (money that reached you).'+(hasPay? ' Est. profit: if every final unit pays like the paid ones.' : '') : '';
+  $('slNote').textContent = hasPR? 'Units ordered → Final sales: Earn More report (orders placed this period). Orders paid → Margin: Flipkart payment file (money that reached you).'+(hasPay? ' Est. profit after RTO: final units less this product\'s RTO share in the payment file, each paid like the delivered ones.' : '') : '';
   $('slTable').innerHTML = '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname': c[0]==='actRank'? ' actcol' : ' numh')+(c[2]? ' '+c[2] : '')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
     + (list.length? list.map(p => '<tr'+(p.pprofit!=null && p.pprofit<0? ' class="loss"' : '')+'><td class="pxname" title="'+esc(p.title||p.sku)+'"><b>'+esc(p.title||p.sku)+'</b><small class="what">'+esc([p.ms, 'SKU '+p.sku, p.brand].filter(Boolean).join(' · '))+'</small></td>'
         + '<td class="tact '+p.act[0]+'">'+p.act[1]+'</td>' + td(p.gu) + td(money(p.gmv), '', (p.share*100).toFixed(1)+'%') + (hasPR? '' : td(money(p.asp)))
         + td(p.cu? pct(p.cr) : '–', p.gu>=5 && p.cr>=0.15? 'hot' : '', p.cu? p.cu+' · '+money(p.ca) : '') + td(p.ru? pct(p.rr) : '–', p.gu>=5 && p.rr>=0.08? 'hot' : '', p.ru? p.ru+' · '+money(p.ra) : '')
         + (hasPR? td(money(p.fa), '', p.fu+' units') + payCells(p)
-            + (hasPay? (p.prof!=null? td(money(p.prof), 'grp'+(p.prof<0? ' hot' : ''), money(Math.round(p.ppu)||0)+' / unit · '+pct(p.mg)) + td(p.lostc? money(p.lostc) : '–', p.lostc>=300? 'hot' : '') : '<td class="num muted grp" colspan="2">–</td>') : '')
+            + (hasPay? (p.prof!=null? td(money(p.prof), 'grp'+(p.prof<0? ' hot' : ''), money(Math.round(p.ppu)||0)+' / unit · '+pct(p.rto)+' RTO') + td(p.lostc? money(p.lostc) : '–', p.lostc>=300? 'hot' : '') : '<td class="num muted grp" colspan="2">–</td>') : '')
           : td(p.fu) + td(money(p.fa)) + td(pct(p.kept), p.gu>=5 && p.kept<0.8? 'hot' : '')
             + (hasCost? (p.gm!=null? td(money(p.gm), p.gm<0? 'hot' : '', 'cost '+money(p.cogs)) : '<td class="num muted">no cost</td>') : ''))+'</tr>').join('')
       : '<tr><td colspan="'+cols.length+'" class="muted">No products match.</td></tr>')
     + '</tbody><tfoot><tr><td class="pxname"><b>Total'+(list.length<P.length? ' (shown)' : '')+'</b></td><td></td>'+td(tot.gu)+td(money(tot.gmv))+(hasPR? '' : td(money(tot.gu? tot.gmv/tot.gu : 0)))
     + td(pct(tot.gu? tot.cu/tot.gu : 0), '', money(tot.ca))+td(pct(tot.gu? tot.ru/tot.gu : 0), '', money(tot.ra))
     + (hasPR? td(money(tot.fa), '', tot.fu+' units') + payFoot()
-        + (hasPay? (() => { const W = list.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa); return td(money(pr), 'grp', pct(fa? pr/fa : 0))+td(money(S(W,p=>p.lostc||0))); })() : '')
+        + (hasPay? (() => { const W = list.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa); return td(money(pr), 'grp', pct(rtoAll)+' RTO')+td(money(S(W,p=>p.lostc||0))); })() : '')
       : td(tot.fu)+td(money(tot.fa))+td(pct(tot.gmv? tot.fa/tot.gmv : 0))+(hasCost? td(money(tot.gm)) : ''))+'</tr></tfoot>';
   $('slTable').querySelectorAll('th.sort button').forEach(b => b.onclick = () => { const nk = b.parentNode.dataset.k;
     SLV.dir = SLV.sort===nk? -SLV.dir : (nk==='name'||nk==='actRank'? 1 : -1); SLV.sort = nk; drawSales(); });
@@ -2406,8 +2409,8 @@ function answerQ(q){
     if(!SALESCTX) return 'Add the Flipkart Earn More sales report to see cancellations, daily trend and best days.';
     const X = SALESCTX, T = X.T;
     return '**Flipkart orders, '+new Date(X.d0).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+new Date(X.d1).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'**\n- Ordered: '+T.gu+' units, '+rs(T.gmv)
-      +'\n- Cancelled: **'+T.cu+' units ('+(T.gu? (T.cu/T.gu*100).toFixed(1) : 0)+'%), '+rs(T.ca)+'**\n- Returned: '+T.ru+' units, '+rs(T.ra)+'\n- Final sales: **'+rs(T.fa)+'**'
-      +(X.hasPay? '\n- Est. profit on these orders: **'+rs(X.estProfit)+'** (before ads and packing); cancellations cost about '+rs(X.lostCancel) : '')
+      +'\n- Cancelled: **'+T.cu+' units ('+(T.gu? (T.cu/T.gu*100).toFixed(1) : 0)+'%), '+rs(T.ca)+'**\n- Customer returns: '+T.ru+' units (RTO not counted), '+rs(T.ra)+'\n- Final sales: **'+rs(T.fa)+'**'
+      +(X.hasPay? '\n- Est. profit after RTO: **'+rs(X.estProfit)+'** (before ads and packing); cancellations cost about '+rs(X.lostCancel) : '')
       +'\n- Trend: '+(X.growth>=0? 'up ' : 'down ')+(Math.abs(X.growth)*100).toFixed(0)+'% (last 7 days vs first 7)'+(X.bestW? '\n- Best day '+X.bestW.n+', weakest '+X.worstW.n : '')
       +(X.bad.length? '\n\nFix first: '+X.bad.slice(0,3).map(p => (p.title||p.sku)+' ('+(p.lostR*100).toFixed(0)+'% lost)').join(', ') : '');
   }
