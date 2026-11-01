@@ -298,6 +298,7 @@ table.pl tr.pltot td{font-weight:800;font-size:16px;border-top:2px solid var(--i
 .prt td.pxname{max-width:210px;min-width:160px} .prt th,.prt td{padding-left:8px;padding-right:8px} .ins{display:flex;flex-wrap:wrap;gap:6px 18px;margin:6px 0 4px;font-size:14px;color:var(--ink)} .ins:empty{display:none} .ins span{position:relative;padding-left:14px} .ins span::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--peacock)}
 .cutx{color:var(--kumkum)} td.wrap{white-space:normal;min-width:150px;max-width:190px} .pxt td.num small.what{white-space:nowrap}
 .pxt td:not(.num){text-align:left} .pxt th:not(.numh){text-align:left} .pxt th.numh{text-align:right} td.tact{font-size:13px;font-weight:600;white-space:normal;min-width:140px;max-width:170px;line-height:1.35} td.tact.bad{color:var(--kumkum)} td.tact.warn{color:var(--turmeric)} td.tact.ok{color:var(--leaf)}
+.pxt th.grp,.pxt td.grp{border-left:2px solid var(--line)} .slnote{display:block;margin:4px 0 8px;font-size:12.5px}
 .slbars{display:flex;align-items:flex-end;gap:3px;height:150px;margin:16px 0 4px;padding:0 2px;border-bottom:1px solid var(--line)}
 .slb{flex:1;min-width:6px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;position:relative}
 .slv{width:100%;background:var(--peacock);border-radius:4px 4px 0 0;position:relative;overflow:hidden;min-height:2px} .slv i{position:absolute;left:0;right:0;top:0;background:var(--kumkum);opacity:.85}
@@ -632,8 +633,9 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
       <input type="search" id="slQ" placeholder="Search product, SKU or brand" aria-label="Search product, SKU or brand">
       <span class="muted" id="slCount"></span>
     </div>
+    <small class="muted slnote" id="slNote"></small>
     <div class="tbl pxwrap"><table id="slTable" class="pxt prt"></table></div>
-    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. With a Flipkart payment file and your business sheet loaded, "You get / unit" is what Flipkart actually paid per delivered unit, and Est. profit = final units × (you get − purchase cost), before ads and packing. "Lost to cancels" = cancelled units × profit per unit. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
+    <p class="tip">Order value (GMV) is what customers ordered, before Flipkart's fees; the payment files show what reached your bank. Each row is one product (Master SKU), with all its Flipkart listings together. With a Flipkart payment file loaded, Orders paid → Margin come from that file: Sales, Fees, shipping &amp; discounts, Net to you (what reached your bank), Kept (net out of every ₹100 of sales), Returns (RTO = courier brought it back undelivered; ret. = delivered, then sent back), Product cost (pieces the buyer kept × purchase cost), Profit = Net to you − Product cost, Profit / order and Margin (profit out of every ₹100 of sales). Est. profit = final units × (you get − purchase cost), before ads and packing. "Lost to cancels" = cancelled units × profit per unit. Cancelled includes orders cancelled or refused before delivery (mostly COD). "After product cost" = final sales minus the purchase cost of the units sold, before fees and shipping. Download: Seller Hub → Growth → Earn More (or Reports) → sales report for the month.</p>
   </section>
 
   <section class="card" id="retCard" aria-labelledby="retH" style="display:none">
@@ -1183,6 +1185,21 @@ function compute(P, L, X){
   return {L, X, I, t, det, byKind, ads, fines, otherX, sold:I.filter(i=>i.sold), value:t.sale, payout, cogs, profit:payout-cogs,
     missing:I.filter(i=>i.noCost).map(i=>i.sku||short(i.prod,30))};
 }
+// per product (one row per Master SKU) from a platform's order items: orders, sales, fees, net, returns, cost, profit
+function productRows(P, I){
+  const Pm=new Map();
+  I.forEach(i => { const key = i.ms || i.sku || i.prod || 'Charges for orders paid in an earlier settlement';
+    if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,qty:0,sales:0,promo:0,fees:0,net:0,ref:0,rtoN:0,retN:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
+    const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold){ p.n++; p.qty+=i.qty||0; } p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
+    p.cogs+=i.cogs; if(i.cogs) p.costed=true; if(i.noCost) p.nocost++;
+    if(i.sold){ p.xs=(p.xs||0)+i.sale; p.xp=(p.xp||0)+i.payout; p.xv=(p.xv||0)+i.taxes+i.discount+i.refund; p.xr=(p.xr||0)+i.refund; p.xc=(p.xc||0)+i.cogs; } // pricing: this period's orders only
+    if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; if(i.rto) p.rtoN++; else p.retN++; } });
+  const prods=[...Pm.values()].map(p => { const sk=[...p.skus];
+    p.skuText = (p.ms? p.ms+' · ':'')+(sk.length? 'SKU '+sk.join(', ') : '');
+    p.name = p.title? p.title+' ('+(sk.slice(0,2).join(', ')||p.ms)+(sk.length>2?'…':'')+')' : (sk.join(', ')||p.key);
+    return Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}); });
+  return prods;
+}
 function genericSummary(c){
   return {orders:c.sold.length, value:c.value, payout:c.payout, returns:c.I.filter(i=>i.rto||i.ret).length, ads:c.ads, profit:c.profit};
 }
@@ -1248,17 +1265,7 @@ function analyseGeneric(P, L, X, d0, d1){
   drawWeeks(wk);
 
   // products
-  const Pm=new Map();
-  I.forEach(i => { const key = i.ms || i.sku || i.prod || 'Charges for orders paid in an earlier settlement';
-    if(!Pm.has(key)) Pm.set(key,{key,ms:i.ms,title:'',skus:new Set(),n:0,qty:0,sales:0,promo:0,fees:0,net:0,ref:0,rtoN:0,retN:0,refAmt:0,free:0,cogs:0,costed:false,nocost:0});
-    const p=Pm.get(key); if(i.sku) p.skus.add(i.sku); p.title = p.title || productTitle(P, i.ms, i.sku, i.prod); if(i.sold){ p.n++; p.qty+=i.qty||0; } p.sales+=i.sale; p.promo+=i.discount; p.fees+=i.fees+i.shipping+i.taxes; p.net+=i.payout;
-    p.cogs+=i.cogs; if(i.cogs) p.costed=true; if(i.noCost) p.nocost++;
-    if(i.sold){ p.xs=(p.xs||0)+i.sale; p.xp=(p.xp||0)+i.payout; p.xv=(p.xv||0)+i.taxes+i.discount+i.refund; p.xr=(p.xr||0)+i.refund; p.xc=(p.xc||0)+i.cogs; } // pricing: this period's orders only
-    if(i.rto||i.ret){ p.ref++; p.refAmt+=i.refund+i.returnShip; if(i.rto) p.rtoN++; else p.retN++; } });
-  const prods=[...Pm.values()].map(p => { const sk=[...p.skus];
-    p.skuText = (p.ms? p.ms+' · ':'')+(sk.length? 'SKU '+sk.join(', ') : '');
-    p.name = p.title? p.title+' ('+(sk.slice(0,2).join(', ')||p.ms)+(sk.length>2?'…':'')+')' : (sk.join(', ')||p.key);
-    return Object.assign(p,{perOrder:p.n? p.net/p.n:0, kept:p.sales? p.net/p.sales:0, refRate:p.n? p.ref/p.n:0, profit:p.net-p.cogs}); });
+  const prods = productRows(P, I);
   drawProducts(prods);
   drawPricing(prods.map(p => Object.assign({}, p, {sales:p.xs||0, payAll:p.xp||0, varAmt:p.xv||0, refSale:p.xr||0, cogs:p.xc||0})));
 
@@ -2038,26 +2045,38 @@ function drawSales(data){
   const first = byDay.slice(0, 7), last = byDay.slice(-7), avg = a => a.length? S(a,x=>x.gu)/a.length : 0, growth = avg(first)? avg(last)/avg(first)-1 : 0;
   const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], wk = WD.map((n,i) => { const x = byDay.filter(b => new Date(b.t).getDay()===i); return {n, u:x.length? avg(x) : 0, c:x.length}; }).filter(w => w.c);
   const bestW = wk.slice().sort((a,b) => b.u-a.u)[0], worstW = wk.slice().sort((a,b) => a.u-b.u)[0];
-  // per product
-  const pm = {}; R.forEach(r => { const p = pm[r.sku] || (pm[r.sku] = {sku:r.sku, pid:r.pid, brand:r.brand, vert:r.vert, gu:0, gmv:0, cu:0, ca:0, ru:0, ra:0, fu:0, fa:0});
+  // per product: one row per Master SKU (all Flipkart listings of the same product together)
+  const pm = {}; R.forEach(r => { const ms = master('Flipkart', r.sku), key = ms || r.sku;
+    const p = pm[key] || (pm[key] = {key, ms, skuSet:new Set(), pid:r.pid, brand:r.brand, vert:r.vert, gu:0, gmv:0, cu:0, ca:0, ru:0, ra:0, fu:0, fa:0});
+    p.skuSet.add(r.sku); p.brand = p.brand || r.brand; p.vert = p.vert || r.vert;
     ['gu','gmv','cu','ca','ru','ra','fu','fa'].forEach(f => p[f] += r[f]); });
   // one entry per delivered order item (Flipkart can add small offer lines for the same item), then per SKU
-  const items = {}; ((SLDATA && SLDATA.Flipkart && SLDATA.Flipkart.lines) || []).forEach(l => { if(l.status!=='Delivered' || !l.sku) return;
+  const FK = SLDATA && SLDATA.Flipkart, items = {}; ((FK && FK.lines) || []).forEach(l => { if(l.status!=='Delivered' || !l.sku) return;
     const it = items[l.id] || (items[l.id] = {sku:l.sku, q:0, pay:0, sale:0}); it.pay += l.payout; it.sale += l.sale; it.q = Math.max(it.q, l.qty||1); });
   const payU = {}; Object.values(items).forEach(it => { if(!(it.sale>0)) return; const u = payU[low(it.sku)] || (payU[low(it.sku)] = {q:0, pay:0}); u.q += it.q; u.pay += it.pay; });
-  const P = Object.values(pm).map(p => { const ms = master('Flipkart', p.sku), unit = unitCost(ms), pu = payU[low(p.sku)];
-    const spu = pu && pu.q? pu.pay/pu.q : null, est = spu!=null? spu*p.fu : null, prof = est!=null && unit!=null? est - unit*p.fu : null, ppu = prof!=null && p.fu? prof/p.fu : null;
-    return Object.assign(p, {title:productTitle('Flipkart', ms, p.sku, ''), ms, asp:p.gu? p.gmv/p.gu : 0, share:T.gmv? p.gmv/T.gmv : 0, cr:p.gu? p.cu/p.gu : 0, rr:p.gu? p.ru/p.gu : 0, lostR:p.gu? (p.cu+p.ru)/p.gu : 0,
+  // the same products in the Flipkart payment file: orders paid, fees, net to you, returns, product cost and profit
+  const PR = {}; if(FK && FK.lines && FK.lines.length) productRows('Flipkart', compute('Flipkart', FK.lines, FK.extras||[]).I).forEach(x => { PR[low(x.key)] = x; });
+  const prSales = sum(Object.values(PR), x => x.sales) || 1, hasPR = Object.keys(PR).length>0;
+  const P = Object.values(pm).map(p => { const sk = [...p.skuSet], unit = unitCost(p.ms), pu = sk.reduce((u, k) => { const x = payU[low(k)]; if(x){ u.q += x.q; u.pay += x.pay; } return u; }, {q:0, pay:0});
+    const spu = pu.q? pu.pay/pu.q : null, est = spu!=null? spu*p.fu : null, prof = est!=null && unit!=null? est - unit*p.fu : null, ppu = prof!=null && p.fu? prof/p.fu : null;
+    const x = PR[low(p.key)];
+    if(x){ Object.assign(x, {asp:x.n? x.sales/x.n : 0, feesAll:(x.promo||0)+(x.fees||0), share:x.sales/prSales, ppo:x.n? x.profit/x.n : 0, margin:x.sales? x.profit/x.sales : 0}); }
+    const has = x && x.n>0;
+    return Object.assign(p, {sku:sk.join(', '), title:productTitle('Flipkart', p.ms, sk[0], ''), asp:p.gu? p.gmv/p.gu : 0, share:T.gmv? p.gmv/T.gmv : 0, cr:p.gu? p.cu/p.gu : 0, rr:p.gu? p.ru/p.gu : 0, lostR:p.gu? (p.cu+p.ru)/p.gu : 0,
       kept:p.gmv? p.fa/p.gmv : 0, cogs:unit!=null? unit*p.fu : null, gm:unit!=null? p.fa - unit*p.fu : null,
-      unit, spu, real:spu!=null && p.fu && p.fa? spu/(p.fa/p.fu) : null, est, prof, ppu, mg:prof!=null && p.fa? prof/p.fa : null, lostc:ppu!=null? p.cu*Math.max(0,ppu) : null}); });
+      unit, spu, real:spu!=null && p.fu && p.fa? spu/(p.fa/p.fu) : null, est, prof, ppu, mg:prof!=null && p.fa? prof/p.fa : null, lostc:ppu!=null? p.cu*Math.max(0,ppu) : null,
+      x:has? x : null, pn:has? x.n : null, pasp:has? x.asp : null, psales:has? x.sales : null, pfees:has? x.feesAll : null, pnet:has? x.net : null, pkept:has? x.kept : null, prr:has? x.refRate : null,
+      pcogs:has && x.costed? x.cogs : null, pprofit:has && x.costed? x.profit : null, pppo:has && x.costed? x.ppo : null, pmargin:has && x.costed? x.margin : null}); });
   const hasPay = P.some(p => p.prof!=null), tgtM = PX.target/100;
-  const avgLost = T.gu? (T.cu+T.ru)/T.gu : 0;
+  const avgLost = T.gu? (T.cu+T.ru)/T.gu : 0, RK = {bad:0, warn:1, '':2, ok:3};
   P.forEach(p => { p.act = p.ppu!=null && p.ppu<0? ['bad','Loses money: raise price or stop']
     : p.gu>=10 && p.lostR >= Math.max(0.2, avgLost*1.5)? ['bad','Too many cancels/returns: confirm COD, check listing']
     : p.share>=0.15 && p.lostR<=avgLost? ['ok','Hero: keep stock, push ads'] : p.gu>=10 && p.cr>=0.15? ['warn','High cancels: confirm COD before dispatch']
     : p.gu>=10 && p.rr>=0.08? ['warn','High returns: check photos & quality'] : p.mg!=null && p.fu>=5 && p.mg<tgtM? ['warn','Thin margin: raise price']
     : p.gu<3? ['','Few orders: improve listing or ads'] : ['','OK'];
-    p.actRank = ({bad:0, warn:1, '':2, ok:3})[p.act[0]]; });
+    // the payment file can show a bigger problem (money lost, too many returns): the more urgent action wins
+    if(p.x){ const pa = prodAction(p.x, tgtM); if(RK[pa[0]]!=null && pa[0] && RK[pa[0]] < RK[p.act[0]]) p.act = pa; }
+    p.actRank = RK[p.act[0]]; });
   // KPIs
   const kpi = (lab, big, small, cls) => '<div class="kpi'+(cls?' '+cls:'')+'"><small>'+lab+'</small><b>'+big+'</b><span class="muted">'+small+'</span></div>';
   $('slKpis').innerHTML = kpi('Units ordered', T.gu.toLocaleString('en-IN'), (T.gu/nd).toFixed(1)+' a day')
@@ -2081,6 +2100,9 @@ function drawSales(data){
   ins.push('Sales trend: '+(growth>=0? '<b>up '+pct(growth)+'</b>' : '<b class="cutx">down '+pct(-growth)+'</b>')+' (last 7 days '+avg(last).toFixed(1)+' vs first 7 days '+avg(first).toFixed(1)+' units a day).');
   const bk = Object.entries(brands).sort((a,b) => b[1]-a[1]); if(bk.length>1) ins.push('Brands: '+bk.map(([b,v]) => esc(b)+' '+pct(v/T.gmv)).join(' · ')+'.');
   const vk = Object.entries(vert).sort((a,b) => b[1]-a[1]); if(vk.length>1) ins.push('Categories: '+vk.map(([b,v]) => esc(b)+' '+pct(v/T.gmv)).join(' · ')+'.');
+  if(hasPR){ const X = P.map(p => p.x).filter(Boolean), n = S(X,x=>x.n), sl = S(X,x=>x.sales), nt = S(X,x=>x.net), rf = S(X,x=>x.ref), C = X.filter(x => x.costed), pr = S(C,x=>x.profit), cs = S(C,x=>x.sales);
+    ins.push('<b>Payment file (real money):</b> '+n+' orders paid, '+money(sl)+' sales, <b>'+money(nt)+'</b> reached you ('+pct(sl? nt/sl : 0)+')'+(costs && C.length? '; after product cost <b>'+money(pr)+'</b> profit ('+pct(cs? pr/cs : 0)+')' : '')+'. '
+      + rf+' came back ('+pct(n? rf/n : 0)+' of orders paid) against '+pct(T.gu? T.ru/T.gu : 0)+' returned in the Earn More report'+(hasPay? ', so trust this profit over the estimate' : '')+'.'); }
   if(hasPay){ const W = P.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa), est = S(W,p=>p.est), lc = S(W,p=>p.lostc||0);
     ins.push('For every <b>₹100</b> of final sales, Flipkart pays you about <b>'+money(fa? est/fa*100 : 0)+'</b>; after purchase cost you keep <b>'+money(pr)+'</b> ('+pct(fa? pr/fa : 0)+'), before ads and packing.');
     const topP = W.slice().sort((a,b) => b.prof-a.prof).slice(0,3); if(topP.length) ins.push('Most profit: '+topP.map(p => nm(p)+' '+money(p.prof)+' ('+money(p.ppu)+'/unit)').join(', ')+'.');
@@ -2100,26 +2122,40 @@ function drawSales(data){
   const q = low(SLV.q), list = P.filter(test[SLV.show]).filter(p => !q || low(p.sku+' '+p.title+' '+p.brand+' '+(p.ms||'')).includes(q));
   $('slCount').textContent = list.length===P.length? '' : 'Showing '+list.length+' of '+P.length;
   const k = SLV.sort, d = SLV.dir; list.sort((a,b) => k==='name'? d*String(a.title||a.sku).localeCompare(b.title||b.sku) : d*((a[k]??-1e12)-(b[k]??-1e12)));
-  const hasCost = costs && P.some(p => p.cogs!=null);
-  const cols = hasPay? [['name','Product'],['actRank','Action'],['gu','Units'],['gmv','Order value'],['cr','Cancelled'],['rr','Returned'],['fa','Final sales'],['spu','You get / unit'],['unit','Cost / unit'],['ppu','Profit / unit'],['prof','Est. profit'],['mg','Margin'],['lostc','Lost to cancels']]
+  const hasCost = costs && P.some(p => p.cogs!=null), hasPC = hasPR && !!costs;
+  const cols = hasPR? [['name','Product'],['actRank','Action'],['gu','Units ordered'],['gmv','Order value'],['cr','Cancelled'],['rr','Returned'],['fa','Final sales'],
+      ['pn','Orders paid','grp'],['pasp','Avg price'],['psales','Sales'],['pfees','Fees, shipping & discounts'],['pnet','Net to you'],['pkept','Kept'],['prr','Returns']]
+      .concat(hasPC? [['pcogs','Product cost'],['pprofit','Profit'],['pppo','Profit / order'],['pmargin','Margin']] : [])
+      .concat(hasPay? [['prof','Est. profit if all final units paid','grp'],['lostc','Lost to cancels']] : [])
     : [['name','Product'],['actRank','Action'],['gu','Units'],['gmv','Order value'],['asp','Avg price'],['cr','Cancelled'],['rr','Returned'],['fu','Final units'],['fa','Final sales'],['kept','Kept']].concat(hasCost? [['gm','After product cost']] : []);
+  const nPay = 7 + (hasPC? 4 : 0);
   const td = (v, cls, sub) => '<td class="num '+(cls||'')+'">'+v+(sub? '<small class="what">'+sub+'</small>' : '')+'</td>';
   const tot = {gu:S(list,p=>p.gu), gmv:S(list,p=>p.gmv), cu:S(list,p=>p.cu), ca:S(list,p=>p.ca), ru:S(list,p=>p.ru), ra:S(list,p=>p.ra), fu:S(list,p=>p.fu), fa:S(list,p=>p.fa), gm:S(list,p=>p.gm||0)};
-  $('slTable').innerHTML = '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname': c[0]==='actRank'? ' actcol' : ' numh')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
-    + (list.length? list.map(p => '<tr><td class="pxname" title="'+esc(p.title||p.sku)+'"><b>'+esc(p.title||p.sku)+'</b><small class="what">'+esc((p.title? 'SKU '+p.sku+' · ' : '')+[p.brand,p.vert].filter(Boolean).join(' · '))+'</small></td>'
-        + '<td class="tact '+p.act[0]+'">'+p.act[1]+'</td>' + td(p.gu) + td(money(p.gmv), '', (p.share*100).toFixed(1)+'%') + (hasPay? '' : td(money(p.asp)))
+  const payCells = p => { const x = p.x; if(!x) return '<td class="num muted grp" colspan="'+nPay+'">not in the payment file yet</td>';
+    return td(x.n, 'grp', x.qty && x.qty!==x.n? x.qty+' units' : '') + td(money(x.asp)) + td(money(x.sales), '', (x.share*100).toFixed(1)+'%') + td(money(x.feesAll))
+      + td(money(x.net), '', x.qty? money(x.net/x.qty)+' / unit' : '') + td(pct(x.kept), x.n>=10 && x.kept<0.78? 'hot' : '')
+      + td(x.ref? x.ref+' · '+pct(x.refRate) : '–', x.n>=4 && x.refRate>=0.2? 'hot' : '', x.ref? x.rtoN+' RTO · '+x.retN+' ret.' : '')
+      + (hasPC? (x.costed? td(money(x.cogs), '', p.unit? Math.round(x.cogs/p.unit)+' × '+money(p.unit) : '') + td(money(x.profit), x.profit<0? 'hot' : '') + td(money(Math.round(x.ppo)||0), x.ppo<-0.5? 'hot' : '')
+          + td(pct(x.margin), x.margin<0? 'hot' : x.margin<tgtM? 'warn' : 'ok') : '<td class="num muted" colspan="4">no purchase cost</td>') : ''); };
+  const payFoot = () => { const X = list.map(p => p.x).filter(Boolean), t = {}; ['n','qty','sales','feesAll','net','ref','rtoN','retN'].forEach(f => t[f] = S(X, x => x[f]||0));
+    const C = X.filter(x => x.costed), cg = S(C, x => x.cogs), pr = S(C, x => x.profit), cs = S(C, x => x.sales), cn = S(C, x => x.n);
+    return td(t.n, 'grp', t.qty!==t.n? t.qty+' units' : '') + td(money(t.n? t.sales/t.n : 0)) + td(money(t.sales)) + td(money(t.feesAll)) + td(money(t.net)) + td(pct(t.sales? t.net/t.sales : 0))
+      + td(t.ref+' · '+pct(t.n? t.ref/t.n : 0), '', t.rtoN+' RTO · '+t.retN+' ret.')
+      + (hasPC? td(money(cg)) + td(money(pr)) + td(money(cn? pr/cn : 0)) + td(pct(cs? pr/cs : 0)) : ''); };
+  $('slNote').textContent = hasPR? 'Units ordered → Final sales: Earn More report (orders placed this period). Orders paid → Margin: Flipkart payment file (money that reached you).'+(hasPay? ' Est. profit: if every final unit pays like the paid ones.' : '') : '';
+  $('slTable').innerHTML = '<thead><tr>'+cols.map(c => '<th class="sort'+(c[0]==='name'?' pxname': c[0]==='actRank'? ' actcol' : ' numh')+(c[2]? ' '+c[2] : '')+'" data-k="'+c[0]+'" aria-sort="'+(c[0]===k?(d<0?'descending':'ascending'):'none')+'"><button type="button" class="pxsort">'+c[1]+(c[0]===k?(d<0?' ▼':' ▲'):'')+'</button></th>').join('')+'</tr></thead><tbody>'
+    + (list.length? list.map(p => '<tr'+(p.pprofit!=null && p.pprofit<0? ' class="loss"' : '')+'><td class="pxname" title="'+esc(p.title||p.sku)+'"><b>'+esc(p.title||p.sku)+'</b><small class="what">'+esc([p.ms, 'SKU '+p.sku, p.brand].filter(Boolean).join(' · '))+'</small></td>'
+        + '<td class="tact '+p.act[0]+'">'+p.act[1]+'</td>' + td(p.gu) + td(money(p.gmv), '', (p.share*100).toFixed(1)+'%') + (hasPR? '' : td(money(p.asp)))
         + td(p.cu? pct(p.cr) : '–', p.gu>=5 && p.cr>=0.15? 'hot' : '', p.cu? p.cu+' · '+money(p.ca) : '') + td(p.ru? pct(p.rr) : '–', p.gu>=5 && p.rr>=0.08? 'hot' : '', p.ru? p.ru+' · '+money(p.ra) : '')
-        + (hasPay? td(money(p.fa), '', p.fu+' units')
-            + (p.spu!=null? td(money(p.spu), '', p.real!=null? money(p.real*100)+' per ₹100' : '') : '<td class="num muted">not paid yet</td>')
-            + (p.unit!=null? td(money(p.unit)) : '<td class="num muted">no cost</td>')
-            + (p.prof!=null? td(money(Math.round(p.ppu)||0), p.ppu<0? 'hot' : '') + td(money(p.prof), p.prof<0? 'hot' : '') + td(pct(p.mg), p.mg<0? 'hot' : p.mg<tgtM? 'warn' : 'ok') + td(p.lostc? money(p.lostc) : '–', p.lostc>=300? 'hot' : '') : '<td class="num muted" colspan="4">–</td>')
+        + (hasPR? td(money(p.fa), '', p.fu+' units') + payCells(p)
+            + (hasPay? (p.prof!=null? td(money(p.prof), 'grp'+(p.prof<0? ' hot' : ''), money(Math.round(p.ppu)||0)+' / unit · '+pct(p.mg)) + td(p.lostc? money(p.lostc) : '–', p.lostc>=300? 'hot' : '') : '<td class="num muted grp" colspan="2">–</td>') : '')
           : td(p.fu) + td(money(p.fa)) + td(pct(p.kept), p.gu>=5 && p.kept<0.8? 'hot' : '')
             + (hasCost? (p.gm!=null? td(money(p.gm), p.gm<0? 'hot' : '', 'cost '+money(p.cogs)) : '<td class="num muted">no cost</td>') : ''))+'</tr>').join('')
       : '<tr><td colspan="'+cols.length+'" class="muted">No products match.</td></tr>')
-    + '</tbody><tfoot><tr><td class="pxname"><b>Total'+(list.length<P.length? ' (shown)' : '')+'</b></td><td></td>'+td(tot.gu)+td(money(tot.gmv))+(hasPay? '' : td(money(tot.gu? tot.gmv/tot.gu : 0)))
+    + '</tbody><tfoot><tr><td class="pxname"><b>Total'+(list.length<P.length? ' (shown)' : '')+'</b></td><td></td>'+td(tot.gu)+td(money(tot.gmv))+(hasPR? '' : td(money(tot.gu? tot.gmv/tot.gu : 0)))
     + td(pct(tot.gu? tot.cu/tot.gu : 0), '', money(tot.ca))+td(pct(tot.gu? tot.ru/tot.gu : 0), '', money(tot.ra))
-    + (hasPay? (() => { const W = list.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa), fu = S(W,p=>p.fu), est = S(W,p=>p.est);
-        return td(money(tot.fa), '', tot.fu+' units')+td(money(fu? est/fu : 0))+'<td></td>'+td(money(fu? pr/fu : 0))+td(money(pr))+td(pct(fa? pr/fa : 0))+td(money(S(W,p=>p.lostc||0))); })()
+    + (hasPR? td(money(tot.fa), '', tot.fu+' units') + payFoot()
+        + (hasPay? (() => { const W = list.filter(p => p.prof!=null), pr = S(W,p=>p.prof), fa = S(W,p=>p.fa); return td(money(pr), 'grp', pct(fa? pr/fa : 0))+td(money(S(W,p=>p.lostc||0))); })() : '')
       : td(tot.fu)+td(money(tot.fa))+td(pct(tot.gmv? tot.fa/tot.gmv : 0))+(hasCost? td(money(tot.gm)) : ''))+'</tr></tfoot>';
   $('slTable').querySelectorAll('th.sort button').forEach(b => b.onclick = () => { const nk = b.parentNode.dataset.k;
     SLV.dir = SLV.sort===nk? -SLV.dir : (nk==='name'||nk==='actRank'? 1 : -1); SLV.sort = nk; drawSales(); });
