@@ -342,10 +342,6 @@ table.recv select{min-height:36px;border:1px solid var(--line);border-radius:8px
 .aisend{flex:none;width:50px;height:50px;border:0;border-radius:50%;background:#0B6B57;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(11,107,87,.35)} .aisend:hover{filter:brightness(1.1)}
 @media (max-width:560px){ .aipanel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0} .aifab{right:14px;bottom:14px} .aitip{display:none} }
 @media print{ .aifab,.aipanel{display:none!important} }
-.ask{border:2px solid var(--peacock)} .ask h2{margin-bottom:10px}
-.askform{display:flex;gap:8px} .askform input{flex:1;min-width:0;min-height:46px;border:1px solid var(--line);border-radius:10px;padding:0 14px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px}
-.askchips{border:0;padding:10px 0 0;flex-wrap:wrap}
-.askout{margin-top:12px;display:flex;flex-direction:column;gap:8px;font-size:15px;line-height:1.55} .askout .askq{font-weight:700;color:var(--muted)} .askout .aimsg{max-width:100%}
 .act p{margin:0}.act p+p{margin-top:8px}
 .act{margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--turmeric-soft)}
 .act b{display:block;margin-bottom:4px}
@@ -505,14 +501,6 @@ details.info div{position:absolute;z-index:6;top:28px;left:-8px;width:min(300px,
         <div class="say"><span class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"></path></svg></span><div><h2 id="headline"></h2><p id="subline"></p></div></div>
         <div class="kpis" id="kpis"></div>
       </div>
-    </section>
-
-    <section class="card ask" id="sec-ask" aria-labelledby="askH">
-      <h2 id="askH">Ask a question about your files</h2>
-      <form class="askform" id="askForm"><input type="text" id="askQ" placeholder="e.g. How much profit? · Which products lose money? · Tamil Nadu returns · G00021" aria-label="Your question" autocomplete="off"><button type="submit" class="btn">Ask</button></form>
-      <div class="aiquick askchips" id="askChips"></div>
-      <div class="askout" id="askOut" hidden aria-live="polite"></div>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">Answers come from the files you added, right here in your browser. Free, nothing is sent anywhere.</p>
     </section>
 
     <section class="card" id="compareBox" aria-labelledby="cmpH">
@@ -1121,8 +1109,8 @@ function render(){
   $('tabs').innerHTML = (multi? ['All'] : []).concat(have).map(p => '<button role="tab" aria-selected="'+(p===active)+'" data-p="'+p+'">'+(p==='All'?'All platforms':p)+'</button>').join('');
   $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { active = b.dataset.p; render(); });
   drawSide(active==='All'
-    ? [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),...(active==='All'? [] : [['sec-rto','COD vs prepaid','RTO by state & courier','pin']]),['step1','My files','Add or remove files','file']]
-    : [['sec-home','Home','The quick summary','home'],['sec-ask','Ask a question','About your files','chat'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
+    ? [['sec-home','Home','The quick summary','home'],['compareBox','Platforms','Which earned most','plat'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),...(active==='All'? [] : [['sec-rto','COD vs prepaid','RTO by state & courier','pin']]),['step1','My files','Add or remove files','file']]
+    : [['sec-home','Home','The quick summary','home'],['sec-money','Where money went','Fees, returns, your share','money'],['sec-fix','Problems to fix','Biggest losses first','fix'],
        ['sec-weeks','Week by week','Up or down?','week'],['sec-price','Price bands','What price sells','price'],['sec-pricing','Pricing','Break-even & target price','tag'],['sec-products','My products','Best and worst','box'],['sec-allprod','All products','Sort, filter, search','list'],
        ['sec-tables',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'Refunds & free orders':'Orders & charges',active==='Amazon' && data.Amazon && !data.Amazon.lines.length?'By payment type':'By status, ads, fines','list'],
        ['sec-returns','Returns','Every order sent back','back'],['recCard','Money to recover','Unpaid, overcharged, claims','fix'],['sec-pl','Profit & loss','Month by month','money'],...(rets.size? [['retCard','Returns reports','RTO, reasons, claims','back']] : []),...(sales.size? [['salesCard','Flipkart sales report','Orders, cancels, trend','week']] : []),...(active==='All'? [] : [['sec-rto','COD vs prepaid','RTO by state & courier','pin']]),['step1','My files','Add or remove files','file']]);
@@ -2125,7 +2113,7 @@ function retIndex(platform){
 }
 // with payment files loaded the platform tabs and the summary come first; "Your files" moves below the summary
 function placeFiles(below){
-  const st = $('step1'), rep = $('report'), ask = $('sec-ask');
+  const st = $('step1'), rep = $('report'), ask = $('sec-home').nextElementSibling;
   if(below){ if(st.parentNode!==rep) rep.insertBefore(st, ask); }
   else if(st.parentNode===rep) rep.parentNode.insertBefore(st, rep);
 }
@@ -2382,8 +2370,6 @@ function answerQ(q){
   return 'I could not match that to your data. Try:\n- "How much profit?" · "Flipkart profit"\n- "Which products lose money?" · a product name or SKU\n- "Tamil Nadu returns" · "COD vs prepaid"\n- "Ads" · "Fees" · "TCS" · "Money to recover"';
 }
 function aiAsk(q){ q = q.trim(); if(!q) return; aiAdd('user', q); $('aiQ').value = ''; aiAdd('bot', answerQ(q)); }
-function askInline(q){ q = q.trim(); if(!q) return; $('askQ').value = q; $('askOut').hidden = false;
-  $('askOut').innerHTML = '<div class="askq">'+esc(q)+'</div><div class="aimsg bot">'+mdLite(answerQ(q))+'</div>'; }
 // ---- chat UI ----
 function mdLite(t){ // escape first, then bold, bullet lists and line breaks only
   const h = esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
@@ -2395,10 +2381,6 @@ function aiOpen(open){ $('aiPanel').hidden = !open; $('aiFab').setAttribute('ari
 $('aiFab').onclick = () => aiOpen($('aiPanel').hidden);
 $('aiClose').onclick = () => aiOpen(false);
 $('aiForm').onsubmit = e => { e.preventDefault(); aiAsk($('aiQ').value); };
-$('askForm').onsubmit = e => { e.preventDefault(); askInline($('askQ').value); };
-$('askChips').innerHTML = QUICK.map(([k,t]) => '<button type="button" data-q="'+k+'">'+t+'</button>').join('');
-$('askChips').onclick = e => { const b = e.target.closest('[data-q]'); if(!b) return; $('askQ').value = b.textContent; $('askOut').hidden = false;
-  $('askOut').innerHTML = '<div class="askq">'+esc(b.textContent)+'</div><div class="aimsg bot">'+mdLite(quickAnswer(b.dataset.q))+'</div>'; };
 $('aiQuick').innerHTML = QUICK.map(([k,t]) => '<button type="button" data-q="'+k+'">'+t+'</button>').join('');
 $('aiQuick').onclick = e => { const b = e.target.closest('[data-q]'); if(!b) return; aiAdd('user', b.textContent); aiAdd('bot', quickAnswer(b.dataset.q)); };
 $('aiNew').onclick = () => { $('aiLog').innerHTML = ''; aiAdd('bot', 'New chat. Ask about your sales, profit, fees, returns or prices.'); };
