@@ -23,15 +23,15 @@ Or download `index.html` and double-click it to open it in Chrome or Edge (needs
 
 ## Flipkart sales report (Earn More)
 
-Add Flipkart's **Earn More** sales report (Excel) to see what customers ordered by order date: units, order value, cancelled, returned and final sales, per product and per day. The card shows a manager's summary (money lost to cancels and returns, hero product, products to fix first, best and weakest weekday, sales trend, brand and category split), a daily chart, and a product table with an Action for each product. With the business sheet loaded it also shows final sales after product cost.
+Add Flipkart's **Earn More** sales report (Excel) to see what customers ordered by order date: units, order value, cancelled, returned and final sales, per product and per day. The card shows a manager's summary (money lost to cancels and returns, hero product, products to fix first, best and weakest weekday, sales trend, brand and category split), a daily chart, and a product table with an Action for each product. With a Flipkart payment file and the business sheet loaded, it also shows what Flipkart really pays per delivered unit, purchase cost per unit, profit per unit, estimated profit and margin per product (before ads and packing), and the profit lost to cancellations.
 
 ## Returns and RTO
 
 Add the Flipkart and Meesho returns reports together with your business sheet. The tool matches every return to the **Orders** tab and shows the real RTO and customer-return rate by COD vs prepaid, courier, state and product, why parcels came back, and a **Check or claim** list: parcels lost in transit, returns not back after 30 days, and customer returns for damaged, missing or wrong items.
 
-## Ask a question
+## Assistant
 
-Right under the summary there is an **Ask a question about your files** box, and a round **robot button** (bottom right) opens the chat window, where you can also ask by voice with the 🎤 button (uses your browser's speech-to-text). Type things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
+Click the round **robot button** (bottom right) to open the chat. Type or use the 🎤 mic (your browser's speech-to-text) to ask things like *How much profit?*, *Flipkart profit*, *Which products lose money?*, a product name or SKU (*Black Ganesh*, *G00021*), *Tamil Nadu returns*, *COD vs prepaid*, *cancellations*, *ads*, *TCS* or *money to recover*. Answers come from the files you added, inside the browser: free, nothing is sent anywhere. Product questions use the products of the platform tab that is open.
 
 ## Profit & loss
 
