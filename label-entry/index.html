@@ -252,18 +252,29 @@ function parseAmazon(t){
   const pd=t.match(/Place of delivery:\s*([A-Za-z &]+)/); const state=pd?normState(pd[1]):"";
   let cust=""; const si=L.findIndex(l=>/Shipping Address\s*:/.test(l));
   if(si>=0){const clean=s=>(s||"").replace(/^(PAN No|GST Registration No|Dynamic QR Code)\s*:?\s*\S*\s*/i,"").trim();
-    cust=clean(L[si+2])||clean(L[si+1]);}
+    // the ship-to name is the first line under "Shipping Address" (after any PAN/GST text);
+    // the line after it is already the street address
+    cust=clean(L[si+1])||clean(L[si+2]);}
   const a=L.findIndex(l=>/^No\s+Price\s+Amount/.test(l)); const b=L.findIndex(l=>/^TOTAL:/.test(l));
   const block=(a>=0&&b>a?L.slice(a+1,b):[]).join(" ");
-  const prices=[...block.matchAll(/₹([\d,]+\.\d+)\s+(\d+)\s+₹([\d,]+\.\d+)\s+[\d.]+%\s+\w+\s+₹[\d,.]+\s+₹([\d,]+\.\d+)/g)];
-  const items=[...block.matchAll(/\|\s*([A-Z0-9]{10})\s*\(\s*([^)]+?)\s*\)/g)];
+  // When a long title wraps, the price columns land on the same printed line as the
+  // title, so they can sit between "|" and the ASIN, or inside "( SKU )". Read the
+  // prices first, then take them out before looking for "ASIN ( SKU )".
+  const PRICE=/₹([\d,]+\.\d+)\s+(\d+)\s+₹([\d,]+\.\d+)\s+[\d.]+%\s+\w+\s+₹[\d,.]+\s+₹([\d,]+\.\d+)/g;
+  const prices=[...block.matchAll(PRICE)];
+  const clean=block.replace(PRICE," ").replace(/[\d.]+%\s+[A-Z]+\s+₹[\d,.]+/g," ").replace(/\s+/g," ");
+  const items=[...clean.matchAll(/(?:\|\s*)?\b(B0[A-Z0-9]{8}|\d{9}[\dX])\s*\(\s*([^()]+?)\s*\)/g)];
   let cursor=0;
   items.forEach((m,i)=>{
-    let d=block.slice(cursor,m.index).replace(/₹[\d,]+\.\d+\s+\d+\s+₹[\d,]+\.\d+\s+[\d.]+%\s+\w+\s+₹[\d,.]+\s+₹[\d,]+\.\d+/g," ").replace(/HSN:\d+/g," ").replace(/[\d.]+%\s+[A-Z]+\s+₹[\d,.]+/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
+    let d=clean.slice(cursor,m.index).replace(/HSN:\d+/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
     cursor=m.index+m[0].length;
     const p=prices[i];
-    out.push({platform:"Amazon",orderId,sku:m[2],qty:p?+p[2]:1,product:d,amount:p?money(p[4]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate});
+    out.push({platform:"Amazon",orderId,sku:m[2].replace(/\s+/g,""),qty:p?+p[2]:1,product:d,amount:p?money(p[4]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate});
   });
+  // Never drop an order silently: if the item line could not be read, keep the order
+  // with an empty SKU so it shows in red and can be filled in by hand.
+  if(!out.length&&orderId){const tt=t.match(/TOTAL:\s*₹[\d,.]+\s+₹([\d,.]+)/);
+    out.push({platform:"Amazon",orderId,sku:"",qty:prices[0]?+prices[0][2]:1,product:"",amount:tt?money(tt[1]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate,unread:true});}
   if(out.length===1&&!out[0].amount){const tt=t.match(/TOTAL:\s*₹[\d,.]+\s+₹([\d,.]+)/);if(tt)out[0].amount=money(tt[1]);}
   return out;
 }
@@ -308,14 +319,16 @@ async function handleFiles(list){
   if(!window.pdfjsLib){notice("err","The PDF reader didn't load. Check your internet connection and reload the page.");return;}
   const files=[...list].filter(f=>/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)); if(!files.length){notice("warn","Please choose PDF files.");return;}
   notice("info",`Reading ${files.length} file${files.length>1?"s":""}…`);
-  let added=0,dupe=0,unknown=0,fileErr=[]; const dupList=[];
+  let added=0,dupe=0,unknown=0,unread=0,fileErr=[]; const dupList=[];
   for(const f of files){
     const li=document.createElement("li"); li.textContent=f.name; $("files").appendChild(li);
     try{
       const pages=await readPdf(f); let found=0;
       for(const txt of pages){const r=parsePage(txt); if(!r){if(txt.trim())unknown++; continue;}
-        const seen=new Set(rows.map(y=>y.orderId));
-        for(const x of r){found++; if(seen.has(x.orderId)){dupe++; dupList.push({platform:x.platform,orderId:x.orderId,reason:"Repeated in your label files"}); continue;} x.dup=false; rows.push(x); added++;}}
+        if(!r.length){unread++; continue;}
+        for(const x of r){found++; if(x.unread)unread++;
+          const k=rowKey(x); if(rows.some(y=>rowKey(y)===k)){dupe++; dupList.push({platform:x.platform,orderId:x.orderId,reason:"Repeated in your label files"}); continue;}
+          x.dup=false; rows.push(x); added++;}}
       li.textContent=`${f.name} (${found} order${found===1?"":"s"})`;
     }catch(e){fileErr.push(f.name); li.textContent=f.name+" (could not read)";}
   }
@@ -323,10 +336,11 @@ async function handleFiles(list){
   let msg=`Found <b>${added}</b> new order${added===1?"":"s"}.`;
   if(dupe)msg+=` ${dupe} with a repeated Order ID ${dupe===1?"was":"were"} skipped.`;
   if(fileErr.length)msg+=` Could not read: ${esc(fileErr.join(", "))}.`;
+  if(unread)msg+=` <b>${unread} label${unread>1?"s":""} could not be read fully</b>${rows.some(r=>r.unread)?" (shown in red: type the SKU in)":""}. Check the count against your label file.`;
   if(unknown)msg+=` ${unknown} page${unknown>1?"s were":" was"} not a known label format.`;
   const amz=rows.filter(r=>r.platform==="Amazon"&&!r.awb).length;
   if(amz)msg+=` Amazon AWB numbers are printed as an image, so add them by hand if you need them.`;
-  notice(added?"ok":"warn",msg);
+  notice(added&&!unread?"ok":"warn",msg);
   // check against the sheet right away, then alert
   const inSheet=await markSheetDups(true);
   if(inSheet.length){ inSheet.forEach(r=>dupList.push({platform:r.platform,orderId:r.orderId,reason:"Already in your Google Sheet"})); render(); }
@@ -349,10 +363,17 @@ async function api(payload){
   return j&&j.ok? j : {err:(j&&j.error)||"bad_response"};
 }
 const normId=v=>String(v||"").replace(/^'/,"").trim().toUpperCase();
+// One order can hold several products, so a row is the same only if Order ID AND SKU match.
+function rowKey(r){return normId(r.orderId)+"|"+normId(r.sku);}
+// Newer Apps Script returns order+SKU keys; an older one only returns order IDs.
+function sheetHas(res){
+  if(Array.isArray(res.keys)){const ks=new Set(res.keys.map(normId)); return r=>ks.has(rowKey(r));}
+  const ids=new Set(res.ids.map(normId)); return r=>ids.has(normId(r.orderId));
+}
 async function markSheetDups(quiet){
   const res=await api({action:"ids"}); if(res.err)return [];
-  const have=new Set(res.ids.map(normId));
-  rows.forEach(r=>r.dup=have.has(normId(r.orderId)));
+  const has=sheetHas(res);
+  rows.forEach(r=>r.dup=has(r));
   return rows.filter(r=>r.dup);
 }
 const FIELDS=["platform","orderId","sku","product","qty","amount","payment","courier","awb","customer","state","orderDate"];
@@ -377,7 +398,7 @@ function render(){
   const n=rows.filter(r=>!r.dup).length; $("saveBtn").textContent=`Add ${n} order${n===1?"":"s"} to Google Sheet`;
 }
 $("tbody").addEventListener("input",e=>{const td=e.target.closest("td[data-f]"); if(!td)return; const r=rows[+td.dataset.i], f=td.dataset.f;
-  let v=td.textContent.trim(); if(f==="qty"||f==="amount"){const n=parseFloat(v.replace(/[^\d.]/g,"")); r[f]=isNaN(n)?0:n;} else r[f]=v;});
+  let v=td.textContent.trim(); if(f==="qty"||f==="amount"){const n=parseFloat(v.replace(/[^\d.]/g,"")); r[f]=isNaN(n)?0:n;} else {r[f]=v; if(f==="sku"&&v)r.unread=false;}});
 $("tbody").addEventListener("blur",e=>{const td=e.target.closest("td[data-f]"); if(td&&(td.dataset.f==="qty"||td.dataset.f==="amount"))render();},true);
 $("tbody").addEventListener("click",e=>{const b=e.target.closest("[data-del]"); if(b){rows.splice(+b.dataset.del,1); render();}});
 
@@ -416,11 +437,11 @@ $("saveBtn").onclick=async()=>{
   try{
     const existing=await api({action:"ids"});
     if(existing.err){notice(existing.err==="not_set"?"warn":"err",errText(existing.err));return;}
-    const have=new Set(existing.ids.map(normId));
-    rows.forEach(r=>r.dup=have.has(normId(r.orderId)));
+    const has=sheetHas(existing);
+    rows.forEach(r=>r.dup=has(r));
     // also guard against the same Order ID twice in this batch (e.g. edited by hand)
     const batch=new Set(); const batchDup=[];
-    rows.forEach(r=>{if(r.dup)return; const k=normId(r.orderId); if(batch.has(k)){r.dup=true; batchDup.push(r);} else batch.add(k);});
+    rows.forEach(r=>{if(r.dup)return; const k=rowKey(r); if(batch.has(k)){r.dup=true; batchDup.push(r);} else batch.add(k);});
     const todo=rows.filter(r=>!r.dup); render();
     const dupRows=rows.filter(r=>r.dup);
     if(dupRows.length)showDupAlert(dupRows.map(r=>({platform:r.platform,orderId:r.orderId,reason:batchDup.includes(r)?"Repeated in this list":"Already in your Google Sheet"})),"These orders were NOT added, because the same Order ID was found:");
@@ -429,8 +450,9 @@ $("saveBtn").onclick=async()=>{
     const res=await api({action:"append",rows:todo.map(sheetRow)});
     if(res.err){notice("err",errText(res.err));return;}
     // the script re-checks under a lock, so trust its skipped list over ours
-    const late=new Set(res.skipped.map(normId));
-    todo.forEach(r=>{if(late.has(normId(r.orderId)))r.dup=true;});
+    // newer script reports skipped order+SKU keys; older one reports order IDs
+    const late=new Set((res.skippedKeys||res.skipped).map(normId));
+    todo.forEach(r=>{if(late.has(res.skippedKeys?rowKey(r):normId(r.orderId)))r.dup=true;});
     const skipped=rows.filter(r=>r.dup).length;
     const url=/^https:\/\/docs\.google\.com\//.test(res.sheetUrl||"")?res.sheetUrl:"";
     rows=rows.filter(r=>r.dup); render(); $("files").innerHTML="";
