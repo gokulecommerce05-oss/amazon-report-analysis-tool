@@ -104,6 +104,38 @@ dialog p{margin:0 0 12px;color:var(--ink)}
 :root[data-theme="dark"] .duplist th{color:var(--ink)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .duplist th{color:var(--ink)}}
 .duplist td{font-variant-numeric:tabular-nums}
+/* sales report */
+.report{margin-top:44px;display:flex;flex-direction:column;gap:14px}
+.report h2{font-size:24px;font-weight:800;letter-spacing:-0.01em;margin:0}
+.report .sub{color:var(--muted);margin:0;max-width:70ch;font-size:14px}
+.rbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-weight:600;font-size:14px;border:0;background:transparent;color:var(--ink);padding:8px 14px;min-height:40px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--teal);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0F191B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0F191B}}
+.seg button:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+select.f{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px;max-width:100%}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px;border-top:4px solid var(--k,var(--teal))}
+.kpi b{display:block;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi small{color:var(--muted);font-size:13px;font-weight:600}
+.kpi span{display:block;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.kpi.aov{--k:var(--gold)}.kpi.amazon{--k:var(--amazon)}.kpi.flipkart{--k:var(--flipkart)}.kpi.meesho{--k:var(--meesho)}.kpi.good{--k:var(--green)}
+.kpi.amazon b{color:var(--amazon)}.kpi.flipkart b{color:var(--flipkart)}.kpi.meesho b{color:var(--meesho)}
+.rtable{overflow:auto;max-height:520px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.rtable table{min-width:900px}
+.rtable td{white-space:nowrap}
+.rtable td.pname{white-space:normal;min-width:220px;max-width:320px}
+.rtable tbody tr{cursor:default}
+.rtable.pick tbody tr{cursor:pointer}
+.rtable.pick tbody tr:hover td{background:var(--teal-soft)}
+.rtable tr.sel td{background:var(--gold-soft);font-weight:600}
+.rtable td.aov{font-weight:700;color:var(--teal)}
+.rtable tfoot td{position:sticky;bottom:0;background:var(--surface);font-weight:800;border-top:2px solid var(--line)}
+.rtable td.warn{color:var(--red);font-weight:700}
+.rtitle{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+.rtitle h3{margin:0;font-size:18px}
 @media (max-width:600px){.wrap{padding:20px 14px 150px}.drop{padding:28px 14px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -152,6 +184,34 @@ dialog p{margin:0 0 12px;color:var(--ink)}
     <tbody id="tbody"></tbody>
   </table>
 </div>
+
+<section class="report" id="report" aria-labelledby="repH">
+  <h2 id="repH">Sales report</h2>
+  <p class="sub">From the Orders tab of your Google Sheet, by dispatch date. Average order value = sales ÷ orders. Orders counts order lines, the same as your sheet's Sales Report tab.</p>
+  <div class="rbar">
+    <div class="seg" role="group" aria-label="View by" id="repView">
+      <button type="button" data-v="day" aria-pressed="true">Day</button>
+      <button type="button" data-v="week" aria-pressed="false">Week</button>
+      <button type="button" data-v="month" aria-pressed="false">Month</button>
+    </div>
+    <label class="f" style="flex-direction:row;align-items:center;gap:8px">Period
+      <select class="f" id="repPeriod" aria-label="Period"></select>
+    </label>
+    <button class="btn ghost" id="repLoad" type="button">Load from sheet</button>
+  </div>
+  <div class="notice" id="repNote" role="status" aria-live="polite"></div>
+  <div class="kpis" id="repKpis"></div>
+  <div class="rtitle"><h3 id="repPerH">Sales by day</h3><span class="sub">Click a row to see its products.</span></div>
+  <div class="rtable pick"><table>
+    <thead><tr><th>Period</th><th>Amazon units</th><th>Flipkart units</th><th>Meesho units</th><th>Total units</th><th>Orders</th><th>Sales (₹)</th><th>Purchase cost (₹)</th><th>Margin before fees (₹)</th><th>Avg order value (₹)</th><th>Orders without cost</th></tr></thead>
+    <tbody id="repPer"></tbody><tfoot id="repPerT"></tfoot>
+  </table></div>
+  <div class="rtitle"><h3>Product-wise sales: <span id="repProdH">—</span></h3><span class="sub">Sorted by sales.</span></div>
+  <div class="rtable"><table>
+    <thead><tr><th>Master SKU</th><th>Product</th><th>Amazon units</th><th>Flipkart units</th><th>Meesho units</th><th>Total units</th><th>Orders</th><th>Sales (₹)</th><th>Purchase cost (₹)</th><th>Margin before fees (₹)</th><th>Avg order value (₹)</th></tr></thead>
+    <tbody id="repProd"></tbody><tfoot id="repProdT"></tfoot>
+  </table></div>
+</section>
 </div>
 
 <div class="bar" id="bar">
@@ -293,7 +353,7 @@ $("saveSheet").onclick=async()=>{const u=$("scriptUrl").value.trim(), k=$("scrip
   scriptUrl=u; scriptKey=k; try{localStorage.setItem("labeltool.url",u); localStorage.setItem("labeltool.key",k);}catch(e){}
   const res=await api({action:"ids"});
   if(res.err){notice("err","Saved, but the test failed: "+errText(res.err));return;}
-  notice("ok",`Connected. Your Orders tab has ${res.ids.length} order${res.ids.length===1?"":"s"} so far.`);};
+  notice("ok",`Connected. Your Orders tab has ${res.ids.length} order${res.ids.length===1?"":"s"} so far.`); loadReport();};
 const t=new Date(); $("dispatch").value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
 
 function notice(kind,html){const n=$("notice"); n.className="notice show "+kind; n.innerHTML=html;}
@@ -458,9 +518,87 @@ $("saveBtn").onclick=async()=>{
     rows=rows.filter(r=>r.dup); render(); $("files").innerHTML="";
     notice("ok",(res.added?`Added <b>${res.added}</b> order${res.added===1?"":"s"} to rows ${res.start} to ${res.end} of the Orders tab.`:"No new orders were added.")+(skipped?` ${skipped} already in the sheet ${skipped===1?"was":"were"} skipped.`:"")+(url?` <a href="${esc(url)}" target="_blank" rel="noopener">Open the sheet</a>`:""));
     if(!rows.length){$("bar").classList.remove("show");}
+    if(res.added&&ORD)loadReport();
   } finally { btn.disabled=false; if(btn.textContent.startsWith("Adding")||btn.textContent.startsWith("Checking"))btn.textContent=label; render(); }
 };
 render();
+
+// ===== Sales report: Orders tab → by day/week/month and by product, with average order value =====
+const PLATS=["Amazon","Flipkart","Meesho"], MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+let ORD=null, repView="day", repSel="";
+const rs=v=>"₹"+Math.round(v||0).toLocaleString("en-IN");
+const n0=v=>Math.round(v||0).toLocaleString("en-IN");
+const pad=n=>String(n).padStart(2,"0");
+const isoD=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function toDate(v){ const m=String(v||"").match(/^(\d{4})-(\d{2})-(\d{2})/); if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  const d=new Date(v); return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function numV(v){ if(typeof v==="number")return v; const n=parseFloat(String(v||"").replace(/[^\d.-]/g,"")); return isNaN(n)?0:n; }
+function period(d){
+  if(repView==="month")return {k:`${d.getFullYear()}-${pad(d.getMonth()+1)}`,label:`${MONTHS[d.getMonth()]} ${d.getFullYear()}`};
+  if(repView==="week"){const m=new Date(d); m.setDate(d.getDate()-((d.getDay()+6)%7)); const e=new Date(m); e.setDate(m.getDate()+6);
+    return {k:isoD(m),label:`${m.getDate()} ${MON[m.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]} ${e.getFullYear()}`};}
+  return {k:isoD(d),label:`${MON[d.getMonth()]} ${pad(d.getDate())}, ${d.getFullYear()}`};
+}
+function agg(list){
+  const a={u:{},o:{},s:{},orders:0,units:0,sales:0,cost:0,noCost:0};
+  PLATS.forEach(p=>{a.u[p]=0;a.o[p]=0;a.s[p]=0;});
+  list.forEach(r=>{ if(a.u[r.p]===undefined){a.u[r.p]=0;a.o[r.p]=0;a.s[r.p]=0;}
+    a.u[r.p]+=r.qty; a.o[r.p]++; a.s[r.p]+=r.amt; a.orders++; a.units+=r.qty; a.sales+=r.amt; a.cost+=r.cost; if(r.noCost)a.noCost++; });
+  a.margin=a.sales-a.cost; a.aov=a.orders?a.sales/a.orders:0; return a;
+}
+function cells(vals){return vals.map(([v,c])=>`<td class="num ${c||""}">${v}</td>`).join("");}
+function drawReport(){
+  const kp=$("repKpis"), per=$("repPer"), prod=$("repProd");
+  document.querySelectorAll("#repView button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===repView)));
+  if(!ORD){ kp.innerHTML=""; per.innerHTML=""; prod.innerHTML=""; $("repPerT").innerHTML=""; $("repProdT").innerHTML=""; $("repPeriod").innerHTML=""; return; }
+  // periods, newest first
+  const map=new Map(); ORD.forEach(r=>{const p=period(r.d); r.pk=p.k; if(!map.has(p.k))map.set(p.k,{k:p.k,label:p.label,rows:[]}); map.get(p.k).rows.push(r);});
+  const P=[...map.values()].sort((a,b)=>a.k<b.k?1:-1); P.forEach(x=>x.a=agg(x.rows));
+  if(!map.has(repSel))repSel=P.length?P[0].k:"";
+  $("repPerH").textContent="Sales by "+repView;
+  $("repPeriod").innerHTML=P.map(x=>`<option value="${esc(x.k)}"${x.k===repSel?" selected":""}>${esc(x.label)}</option>`).join("");
+  per.innerHTML=P.map(x=>{const a=x.a; return `<tr data-k="${esc(x.k)}" class="${x.k===repSel?"sel":""}"><td>${esc(x.label)}</td>`+
+    cells([[n0(a.u.Amazon)],[n0(a.u.Flipkart)],[n0(a.u.Meesho)],[n0(a.units)],[n0(a.orders)],[rs(a.sales)],[rs(a.cost)],[rs(a.margin)],[rs(a.aov),"aov"],[n0(a.noCost),a.noCost?"warn":""]])+"</tr>";}).join("");
+  const T=agg(ORD);
+  $("repPerT").innerHTML=`<tr><td>All ${P.length} ${repView}${P.length===1?"":"s"}</td>`+cells([[n0(T.u.Amazon)],[n0(T.u.Flipkart)],[n0(T.u.Meesho)],[n0(T.units)],[n0(T.orders)],[rs(T.sales)],[rs(T.cost)],[rs(T.margin)],[rs(T.aov),"aov"],[n0(T.noCost)]])+"</tr>";
+  const S=map.get(repSel); if(!S){kp.innerHTML="";prod.innerHTML="";$("repProdT").innerHTML="";$("repProdH").textContent="—";return;}
+  const a=S.a; $("repProdH").textContent=S.label;
+  kp.innerHTML=`<div class="kpi"><small>Orders</small><b>${n0(a.orders)}</b><span>${n0(a.units)} units</span></div>`+
+    `<div class="kpi"><small>Sales</small><b>${rs(a.sales)}</b><span>${esc(S.label)}</span></div>`+
+    `<div class="kpi aov"><small>Avg order value</small><b>${rs(a.aov)}</b><span>All platforms</span></div>`+
+    PLATS.map(p=>`<div class="kpi ${p.toLowerCase()}"><small>${p} avg order</small><b>${a.o[p]?rs(a.s[p]/a.o[p]):"–"}</b><span>${n0(a.o[p])} orders · ${rs(a.s[p])}</span></div>`).join("")+
+    `<div class="kpi good"><small>Margin before fees</small><b>${rs(a.margin)}</b><span>${a.sales?(a.margin/a.sales*100).toFixed(1)+"% of sales":""}${a.noCost?` · ${a.noCost} without cost`:""}</span></div>`;
+  // products in the chosen period
+  const pm=new Map(); S.rows.forEach(r=>{const k=r.ms||("No Master SKU · "+r.sku); if(!pm.has(k))pm.set(k,{k,name:r.mp||r.prod,rows:[]}); pm.get(k).rows.push(r);});
+  const PR=[...pm.values()].map(x=>Object.assign(x,{a:agg(x.rows)})).sort((x,y)=>y.a.sales-x.a.sales);
+  prod.innerHTML=PR.map(x=>{const b=x.a; return `<tr><td>${esc(x.k)}</td><td class="pname">${esc(x.name)}</td>`+
+    cells([[n0(b.u.Amazon)],[n0(b.u.Flipkart)],[n0(b.u.Meesho)],[n0(b.units)],[n0(b.orders)],[rs(b.sales)],[b.noCost?"Add cost":rs(b.cost),b.noCost?"warn":""],[rs(b.margin)],[rs(b.aov),"aov"]])+"</tr>";}).join("");
+  $("repProdT").innerHTML=`<tr><td colspan="2">${PR.length} product${PR.length===1?"":"s"}</td>`+cells([[n0(a.u.Amazon)],[n0(a.u.Flipkart)],[n0(a.u.Meesho)],[n0(a.units)],[n0(a.orders)],[rs(a.sales)],[rs(a.cost)],[rs(a.margin)],[rs(a.aov),"aov"]])+"</tr>";
+}
+function repNote(kind,html){const n=$("repNote"); if(!kind){n.className="notice";return;} n.className="notice show "+kind; n.innerHTML=html;}
+async function loadReport(){
+  const b=$("repLoad"); b.disabled=true; b.textContent="Loading…";
+  try{
+    const res=await api({action:"orders"});
+    if(res.err){
+      if(res.err==="bad_request")repNote("warn","Your Apps Script is an older version without the Sales report. Open Extensions → Apps Script in your sheet, replace the code with the new <a href=\"https://github.com/gokulecommerce05-oss/amazon-report-analysis-tool/blob/main/label-entry/apps-script.gs\" target=\"_blank\" rel=\"noopener\">apps-script.gs</a> (keep your ACCESS_KEY), then Deploy → Manage deployments → Edit → Version: New version → Deploy. The Web app URL stays the same.");
+      else repNote(res.err==="not_set"?"info":"err",res.err==="not_set"?"Set up Google Sheet settings above to see your sales report.":errText(res.err));
+      return;
+    }
+    ORD=(res.rows||[]).map(r=>{const d=toDate(r[0]); const uc=r[9]; const noCost=!(typeof uc==="number"||/^[₹\d.,\s]+$/.test(String(uc||"")))||String(uc).trim()==="";
+      return d&&{d,p:String(r[1]||"").trim(),id:r[2],sku:String(r[3]||""),prod:String(r[4]||""),qty:numV(r[5]),amt:numV(r[6]),ms:/^MS-/i.test(String(r[7]||""))?String(r[7]).trim():"",mp:/^Add /i.test(String(r[8]||""))?"":String(r[8]||""),cost:noCost?0:numV(r[10]),noCost};}).filter(Boolean);
+    repSel=""; repNote(ORD.length?null:"info",ORD.length?"":"Your Orders tab has no orders yet.");
+    if(ORD.length)repNote("ok",`Loaded <b>${ORD.length.toLocaleString("en-IN")}</b> order lines from your sheet.`);
+    drawReport();
+  } finally { b.disabled=false; b.textContent=ORD?"Refresh":"Load from sheet"; }
+}
+$("repLoad").onclick=loadReport;
+$("repView").addEventListener("click",e=>{const b=e.target.closest("button[data-v]"); if(!b)return; repView=b.dataset.v; repSel=""; drawReport();});
+$("repPeriod").addEventListener("change",e=>{repSel=e.target.value; drawReport();});
+$("repPer").addEventListener("click",e=>{const tr=e.target.closest("tr[data-k]"); if(!tr)return; repSel=tr.dataset.k; drawReport(); $("repProdH").scrollIntoView({block:"nearest",behavior:"smooth"});});
+drawReport();
+if(scriptUrl&&scriptKey)loadReport(); else repNote("info","Set up Google Sheet settings above to see your sales report.");
 })();
 </script>
 </body>

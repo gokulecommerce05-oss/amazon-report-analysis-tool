@@ -31,6 +31,7 @@ function doPost(e) {
     return json_({ ok: true, ids: [...orderIds_(sh)], keys: [...rowKeys_(sh)] });
   }
   if (body.action === 'append') return json_(append_(body.rows || []));
+  if (body.action === 'orders') return json_(orders_());
   return json_({ ok: false, error: 'bad_request' });
 }
 
@@ -62,6 +63,22 @@ function append_(rows) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Read-only rows for the tool's Sales report. Only the columns the report needs:
+// dispatch date, platform, order ID, SKU, product, qty, amount, Master SKU, Master product,
+// unit cost, total cost. Customer names and states are not sent.
+function orders_() {
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return { ok: true, rows: [] };
+  const width = Math.min(sh.getLastColumn(), 17); // A..Q
+  const tz = Session.getScriptTimeZone();
+  const day = v => v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v || '');
+  const v = sh.getRange(2, 1, last - 1, width).getValues();
+  const rows = v.filter(r => String(r[2] || '').trim()).map(r =>
+    [day(r[0]), r[1], String(r[2]), String(r[3] || ''), String(r[4] || ''), r[5], r[6], r[13] || '', r[14] || '', r[15] === undefined ? '' : r[15], r[16] === undefined ? '' : r[16]]);
+  return { ok: true, rows };
 }
 
 function sheet_() {
