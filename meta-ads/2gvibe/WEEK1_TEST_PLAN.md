@@ -55,9 +55,9 @@ Speed fixes:
 ## 3. Campaign setup
 ```
 CAMPAIGN  2GV_TEST_W1_Sales          Sales → Website, ₹200/day ad-set budget, 7 days
- AD SET   2GV_W1_Broad_IN            Optimise for: Add to Cart (switch to Purchase in week 2)
-          Advantage+ audience · India · 25–55 · all genders
-          Placements: Advantage+ minus Audience Network
+ AD SET   2GV_W1_Metro_FSR           Optimise for: Add to Cart (switch to Purchase in week 2)
+          Advantage+ audience · 8 metros (+25 km): Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata, Pune, Ahmedabad · min age 25
+          Placements (manual): Facebook + Instagram Feed, Stories, Reels only
           Attribution: 7-day click / 1-day view
   AD 1  2GV_W1_REALSOUND_REEL_ELEPH  Flexible format: video/ad1_realsound_elephant_9x16.mp4 + ad1b_listen_elephant_9x16.mp4 (+ 4x5)
                                      → Elephant product page  (real owner footage, original sound enhanced)
