@@ -59,7 +59,8 @@ CAMPAIGN  2GV_TEST_W1_Sales          Sales → Website, ₹200/day ad-set budget
           Advantage+ audience · India · 25–55 · all genders
           Placements: Advantage+ minus Audience Network
           Attribution: 7-day click / 1-day view
-  AD 1  2GV_W1_SOUND_REEL_BIG30      video/ad1_sound_big30_9x16.mp4 (+ 4x5)   → Big 30" product page
+  AD 1  2GV_W1_REALSOUND_REEL_ELEPH  Flexible format: video/ad1_realsound_elephant_9x16.mp4 + ad1b_listen_elephant_9x16.mp4 (+ 4x5)
+                                     → Elephant product page  (real owner footage, original sound enhanced)
   AD 2  2GV_W1_VASTU_STATIC_ELEPH    static/ad2_vastu_elephant_4x5.png (+ 9x16) → Elephant product page
   AD 3  2GV_W1_GIFT_STATIC_BUNDLE    static/ad3_gift_bundle_4x5.png (+ 9x16)   → /product-category/wind-chimes/
 ```
@@ -67,7 +68,19 @@ UTM on every ad: `utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}
 
 ## 4. Ad copy
 
-### AD 1 – Sound Reel (Big 30" Black, ₹999)
+### AD 1 – Real-sound Reel (Elephant, ₹699)
+**Primary (EN):**
+> Real sound. No music added 🔊 Turn your sound on and listen to our Elephant wind chime ring on a breezy rooftop.
+> 6 elephant charms · 4 golden pipes · 4 bells. Vastu tip: hang it near your main door for positive energy ✨
+> Only ₹699 · 💵 Cash on Delivery · 🚚 Free shipping above ₹1,000
+
+**Primary (Hinglish):**
+> Asli awaaz, koi music nahi 🔊 Sound ON karke suniye — hamari Elephant wind chime ki sukoon bhari awaaz. Sirf ₹699, COD available 💵
+
+**Headlines:** "Hear the Real Sound 🔊" · "Elephant Wind Chime – ₹699" · "COD Available"
+**Description:** "Free shipping above ₹1,000"
+
+### Spare – Sound Reel (Big 30" Black, ₹999), template-made from website photos
 **Primary (EN):**
 > Your balcony is missing this 🎐
 > Our Big 30" wind chime has 6 deep-tone metal pipes that turn every breeze into calm, soothing music.
@@ -119,10 +132,12 @@ UTM on every ad: `utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}
 ## 6. Creatives v1 (`creatives/`)
 | File | Format | Notes |
 |---|---|---|
-| `video/ad1_sound_big30_9x16.mp4` | 1080×1920, 14.6 s | Reels/Stories. Silent placeholder audio. **Swap in the real chime sound** |
-| `video/ad1_sound_big30_4x5.mp4` | 1080×1350 | Feed |
+| `video/ad1_realsound_elephant_9x16.mp4` / `_4x5.mp4` | 1080×1920 / 1080×1350, 15.7 s | **AD 1 main.** Owner's rooftop clip A, original sound cleaned and lifted to −14 LUFS. Build: `src/build_realsound_reel.sh` |
+| `video/ad1b_listen_elephant_9x16.mp4` / `_4x5.mp4` | 9.2 s | **AD 1 variant** ("Close your eyes & just listen"). Clip B brightened. Build: `src/build_listen_reel.sh` |
+| `video/ad1_sound_big30_9x16.mp4` / `_4x5.mp4` | 14.6 s | Spare (made from website photos, silent). Use only after real Big 30" footage is added |
 | `static/ad2_vastu_elephant_4x5.png` / `_9x16.png` | Feed / Stories | |
 | `static/ad3_gift_bundle_4x5.png` / `_9x16.png` | Feed / Stories | |
 | `src/` | HTML templates + `render.js` | Edit the text and re-render: `node render.js in.html out.png 1080 1350` |
 
-Built from the photos on 2gvibe.com. **v2 will use the owner's raw photos and videos** (real sound, hands, balcony, unboxing).
+Raw clips are WhatsApp-compressed (478×850) and upscaled to 1080×1920. Send the **original camera files** (Google Drive or a file transfer, not WhatsApp) for sharper video.
+Audio chain: high-pass 120 Hz (wind rumble) → light denoise → +3 dB at 3.5 kHz (chime clarity) → −2 dB at 250 Hz → gentle compression → loudness −14 LUFS, true peak −1.5 dB.
