@@ -304,6 +304,16 @@ function parseFlipkart(t){
   return out;
 }
 
+// A wrapped price line can leave bits of the price columns inside "( SKU )",
+// e.g. "( ₹818.10 -W9-OOB6-HESM )". Drop those bits so only the SKU is left.
+function cleanSku(raw){
+  return String(raw||"")
+    .replace(/₹[\d,]+(?:\.\d+)?(?:\s+\d{1,3}(?=\s+₹))?/g," ")
+    .replace(/\b\d+(?:\.\d+)?\s*%/g," ")
+    .replace(/\b(?:IGST|CGST|SGST|UTGST|CESS)\b/g," ")
+    .replace(/\s+/g,"")
+    .replace(/^[-|,.]+|[-|,.]+$/g,"");
+}
 function parseAmazon(t){
   const L=t.split("\n"); const out=[];
   const om=t.match(/Order Number:\s*(\d{3}-\d{7}-\d{7})/); const orderId=om?om[1]:"";
@@ -329,7 +339,7 @@ function parseAmazon(t){
     let d=clean.slice(cursor,m.index).replace(/HSN:\d+/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
     cursor=m.index+m[0].length;
     const p=prices[i];
-    out.push({platform:"Amazon",orderId,sku:m[2].replace(/\s+/g,""),qty:p?+p[2]:1,product:d,amount:p?money(p[4]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate});
+    out.push({platform:"Amazon",orderId,sku:cleanSku(m[2]),qty:p?+p[2]:1,product:d,amount:p?money(p[4]):0,payment:pay,courier:"Amazon Shipping",awb:"",customer:cust,state,orderDate});
   });
   // Never drop an order silently: if the item line could not be read, keep the order
   // with an empty SKU so it shows in red and can be filled in by hand.
