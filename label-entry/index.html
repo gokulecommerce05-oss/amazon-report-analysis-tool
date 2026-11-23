@@ -104,6 +104,19 @@ dialog p{margin:0 0 12px;color:var(--ink)}
 :root[data-theme="dark"] .duplist th{color:var(--ink)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .duplist th{color:var(--ink)}}
 .duplist td{font-variant-numeric:tabular-nums}
+/* delivery partner picker */
+.partners{display:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.partners.show{display:block}
+.partners .ph{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.partners h3{margin:0;font-size:16px}
+.partners .ph span{color:var(--muted);font-size:13px}
+.partners .pl{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{display:flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;min-height:44px;background:var(--bg)}
+.pchip:has(input:checked){border-color:var(--teal);background:var(--teal-soft)}
+.pchip input{width:20px;height:20px;accent-color:var(--teal);margin:0}
+.pchip b{font-size:15px}
+.pchip small{display:block;color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.linkbtn{font:inherit;font-size:13px;font-weight:600;background:none;border:0;color:var(--teal);cursor:pointer;padding:4px;text-decoration:underline}
 /* sales report */
 .report{margin-top:44px;display:flex;flex-direction:column;gap:14px}
 .report h2{font-size:24px;font-weight:800;letter-spacing:-0.01em;margin:0}
@@ -176,6 +189,11 @@ select.f{font:inherit;color:var(--ink);background:var(--surface);border:1px soli
 <div class="notice" id="notice" role="status" aria-live="polite"></div>
 
 <div class="summary" id="summary"></div>
+<div class="partners" id="partners" role="group" aria-labelledby="partH">
+  <div class="ph"><h3 id="partH">Delivery partner: tick the ones to add</h3>
+    <span>Only ticked partners are shown and added. <button class="linkbtn" type="button" data-all="1">Tick all</button> <button class="linkbtn" type="button" data-all="0">Untick all</button></span></div>
+  <div class="pl" id="partList"></div>
+</div>
 <div class="tablebox" id="tablebox">
   <table>
     <thead><tr>
@@ -210,6 +228,11 @@ select.f{font:inherit;color:var(--ink);background:var(--surface);border:1px soli
   <div class="rtable"><table>
     <thead><tr><th>Master SKU</th><th>Product</th><th>Amazon units</th><th>Flipkart units</th><th>Meesho units</th><th>Total units</th><th>Orders</th><th>Sales (₹)</th><th>Purchase cost (₹)</th><th>Margin before fees (₹)</th><th>Avg order value (₹)</th></tr></thead>
     <tbody id="repProd"></tbody><tfoot id="repProdT"></tfoot>
+  </table></div>
+  <div class="rtitle"><h3>Delivery partner-wise: <span id="repCourH">—</span></h3><span class="sub">From the Courier column of your Orders tab.</span></div>
+  <div class="rtable"><table>
+    <thead><tr><th>Delivery partner</th><th>Amazon orders</th><th>Flipkart orders</th><th>Meesho orders</th><th>Orders</th><th>Units</th><th>Sales (₹)</th><th>COD orders</th><th>Prepaid orders</th><th>Avg order value (₹)</th></tr></thead>
+    <tbody id="repCour"></tbody><tfoot id="repCourT"></tfoot>
   </table></div>
 </section>
 </div>
@@ -255,7 +278,9 @@ function parseMeesho(t){
   const pay=/^COD\b|\bCOD:/m.test(t)?"COD":(/Prepaid/i.test(t)?"Prepaid":"");
   const pdIdx=L.findIndex(l=>/^Product Details/.test(l));
   const top=L.slice(0,pdIdx<0?L.length:pdIdx).join("\n");
-  const courier=COURIERS.find(c=>top.includes(c))||"";
+  // your return address reads "… Shadowfax Courier Inside st …", which is not the delivery partner
+  const topC=top.replace(/Shadowfax\s+Courier\s+Inside/gi," ");
+  const courier=COURIERS.find(c=>topC.includes(c))||"";
   const awbM=top.match(/\b(\d{11,20})\b/); const awb=awbM?awbM[1]:"";
   let state=""; const pi=L.findIndex(l=>/Place of Supply:/.test(l));
   if(pi>=0){let rest=L[pi].split(/Place of Supply:/)[1].trim(); if(!rest){for(let j=pi+1;j<Math.min(L.length,pi+4);j++){if(!/^(Purchase|Sold|GSTIN)/.test(L[j])){rest=L[j];break;}}} state=matchState(rest);}
@@ -355,6 +380,10 @@ function parsePage(t){const p=detect(t); if(p==="Amazon")return parseAmazon(t); 
 (function(){
 const $=id=>document.getElementById(id);
 let rows=[]; let scriptUrl="", scriptKey="";
+// delivery partners the user has unticked; rows for them are hidden and not added
+const courierOff=new Set();
+const courierOf=r=>String(r.courier||"").trim()||"Not on label";
+const inc=r=>!courierOff.has(courierOf(r));
 try{scriptUrl=localStorage.getItem("labeltool.url")||""; scriptKey=localStorage.getItem("labeltool.key")||"";}catch(e){}
 $("scriptUrl").value=scriptUrl; $("scriptKey").value=scriptKey;
 $("saveSheet").onclick=async()=>{const u=$("scriptUrl").value.trim(), k=$("scriptKey").value.trim();
@@ -450,6 +479,7 @@ const FIELDS=["platform","orderId","sku","product","qty","amount","payment","cou
 function render(){
   const tb=$("tbody"); tb.innerHTML="";
   rows.forEach((r,i)=>{
+    if(!inc(r))return;
     const tr=document.createElement("tr"); if(r.dup)tr.className="dup";
     tr.innerHTML=FIELDS.map(f=>{
       if(f==="platform")return `<td class="tag"><span class="chip ${esc(r.platform)}">${esc(r.platform)}</span></td>`;
@@ -458,18 +488,34 @@ function render(){
     }).join("")+`<td><button class="del" type="button" aria-label="Remove this row" data-del="${i}">×</button></td>`;
     tb.appendChild(tr);
   });
+  drawPartners();
+  const shown=rows.filter(inc);
   const by={Amazon:0,Flipkart:0,Meesho:0}; let amt=0,qty=0;
-  rows.forEach(r=>{by[r.platform]=(by[r.platform]||0)+1; amt+=Number(r.amount)||0; qty+=Number(r.qty)||0;});
-  $("summary").innerHTML=`<div class="stat"><b>${rows.length}</b><small>Orders</small></div>`+
+  shown.forEach(r=>{by[r.platform]=(by[r.platform]||0)+1; amt+=Number(r.amount)||0; qty+=Number(r.qty)||0;});
+  $("summary").innerHTML=`<div class="stat"><b>${shown.length}</b><small>Orders${shown.length<rows.length?` (of ${rows.length})`:""}</small></div>`+
     ["Amazon","Flipkart","Meesho"].map(p=>`<div class="stat ${p.toLowerCase()}"><b>${by[p]||0}</b><small>${p}</small></div>`).join("")+
     `<div class="stat"><b>${qty}</b><small>Units</small></div><div class="stat"><b>₹${amt.toLocaleString("en-IN")}</b><small>Amount</small></div>`;
   const has=rows.length>0;
   $("summary").classList.toggle("show",has); $("tablebox").classList.toggle("show",has); $("bar").classList.toggle("show",has);
-  const n=rows.filter(r=>!r.dup).length; $("saveBtn").textContent=`Add ${n} order${n===1?"":"s"} to Google Sheet`;
+  const n=rows.filter(r=>!r.dup&&inc(r)).length; $("saveBtn").textContent=`Add ${n} order${n===1?"":"s"} to Google Sheet`;
+  $("saveBtn").disabled=!n&&rows.length>0;
 }
+function drawPartners(){
+  const m=new Map();
+  rows.forEach(r=>{const c=courierOf(r); if(!m.has(c))m.set(c,{c,n:0,amt:0,cod:0,plat:{}}); const x=m.get(c);
+    x.n++; x.amt+=Number(r.amount)||0; if(r.payment==="COD")x.cod++; x.plat[r.platform]=(x.plat[r.platform]||0)+1;});
+  [...courierOff].forEach(c=>{if(!m.has(c))courierOff.delete(c);});
+  const list=[...m.values()].sort((a,b)=>b.n-a.n);
+  $("partners").classList.toggle("show",list.length>0);
+  $("partList").innerHTML=list.map(x=>`<label class="pchip"><input type="checkbox" data-c="${esc(x.c)}"${courierOff.has(x.c)?"":" checked"}>`+
+    `<span><b>${esc(x.c)}</b><small>${x.n} order${x.n===1?"":"s"} · ₹${Math.round(x.amt).toLocaleString("en-IN")}${x.cod?` · ${x.cod} COD`:""} · ${Object.entries(x.plat).map(([p,k])=>`${esc(p)} ${k}`).join(", ")}</small></span></label>`).join("");
+}
+$("partList").addEventListener("change",e=>{const c=e.target.dataset.c; if(c===undefined)return; if(e.target.checked)courierOff.delete(c); else courierOff.add(c); render();});
+$("partners").addEventListener("click",e=>{const b=e.target.closest("[data-all]"); if(!b)return;
+  if(b.dataset.all==="1")courierOff.clear(); else rows.forEach(r=>courierOff.add(courierOf(r))); render();});
 $("tbody").addEventListener("input",e=>{const td=e.target.closest("td[data-f]"); if(!td)return; const r=rows[+td.dataset.i], f=td.dataset.f;
   let v=td.textContent.trim(); if(f==="qty"||f==="amount"){const n=parseFloat(v.replace(/[^\d.]/g,"")); r[f]=isNaN(n)?0:n;} else {r[f]=v; if(f==="sku"&&v)r.unread=false;}});
-$("tbody").addEventListener("blur",e=>{const td=e.target.closest("td[data-f]"); if(td&&(td.dataset.f==="qty"||td.dataset.f==="amount"))render();},true);
+$("tbody").addEventListener("blur",e=>{const td=e.target.closest("td[data-f]"); if(td&&["qty","amount","courier","payment"].includes(td.dataset.f))render();},true);
 $("tbody").addEventListener("click",e=>{const b=e.target.closest("[data-del]"); if(b){rows.splice(+b.dataset.del,1); render();}});
 
 const drop=$("drop"), fi=$("file");
@@ -478,14 +524,14 @@ drop.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDe
 ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
 drop.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
-$("clearBtn").onclick=()=>{rows=[];$("files").innerHTML="";render();$("notice").className="notice";};
+$("clearBtn").onclick=()=>{rows=[];courierOff.clear();$("files").innerHTML="";render();$("notice").className="notice";};
 
 function sheetRow(r){
   const disp=$("dispatch").value;
   return [disp,r.platform,r.orderId,r.sku,r.product,Number(r.qty)||0,Number(r.amount)||0,r.payment,r.courier,r.awb||"",r.customer,r.state,r.orderDate||""];
 }
 $("copyBtn").onclick=()=>{
-  const txt=rows.filter(r=>!r.dup).map(r=>sheetRow(r).map(v=>String(v).replace(/^'/,"").replace(/\t|\n/g," ")).join("\t")).join("\n");
+  const txt=rows.filter(r=>!r.dup&&inc(r)).map(r=>sheetRow(r).map(v=>String(v).replace(/^'/,"").replace(/\t|\n/g," ")).join("\t")).join("\n");
   const ta=$("clip"); ta.value=txt; ta.select(); let ok=false;
   try{ok=document.execCommand("copy");}catch(e){}
   if(!ok&&navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>notice("ok","Rows copied. In your sheet's Orders tab, click cell A of the first empty row and paste."),()=>notice("err","Copy was blocked by the browser. Select the table and copy it by hand."));return;}
@@ -502,7 +548,8 @@ function errText(c){
 $("saveBtn").onclick=async()=>{
   const btn=$("saveBtn"); if(!rows.length)return;
   if(!$("dispatch").value){notice("warn","Choose a dispatch date first.");return;}
-  const bad=rows.filter(r=>!r.orderId||!r.sku); if(bad.length){notice("warn",`${bad.length} row${bad.length>1?"s are":" is"} missing an Order ID or SKU (shown in red). Fix or remove ${bad.length>1?"them":"it"} first.`);return;}
+  if(!rows.some(inc)){notice("warn","Tick at least one delivery partner above.");return;}
+  const bad=rows.filter(r=>inc(r)&&(!r.orderId||!r.sku)); if(bad.length){notice("warn",`${bad.length} row${bad.length>1?"s are":" is"} missing an Order ID or SKU (shown in red). Fix or remove ${bad.length>1?"them":"it"} first.`);return;}
   btn.disabled=true; const label=btn.textContent; btn.textContent="Checking your sheet…";
   try{
     const existing=await api({action:"ids"});
@@ -511,11 +558,11 @@ $("saveBtn").onclick=async()=>{
     rows.forEach(r=>r.dup=has(r));
     // also guard against the same Order ID twice in this batch (e.g. edited by hand)
     const batch=new Set(); const batchDup=[];
-    rows.forEach(r=>{if(r.dup)return; const k=rowKey(r); if(batch.has(k)){r.dup=true; batchDup.push(r);} else batch.add(k);});
-    const todo=rows.filter(r=>!r.dup); render();
-    const dupRows=rows.filter(r=>r.dup);
+    rows.forEach(r=>{if(r.dup||!inc(r))return; const k=rowKey(r); if(batch.has(k)){r.dup=true; batchDup.push(r);} else batch.add(k);});
+    const todo=rows.filter(r=>!r.dup&&inc(r)); render();
+    const dupRows=rows.filter(r=>r.dup&&inc(r));
     if(dupRows.length)showDupAlert(dupRows.map(r=>({platform:r.platform,orderId:r.orderId,reason:batchDup.includes(r)?"Repeated in this list":"Already in your Google Sheet"})),"These orders were NOT added, because the same Order ID was found:");
-    if(!todo.length){notice("warn","All these orders are already in your sheet. Nothing new to add.");return;}
+    if(!todo.length){notice("warn","All the ticked orders are already in your sheet. Nothing new to add.");return;}
     btn.textContent=`Adding ${todo.length}…`;
     const res=await api({action:"append",rows:todo.map(sheetRow)});
     if(res.err){notice("err",errText(res.err));return;}
@@ -523,13 +570,15 @@ $("saveBtn").onclick=async()=>{
     // newer script reports skipped order+SKU keys; older one reports order IDs
     const late=new Set((res.skippedKeys||res.skipped).map(normId));
     todo.forEach(r=>{if(late.has(res.skippedKeys?rowKey(r):normId(r.orderId)))r.dup=true;});
-    const skipped=rows.filter(r=>r.dup).length;
+    const skipped=todo.filter(r=>r.dup).length;
+    const left=rows.filter(r=>!inc(r)&&!r.dup).length;
     const url=/^https:\/\/docs\.google\.com\//.test(res.sheetUrl||"")?res.sheetUrl:"";
-    rows=rows.filter(r=>r.dup); render(); $("files").innerHTML="";
-    notice("ok",(res.added?`Added <b>${res.added}</b> order${res.added===1?"":"s"} to rows ${res.start} to ${res.end} of the Orders tab.`:"No new orders were added.")+(skipped?` ${skipped} already in the sheet ${skipped===1?"was":"were"} skipped.`:"")+(url?` <a href="${esc(url)}" target="_blank" rel="noopener">Open the sheet</a>`:""));
+    // keep unticked partners' rows so they can be added next
+    rows=rows.filter(r=>r.dup||!inc(r)); render(); if(!left)$("files").innerHTML="";
+    notice("ok",(res.added?`Added <b>${res.added}</b> order${res.added===1?"":"s"} to rows ${res.start} to ${res.end} of the Orders tab.`:"No new orders were added.")+(skipped?` ${skipped} already in the sheet ${skipped===1?"was":"were"} skipped.`:"")+(left?` <b>${left} order${left===1?"":"s"}</b> for unticked delivery partners ${left===1?"is":"are"} still here: tick them to add.`:"")+(url?` <a href="${esc(url)}" target="_blank" rel="noopener">Open the sheet</a>`:""));
     if(!rows.length){$("bar").classList.remove("show");}
     if(res.added&&ORD)loadReport();
-  } finally { btn.disabled=false; if(btn.textContent.startsWith("Adding")||btn.textContent.startsWith("Checking"))btn.textContent=label; render(); }
+  } finally { btn.disabled=false; if(!rows.some(r=>!r.dup&&inc(r))&&rows.length)btn.disabled=true; if(btn.textContent.startsWith("Adding")||btn.textContent.startsWith("Checking"))btn.textContent=label; render(); }
 };
 render();
 
@@ -561,7 +610,7 @@ function cells(vals){return vals.map(([v,c])=>`<td class="num ${c||""}">${v}</td
 function drawReport(){
   const kp=$("repKpis"), per=$("repPer"), prod=$("repProd");
   document.querySelectorAll("#repView button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===repView)));
-  if(!ORD){ kp.innerHTML=""; per.innerHTML=""; prod.innerHTML=""; $("repPerT").innerHTML=""; $("repProdT").innerHTML=""; $("repPeriod").innerHTML=""; return; }
+  if(!ORD){ $("repCour").innerHTML=""; $("repCourT").innerHTML=""; kp.innerHTML=""; per.innerHTML=""; prod.innerHTML=""; $("repPerT").innerHTML=""; $("repProdT").innerHTML=""; $("repPeriod").innerHTML=""; return; }
   // periods, newest first
   const map=new Map(); ORD.forEach(r=>{const p=period(r.d); r.pk=p.k; if(!map.has(p.k))map.set(p.k,{k:p.k,label:p.label,rows:[]}); map.get(p.k).rows.push(r);});
   const P=[...map.values()].sort((a,b)=>a.k<b.k?1:-1); P.forEach(x=>x.a=agg(x.rows));
@@ -572,7 +621,8 @@ function drawReport(){
     cells([[n0(a.u.Amazon)],[n0(a.u.Flipkart)],[n0(a.u.Meesho)],[n0(a.units)],[n0(a.orders)],[rs(a.sales)],[rs(a.cost)],[rs(a.margin)],[rs(a.aov),"aov"],[n0(a.noCost),a.noCost?"warn":""]])+"</tr>";}).join("");
   const T=agg(ORD);
   $("repPerT").innerHTML=`<tr><td>All ${P.length} ${repView}${P.length===1?"":"s"}</td>`+cells([[n0(T.u.Amazon)],[n0(T.u.Flipkart)],[n0(T.u.Meesho)],[n0(T.units)],[n0(T.orders)],[rs(T.sales)],[rs(T.cost)],[rs(T.margin)],[rs(T.aov),"aov"],[n0(T.noCost)]])+"</tr>";
-  const S=map.get(repSel); if(!S){kp.innerHTML="";prod.innerHTML="";$("repProdT").innerHTML="";$("repProdH").textContent="—";return;}
+  const S=map.get(repSel); if(!S){kp.innerHTML="";prod.innerHTML="";$("repProdT").innerHTML="";$("repProdH").textContent="—";$("repCour").innerHTML="";$("repCourT").innerHTML="";$("repCourH").textContent="—";return;}
+  drawCouriers(S);
   const a=S.a; $("repProdH").textContent=S.label;
   kp.innerHTML=`<div class="kpi"><small>Orders</small><b>${n0(a.orders)}</b><span>${n0(a.units)} units</span></div>`+
     `<div class="kpi"><small>Sales</small><b>${rs(a.sales)}</b><span>${esc(S.label)}</span></div>`+
@@ -586,6 +636,16 @@ function drawReport(){
     cells([[n0(b.u.Amazon)],[n0(b.u.Flipkart)],[n0(b.u.Meesho)],[n0(b.units)],[n0(b.orders)],[rs(b.sales)],[b.noCost?"Add cost":rs(b.cost),b.noCost?"warn":""],[rs(b.margin)],[rs(b.aov),"aov"]])+"</tr>";}).join("");
   $("repProdT").innerHTML=`<tr><td colspan="2">${PR.length} product${PR.length===1?"":"s"}</td>`+cells([[n0(a.u.Amazon)],[n0(a.u.Flipkart)],[n0(a.u.Meesho)],[n0(a.units)],[n0(a.orders)],[rs(a.sales)],[rs(a.cost)],[rs(a.margin)],[rs(a.aov),"aov"]])+"</tr>";
 }
+function drawCouriers(S){
+  $("repCourH").textContent=S.label;
+  if(S.rows.some(r=>r.cr===null)){$("repCour").innerHTML=`<tr><td colspan="10" style="white-space:normal">Update your Apps Script to see delivery partners here: open Extensions → Apps Script in your sheet, paste the new <a href="https://github.com/gokulecommerce05-oss/amazon-report-analysis-tool/blob/main/label-entry/apps-script.gs" target="_blank" rel="noopener">apps-script.gs</a> (keep your ACCESS_KEY), then Deploy → Manage deployments → Edit → Version: New version → Deploy.</td></tr>`;$("repCourT").innerHTML="";return;}
+  const m=new Map(); S.rows.forEach(r=>{if(!m.has(r.cr))m.set(r.cr,{c:r.cr,rows:[]}); m.get(r.cr).rows.push(r);});
+  const L=[...m.values()].map(x=>{const a=agg(x.rows); a.cod=x.rows.filter(r=>/cod/i.test(r.pay)).length; a.pre=x.rows.filter(r=>/prepaid/i.test(r.pay)).length; return Object.assign(x,{a});}).sort((x,y)=>y.a.orders-x.a.orders);
+  const row=(name,a)=>`<td>${esc(name)}</td>`+cells([[n0(a.o.Amazon)],[n0(a.o.Flipkart)],[n0(a.o.Meesho)],[n0(a.orders)],[n0(a.units)],[rs(a.sales)],[n0(a.cod)],[n0(a.pre)],[rs(a.aov),"aov"]]);
+  $("repCour").innerHTML=L.map(x=>`<tr>${row(x.c,x.a)}</tr>`).join("");
+  const T=agg(S.rows); T.cod=L.reduce((s,x)=>s+x.a.cod,0); T.pre=L.reduce((s,x)=>s+x.a.pre,0);
+  $("repCourT").innerHTML=`<tr>${row(L.length+" partner"+(L.length===1?"":"s"),T)}</tr>`;
+}
 function repNote(kind,html){const n=$("repNote"); if(!kind){n.className="notice";return;} n.className="notice show "+kind; n.innerHTML=html;}
 async function loadReport(){
   const b=$("repLoad"); b.disabled=true; b.textContent="Loading…";
@@ -597,7 +657,7 @@ async function loadReport(){
       return;
     }
     ORD=(res.rows||[]).map(r=>{const d=toDate(r[0]); const uc=r[9]; const noCost=!(typeof uc==="number"||/^[₹\d.,\s]+$/.test(String(uc||"")))||String(uc).trim()==="";
-      return d&&{d,p:String(r[1]||"").trim(),id:r[2],sku:String(r[3]||""),prod:String(r[4]||""),qty:numV(r[5]),amt:numV(r[6]),ms:/^MS-/i.test(String(r[7]||""))?String(r[7]).trim():"",mp:/^Add /i.test(String(r[8]||""))?"":String(r[8]||""),cost:noCost?0:numV(r[10]),noCost};}).filter(Boolean);
+      return d&&{d,p:String(r[1]||"").trim(),id:r[2],sku:String(r[3]||""),prod:String(r[4]||""),qty:numV(r[5]),amt:numV(r[6]),ms:/^MS-/i.test(String(r[7]||""))?String(r[7]).trim():"",mp:/^Add /i.test(String(r[8]||""))?"":String(r[8]||""),cost:noCost?0:numV(r[10]),noCost,pay:String(r[11]||""),cr:r.length>12?(String(r[12]||"").trim()||"Not entered"):null};}).filter(Boolean);
     repSel=""; repNote(ORD.length?null:"info",ORD.length?"":"Your Orders tab has no orders yet.");
     if(ORD.length)repNote("ok",`Loaded <b>${ORD.length.toLocaleString("en-IN")}</b> order lines from your sheet.`);
     drawReport();
